@@ -50,6 +50,7 @@ export const appUser = pgTable(
     email: text("email").notNull(),
     passwordHash: text("password_hash"),
     isInternal: boolean("is_internal").notNull().default(true),
+    licenseeId: uuid("licensee_id"),
     status: userStatus("status").notNull().default("ativo"),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

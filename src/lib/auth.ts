@@ -37,6 +37,8 @@ export async function authenticate(
     name: user.name,
     email: user.email,
     permissions,
+    licenseeId: user.licenseeId ?? null,
+    isInternal: user.isInternal,
   });
   return { ok: true };
 }
@@ -50,6 +52,14 @@ export async function requireSession(): Promise<SessionData> {
   const session = await getSession();
   if (!session) redirect("/login");
   return session;
+}
+
+/** Portal do licenciado: exige um usuário vinculado a um licenciado; senão redireciona. */
+export async function requireLicenseeSession(): Promise<SessionData & { licenseeId: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!session.licenseeId) redirect("/dashboard");
+  return session as SessionData & { licenseeId: string };
 }
 
 export function can(session: SessionData, permission: string) {

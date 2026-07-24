@@ -12,6 +12,9 @@ export type SessionData = {
   name: string;
   email: string;
   permissions: string[];
+  /** Se preenchido, o usuário é um licenciado e só enxerga os dados deste licensee. */
+  licenseeId: string | null;
+  isInternal: boolean;
 };
 
 export async function createSession(data: SessionData) {
