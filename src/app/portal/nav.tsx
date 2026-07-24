@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, FileText, Coins, Wallet, type LucideIcon } from "lucide-react";
+import { LayoutGrid, FileText, Package, Coins, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/portal", label: "Início", icon: LayoutGrid },
   { href: "/portal/contratos", label: "Meus Contratos", icon: FileText },
+  { href: "/portal/produtos", label: "Produtos & Aprovações", icon: Package },
   { href: "/portal/royalties", label: "Reportes de Royalties", icon: Coins },
   { href: "/portal/financeiro", label: "Financeiro", icon: Wallet },
 ];

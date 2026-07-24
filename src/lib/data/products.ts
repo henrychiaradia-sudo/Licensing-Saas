@@ -130,3 +130,79 @@ export async function approveNextStage(tenantId: string, approvalId: string) {
       .where(eq(product.id, owner[0].productId));
   }
 }
+
+type StageDecision = "aprovado" | "aprovado_com_ressalvas" | "reprovado";
+
+/**
+ * Registra o parecer de uma alçada (aprovar, aprovar com ressalvas ou reprovar) com comentário.
+ * - Reprovação: encerra o fluxo e reprova o produto.
+ * - Aprovação (com ou sem ressalvas): se for a última alçada, aprova o produto
+ *   (com ressalvas se qualquer alçada teve ressalva). Idempotente por alçada.
+ */
+export async function decideStage(
+  tenantId: string,
+  stageId: string,
+  decision: StageDecision,
+  comment: string | null,
+  userId: string,
+) {
+  const rows = await db
+    .select({
+      approvalId: approvalStage.productApprovalId,
+      stageDecision: approvalStage.decision,
+      productId: productApproval.productId,
+    })
+    .from(approvalStage)
+    .innerJoin(productApproval, eq(productApproval.id, approvalStage.productApprovalId))
+    .where(and(eq(approvalStage.id, stageId), eq(approvalStage.tenantId, tenantId)))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return;
+  if (row.stageDecision !== "pendente") return; // idempotência: já decidida
+
+  const { approvalId, productId } = row;
+
+  await db
+    .update(approvalStage)
+    .set({ decision, comment: comment ?? null, assigneeUserId: userId, decidedAt: new Date(), updatedAt: new Date() })
+    .where(eq(approvalStage.id, stageId));
+
+  if (decision === "reprovado") {
+    await db
+      .update(productApproval)
+      .set({ status: "reprovado", overallDecision: "reprovado", decidedAt: new Date(), updatedAt: new Date() })
+      .where(eq(productApproval.id, approvalId));
+    await db
+      .update(product)
+      .set({ status: "reprovado", updatedAt: new Date() })
+      .where(and(eq(product.id, productId), eq(product.tenantId, tenantId)));
+    return;
+  }
+
+  const all = await db
+    .select({ decision: approvalStage.decision })
+    .from(approvalStage)
+    .where(eq(approvalStage.productApprovalId, approvalId));
+  const remaining = all.filter((s) => s.decision === "pendente").length;
+
+  if (remaining > 0) {
+    // Ainda há alçadas pendentes: mantém o produto em aprovação.
+    await db
+      .update(product)
+      .set({ status: "em_aprovacao", updatedAt: new Date() })
+      .where(and(eq(product.id, productId), eq(product.tenantId, tenantId), eq(product.status, "submetido")));
+    return;
+  }
+
+  // Todas decididas, sem reprovação → aprovado (com ressalvas se alguma alçada teve ressalva).
+  const withCaveats = all.some((s) => s.decision === "aprovado_com_ressalvas");
+  const finalStatus = withCaveats ? "aprovado_com_ressalvas" : "aprovado";
+  await db
+    .update(productApproval)
+    .set({ status: finalStatus, overallDecision: finalStatus, decidedAt: new Date(), updatedAt: new Date() })
+    .where(eq(productApproval.id, approvalId));
+  await db
+    .update(product)
+    .set({ status: finalStatus, updatedAt: new Date() })
+    .where(and(eq(product.id, productId), eq(product.tenantId, tenantId)));
+}

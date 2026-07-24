@@ -1,8 +1,9 @@
 import "server-only";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql, isNull, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   contract,
+  contractBrand,
   royaltyReport,
   royaltyReportLine,
   royaltyReportValidation,
@@ -11,7 +12,13 @@ import {
   payment,
   currency,
   licensee,
+  product,
+  productApproval,
+  approvalStage,
+  brand,
+  category,
 } from "@/lib/db/schema";
+import type { ApprovalStageType } from "@/lib/db/schema";
 
 /** Converte percentual armazenado (0.15 ou 15) para fração (0.15). */
 function toRate(pct: string | null): number {
@@ -384,4 +391,217 @@ export async function submitRoyaltyReport(params: {
   }
 
   return { reportId, status, validations };
+}
+
+/* ---------------- Produtos & Aprovações (portal do licenciado) ---------------- */
+
+/** Marcas licenciadas ao licenciado (para o formulário de submissão de produto). */
+export async function getLicenseeBrandsForProduct(tenantId: string, licenseeId: string) {
+  return db
+    .selectDistinct({ id: brand.id, name: brand.name })
+    .from(contractBrand)
+    .innerJoin(contract, eq(contract.id, contractBrand.contractId))
+    .innerJoin(brand, eq(brand.id, contractBrand.brandId))
+    .where(and(eq(contract.tenantId, tenantId), eq(contract.licenseeId, licenseeId)))
+    .orderBy(brand.name);
+}
+
+/** Categorias do tenant (para o formulário de submissão de produto). */
+export async function listTenantCategories(tenantId: string) {
+  return db
+    .select({ id: category.id, name: category.name })
+    .from(category)
+    .where(eq(category.tenantId, tenantId))
+    .orderBy(category.name);
+}
+
+/** Produtos do licenciado com o progresso de aprovação (alçadas aprovadas / total). */
+export async function listPortalProducts(tenantId: string, licenseeId: string) {
+  const rows = await db
+    .select({
+      id: product.id,
+      sku: product.sku,
+      name: product.name,
+      status: product.status,
+      currentVersion: product.currentVersion,
+      brandName: brand.name,
+      approvalId: productApproval.id,
+    })
+    .from(product)
+    .leftJoin(brand, eq(brand.id, product.brandId))
+    .leftJoin(
+      productApproval,
+      and(eq(productApproval.productId, product.id), eq(productApproval.version, product.currentVersion)),
+    )
+    .where(and(eq(product.tenantId, tenantId), eq(product.licenseeId, licenseeId), isNull(product.deletedAt)))
+    .orderBy(desc(product.createdAt))
+    .limit(200);
+
+  const apprIds = rows.map((r) => r.approvalId).filter((x): x is string => Boolean(x));
+  const progress = new Map<string, { done: number; total: number }>();
+  if (apprIds.length) {
+    const counts = await db
+      .select({
+        approvalId: approvalStage.productApprovalId,
+        total: sql<number>`count(*)::int`,
+        done: sql<number>`count(*) filter (where ${approvalStage.decision} <> 'pendente')::int`,
+      })
+      .from(approvalStage)
+      .where(inArray(approvalStage.productApprovalId, apprIds))
+      .groupBy(approvalStage.productApprovalId);
+    for (const c of counts) progress.set(c.approvalId, { done: c.done, total: c.total });
+  }
+
+  return rows.map((r) => {
+    const p = r.approvalId ? progress.get(r.approvalId) : undefined;
+    return { ...r, done: p?.done ?? 0, total: p?.total ?? 0 };
+  });
+}
+
+/** Detalhe de um produto do licenciado + aprovação + alçadas (escopado ao licenciado). */
+export async function getPortalProduct(tenantId: string, licenseeId: string, id: string) {
+  const rows = await db
+    .select({
+      id: product.id,
+      sku: product.sku,
+      name: product.name,
+      productLine: product.productLine,
+      status: product.status,
+      brandName: brand.name,
+      supplierName: product.supplierName,
+      material: product.material,
+      color: product.color,
+      suggestedPrice: product.suggestedPrice,
+      barcode: product.barcode,
+      currentVersion: product.currentVersion,
+    })
+    .from(product)
+    .leftJoin(brand, eq(brand.id, product.brandId))
+    .where(
+      and(eq(product.id, id), eq(product.tenantId, tenantId), eq(product.licenseeId, licenseeId)),
+    )
+    .limit(1);
+  const prod = rows[0];
+  if (!prod) return null;
+
+  const appr = await db
+    .select()
+    .from(productApproval)
+    .where(and(eq(productApproval.productId, id), eq(productApproval.tenantId, tenantId)))
+    .orderBy(desc(productApproval.version))
+    .limit(1);
+  const approval = appr[0] ?? null;
+
+  const stages = approval
+    ? await db
+        .select()
+        .from(approvalStage)
+        .where(eq(approvalStage.productApprovalId, approval.id))
+        .orderBy(approvalStage.sequence)
+    : [];
+
+  return { product: prod, approval, stages };
+}
+
+/** Alçadas padrão criadas quando um produto é submetido para aprovação. */
+const DEFAULT_APPROVAL_STAGES: { stageType: ApprovalStageType; slaHours: number }[] = [
+  { stageType: "produto", slaHours: 48 },
+  { stageType: "marketing", slaHours: 48 },
+  { stageType: "branding", slaHours: 48 },
+  { stageType: "juridico", slaHours: 72 },
+  { stageType: "compliance", slaHours: 72 },
+  { stageType: "qualidade", slaHours: 48 },
+  { stageType: "licensing", slaHours: 48 },
+  { stageType: "diretoria", slaHours: 72 },
+];
+
+/** Submete um novo produto para o fluxo de aprovação (cria produto + aprovação + 8 alçadas). */
+export async function submitProductForApproval(params: {
+  tenantId: string;
+  licenseeId: string;
+  userId: string;
+  brandId: string;
+  sku: string;
+  name: string;
+  productLine?: string | null;
+  categoryId?: string | null;
+  material?: string | null;
+  color?: string | null;
+  supplierName?: string | null;
+  suggestedPrice?: number | null;
+}): Promise<{ productId: string }> {
+  const { tenantId, licenseeId, userId, brandId } = params;
+
+  // Segurança: a marca precisa estar licenciada a este licenciado.
+  const allowed = await db
+    .select({ id: brand.id })
+    .from(contractBrand)
+    .innerJoin(contract, eq(contract.id, contractBrand.contractId))
+    .where(
+      and(
+        eq(contract.tenantId, tenantId),
+        eq(contract.licenseeId, licenseeId),
+        eq(contractBrand.brandId, brandId),
+      ),
+    )
+    .limit(1);
+  if (!allowed[0]) throw new Error("Marca não licenciada para este licenciado.");
+
+  // SKU único por tenant.
+  const dup = await db
+    .select({ id: product.id })
+    .from(product)
+    .where(and(eq(product.tenantId, tenantId), eq(product.sku, params.sku)))
+    .limit(1);
+  if (dup[0]) throw new Error(`Já existe um produto com o SKU "${params.sku}".`);
+
+  const insertedProduct = await db
+    .insert(product)
+    .values({
+      tenantId,
+      sku: params.sku,
+      name: params.name,
+      productLine: params.productLine ?? null,
+      categoryId: params.categoryId ?? null,
+      brandId,
+      licenseeId,
+      supplierName: params.supplierName ?? null,
+      material: params.material ?? null,
+      color: params.color ?? null,
+      suggestedPrice: params.suggestedPrice != null ? String(params.suggestedPrice) : null,
+      status: "submetido",
+      currentVersion: 1,
+    })
+    .returning({ id: product.id });
+  const productId = insertedProduct[0].id;
+
+  const due = new Date();
+  due.setDate(due.getDate() + 10);
+  const insertedAppr = await db
+    .insert(productApproval)
+    .values({
+      tenantId,
+      productId,
+      version: 1,
+      status: "em_aprovacao",
+      overallDecision: "pendente",
+      submittedBy: userId,
+      submittedAt: new Date(),
+      slaDueDate: due.toISOString().slice(0, 10),
+    })
+    .returning({ id: productApproval.id });
+  const approvalId = insertedAppr[0].id;
+
+  await db.insert(approvalStage).values(
+    DEFAULT_APPROVAL_STAGES.map((s, i) => ({
+      tenantId,
+      productApprovalId: approvalId,
+      stageType: s.stageType,
+      sequence: i + 1,
+      decision: "pendente" as const,
+      slaHours: s.slaHours,
+    })),
+  );
+
+  return { productId };
 }

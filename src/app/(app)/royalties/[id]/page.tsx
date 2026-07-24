@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { ArrowLeft, AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
 import { getRoyaltyReportDetail } from "@/lib/data/royalties";
-import { approveReportAction } from "../actions";
+import { approveReportAction, rejectReportAction } from "../actions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { RoyaltyReportStatus, ValidationSeverity } from "@/lib/db/schema";
@@ -49,7 +49,10 @@ export default async function RoyaltyDetailPage({
   const { report: r, lines, validations } = data;
   const iso = r.currencyIso ?? "BRL";
   const variance = Number(r.variance);
-  const canApprove = can(session, PERMISSIONS.royaltyApprove) && r.status !== "aprovado";
+  const canAct =
+    can(session, PERMISSIONS.royaltyApprove) &&
+    r.status !== "aprovado" &&
+    r.status !== "rejeitado";
 
   return (
     <div>
@@ -67,14 +70,21 @@ export default async function RoyaltyDetailPage({
             {r.licenseeName} · {r.contractNumber} · {fmtDate(r.periodStart)} a {fmtDate(r.periodEnd)}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Badge tone={statusTone[r.status]}>{statusLabel[r.status]}</Badge>
-          {canApprove && (
-            <form action={approveReportAction.bind(null, r.id)}>
-              <Button type="submit">
-                <CheckCircle2 size={15} /> Aprovar relatório
-              </Button>
-            </form>
+          {canAct && (
+            <>
+              <form action={rejectReportAction.bind(null, r.id)}>
+                <Button type="submit" variant="outline">
+                  <XCircle size={15} /> Rejeitar
+                </Button>
+              </form>
+              <form action={approveReportAction.bind(null, r.id)}>
+                <Button type="submit">
+                  <CheckCircle2 size={15} /> Aprovar e faturar
+                </Button>
+              </form>
+            </>
           )}
         </div>
       </div>
@@ -97,6 +107,16 @@ export default async function RoyaltyDetailPage({
             O royalty calculado difere do declarado em{" "}
             <strong>{fmtMoney(Math.abs(variance), iso)}</strong>. Revise as validações abaixo antes de
             aprovar.
+          </p>
+        </Card>
+      )}
+
+      {r.status === "aprovado" && (
+        <Card className="mt-4 flex items-start gap-3 border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+          <p className="text-sm text-emerald-800 dark:text-emerald-300">
+            Relatório aprovado e faturado — o recebível foi gerado e já aparece no Financeiro e no portal
+            do licenciado.
           </p>
         </Card>
       )}

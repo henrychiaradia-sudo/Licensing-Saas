@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { Plus, Trash2, Send, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Send, AlertCircle, Upload, Download } from "lucide-react";
 import { Card, Button, Input, Select, Label } from "@/components/ui";
 import { fmtMoney } from "@/lib/utils";
 import { submitReportAction } from "../actions";
@@ -14,9 +14,70 @@ type FormValues = { contractId: string; referenceLabel: string; lines: Line[] };
 
 const emptyLine: Line = { sku: "", productName: "", units: 0, grossAmount: 0, deductions: 0 };
 
+/** Converte texto numérico BR (1.500,00) ou US (1,500.00 / 1500) em número. */
+function parseNum(s: string): number {
+  if (!s) return 0;
+  let t = s.trim().replace(/["R$\s]/g, "");
+  if (!t) return 0;
+  if (t.includes(",") && t.includes(".")) t = t.replace(/\./g, "").replace(",", ".");
+  else if (t.includes(",")) t = t.replace(",", ".");
+  const n = parseFloat(t);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function parseCsvLine(line: string, sep: string): string[] {
+  const out: string[] = [];
+  let cur = "";
+  let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQ) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else inQ = false;
+      } else cur += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === sep) {
+      out.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/** Colunas esperadas: sku, produto, unidades, venda_bruta, deducoes. */
+function parseCsv(text: string): Line[] {
+  const raw = text
+    .replace(/\r/g, "")
+    .split("\n")
+    .filter((l) => l.trim().length);
+  if (raw.length === 0) return [];
+  const sep = raw[0].includes(";") ? ";" : ",";
+  const first = parseCsvLine(raw[0], sep);
+  const looksHeader = first.length >= 3 && Number.isNaN(Number((first[2] ?? "").replace(",", ".")));
+  const rows = looksHeader ? raw.slice(1) : raw;
+  return rows
+    .map((line) => {
+      const c = parseCsvLine(line, sep);
+      return {
+        sku: (c[0] ?? "").trim(),
+        productName: (c[1] ?? "").trim(),
+        units: parseNum(c[2] ?? ""),
+        grossAmount: parseNum(c[3] ?? ""),
+        deductions: parseNum(c[4] ?? ""),
+      };
+    })
+    .filter((l) => l.sku || l.productName || l.units > 0 || l.grossAmount > 0);
+}
+
 export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; defaultRef: string }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -31,7 +92,7 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
       lines: [{ ...emptyLine }],
     },
   });
-  const { fields, append, remove } = useFieldArray({ control, name: "lines" });
+  const { fields, append, remove, replace } = useFieldArray({ control, name: "lines" });
 
   const values = watch();
   const contract = contracts.find((c) => c.id === values.contractId) ?? contracts[0];
@@ -55,6 +116,37 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
     },
     { gross: 0, net: 0, royalty: 0, units: 0 },
   );
+
+  function downloadTemplate() {
+    const csv =
+      "sku,produto,unidades,venda_bruta,deducoes\n" +
+      "VB-CAMP-001,Camiseta oficial NovaSport,30000,1500000,120000\n" +
+      "VB-SHRT-002,Shorts performance,20000,1000000,80000\n";
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "modelo-reporte-royalties.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const parsed = parseCsv(String(reader.result ?? ""));
+      if (parsed.length === 0) {
+        setImportMsg("Nenhuma linha válida encontrada no arquivo.");
+      } else {
+        replace(parsed);
+        setImportMsg(`${parsed.length} linha(s) importada(s) do CSV.`);
+      }
+      if (fileRef.current) fileRef.current.value = "";
+    };
+    reader.readAsText(file);
+  }
 
   async function onSubmit(data: FormValues) {
     setServerError(null);
@@ -103,12 +195,32 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
       </Card>
 
       <Card className="mt-4 overflow-x-auto p-0">
-        <div className="flex items-center justify-between p-5 pb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 p-5 pb-2">
           <h2 className="text-sm font-semibold">Linhas de venda</h2>
-          <Button type="button" variant="outline" size="sm" onClick={() => append({ ...emptyLine })}>
-            <Plus size={14} /> Adicionar linha
-          </Button>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              ref={fileRef}
+              onChange={onFile}
+              className="hidden"
+            />
+            <Button type="button" variant="ghost" size="sm" onClick={downloadTemplate}>
+              <Download size={14} /> Baixar modelo
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+              <Upload size={14} /> Importar CSV
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => append({ ...emptyLine })}>
+              <Plus size={14} /> Adicionar linha
+            </Button>
+          </div>
         </div>
+        {importMsg && (
+          <div className="mx-5 mb-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-400">
+            {importMsg}
+          </div>
+        )}
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">

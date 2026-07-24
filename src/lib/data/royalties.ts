@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql, count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   royaltyReport,
@@ -8,6 +8,8 @@ import {
   contract,
   licensee,
   currency,
+  receivable,
+  ledgerEntry,
 } from "@/lib/db/schema";
 
 export async function listRoyaltyReports(tenantId: string) {
@@ -95,10 +97,70 @@ export async function royaltiesCompetencia(tenantId: string) {
   return Number(rows[0]?.total ?? 0);
 }
 
-/** Aprova um relatório de royalties. */
-export async function approveRoyaltyReport(tenantId: string, id: string, userId: string) {
+/** Aprova o relatório e gera a cobrança (recebível) + lançamento no razão. Idempotente. */
+export async function approveAndInvoiceReport(tenantId: string, id: string, userId: string) {
+  const rows = await db
+    .select({
+      licenseeId: royaltyReport.licenseeId,
+      contractId: royaltyReport.contractId,
+      currencyId: royaltyReport.currencyId,
+      royalty: royaltyReport.royaltyCalculated,
+      ref: royaltyReport.referenceLabel,
+      status: royaltyReport.status,
+    })
+    .from(royaltyReport)
+    .where(and(eq(royaltyReport.id, id), eq(royaltyReport.tenantId, tenantId)))
+    .limit(1);
+  const rep = rows[0];
+  if (!rep || rep.status === "aprovado") return;
+
   await db
     .update(royaltyReport)
     .set({ status: "aprovado", approvedBy: userId, approvedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(royaltyReport.id, id), eq(royaltyReport.tenantId, tenantId)));
+
+  // Evita recebível duplicado para o mesmo reporte.
+  const existing = await db
+    .select({ c: count() })
+    .from(receivable)
+    .where(and(eq(receivable.tenantId, tenantId), eq(receivable.royaltyReportId, id)));
+  if ((existing[0]?.c ?? 0) > 0) return;
+
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  const due = new Date(now);
+  due.setDate(due.getDate() + 30);
+  const dueStr = due.toISOString().slice(0, 10);
+
+  await db.insert(receivable).values({
+    tenantId,
+    licenseeId: rep.licenseeId,
+    contractId: rep.contractId,
+    royaltyReportId: id,
+    description: `Royalty ${rep.ref}`,
+    amount: rep.royalty,
+    paidAmount: "0",
+    currencyId: rep.currencyId,
+    dueDate: dueStr,
+    status: "emitido",
+  });
+
+  await db.insert(ledgerEntry).values({
+    tenantId,
+    licenseeId: rep.licenseeId,
+    contractId: rep.contractId,
+    entryType: "royalty",
+    amount: rep.royalty,
+    currencyId: rep.currencyId,
+    entryDate: todayStr,
+    description: `Royalty apurado ${rep.ref}`,
+  });
+}
+
+/** Rejeita um relatório de royalties. */
+export async function rejectRoyaltyReport(tenantId: string, id: string) {
+  await db
+    .update(royaltyReport)
+    .set({ status: "rejeitado", updatedAt: new Date() })
     .where(and(eq(royaltyReport.id, id), eq(royaltyReport.tenantId, tenantId)));
 }

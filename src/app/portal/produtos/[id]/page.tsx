@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
-import { requireSession } from "@/lib/auth";
-import { getProductDetail } from "@/lib/data/products";
-import { decideStageAction } from "../actions";
-import { Card, Badge, Button } from "@/components/ui";
+import Link from "next/link";
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { requireLicenseeSession } from "@/lib/auth";
+import { getPortalProduct } from "@/lib/data/portal";
+import { Card, Badge } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { ApprovalStageType, ApprovalDecision, ProductStatus } from "@/lib/db/schema";
 
@@ -27,7 +27,7 @@ const decisionMeta: Record<ApprovalDecision, { label: string; tone: Tone }> = {
   reprovado: { label: "Reprovado", tone: "danger" },
 };
 
-const productStatusMeta: Record<ProductStatus, { label: string; tone: Tone }> = {
+const statusMeta: Record<ProductStatus, { label: string; tone: Tone }> = {
   rascunho: { label: "Rascunho", tone: "neutral" },
   submetido: { label: "Submetido", tone: "info" },
   em_aprovacao: { label: "Em aprovação", tone: "info" },
@@ -37,45 +37,45 @@ const productStatusMeta: Record<ProductStatus, { label: string; tone: Tone }> = 
   descontinuado: { label: "Descontinuado", tone: "neutral" },
 };
 
-export default async function ProdutoDetailPage({
+export default async function PortalProdutoDetail({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await requireSession();
-  const data = await getProductDetail(session.tenantId, id);
+  const session = await requireLicenseeSession();
+  const data = await getPortalProduct(session.tenantId, session.licenseeId, id);
   if (!data) notFound();
 
-  const { product, approval, stages } = data;
-  const firstPendingIdx = stages.findIndex((s) => s.decision === "pendente");
+  const { product, stages } = data;
   const decidedCount = stages.filter((s) => s.decision !== "pendente").length;
-  const currentStage = firstPendingIdx >= 0 ? stages[firstPendingIdx] : null;
-  const isFinal =
-    product.status === "aprovado" ||
-    product.status === "aprovado_com_ressalvas" ||
-    product.status === "reprovado";
+  const total = stages.length || 8;
   const reprovingStage = stages.find((s) => s.decision === "reprovado") ?? null;
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+      <Link
+        href="/portal/produtos"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-emerald-700"
+      >
+        <ArrowLeft size={15} /> Produtos & Aprovações
+      </Link>
+
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">{product.name}</h1>
           <p className="text-sm text-neutral-500">
-            {product.sku} · {product.brandName} · {product.licenseeName}
+            {product.sku} · {product.brandName}
           </p>
         </div>
-        <Badge tone={productStatusMeta[product.status].tone}>
-          {productStatusMeta[product.status].label}
-        </Badge>
+        <Badge tone={statusMeta[product.status].tone}>{statusMeta[product.status].label}</Badge>
       </div>
 
       {product.status === "aprovado" && (
         <Card className="mb-4 flex items-start gap-3 border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
           <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
           <p className="text-sm text-emerald-800 dark:text-emerald-300">
-            Produto aprovado em todas as 8 alçadas. O licenciado já vê a liberação no portal.
+            Produto aprovado em todas as alçadas. Você já pode seguir com a produção conforme o contrato.
           </p>
         </Card>
       )}
@@ -83,7 +83,7 @@ export default async function ProdutoDetailPage({
         <Card className="mb-4 flex items-start gap-3 border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/40">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
           <p className="text-sm text-amber-800 dark:text-amber-300">
-            Produto aprovado com ressalvas. Confira os pareceres das alçadas abaixo.
+            Produto aprovado com ressalvas. Leia os pareceres das alçadas abaixo antes de produzir.
           </p>
         </Card>
       )}
@@ -100,26 +100,18 @@ export default async function ProdutoDetailPage({
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold">Workflow de aprovação — 8 alçadas</h2>
-            <p className="text-xs text-neutral-500">
-              {decidedCount}/{stages.length || 8} alçadas decididas
-            </p>
+            <h2 className="text-sm font-semibold">Andamento da aprovação</h2>
+            <p className="text-xs text-neutral-500">{decidedCount}/{total} alçadas decididas</p>
           </div>
-          {isFinal && (
-            <Badge tone={productStatusMeta[product.status].tone}>
-              {productStatusMeta[product.status].label}
-            </Badge>
-          )}
         </div>
-
         <div className="mt-6 flex items-start overflow-x-auto pb-2">
           {stages.map((s, i) => {
             const approved = s.decision === "aprovado" || s.decision === "aprovado_com_ressalvas";
             const caveat = s.decision === "aprovado_com_ressalvas";
             const reproved = s.decision === "reprovado";
-            const current = i === firstPendingIdx;
-            const color = reproved ? "#dc2626" : caveat ? "#d97706" : approved ? "#16a34a" : current ? "#2563eb" : "#a3a3a3";
-            const bg = reproved ? "#dc2626" : caveat ? "#d97706" : approved ? "#16a34a" : current ? "#2563eb" : "transparent";
+            const current = s.decision === "pendente" && stages.findIndex((x) => x.decision === "pendente") === i;
+            const color = reproved ? "#dc2626" : caveat ? "#d97706" : approved ? "#16a34a" : current ? "#059669" : "#a3a3a3";
+            const bg = reproved ? "#dc2626" : caveat ? "#d97706" : approved ? "#16a34a" : current ? "#059669" : "transparent";
             const prev = stages[i - 1];
             const prevDone = prev && prev.decision !== "pendente";
             return (
@@ -152,48 +144,17 @@ export default async function ProdutoDetailPage({
         </div>
       </Card>
 
-      {currentStage && !isFinal && (
-        <Card className="mt-4 p-5">
-          <h2 className="text-sm font-semibold">
-            Parecer — alçada {stageLabels[currentStage.stageType]}
-          </h2>
-          <p className="mb-3 text-xs text-neutral-500">
-            Etapa {currentStage.sequence} de {stages.length}. Registre o parecer desta alçada.
-          </p>
-          <form action={decideStageAction.bind(null, product.id, currentStage.id)}>
-            <textarea
-              name="comment"
-              rows={3}
-              placeholder="Comentário / parecer (recomendado ao aprovar com ressalvas ou reprovar)"
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
-            />
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button type="submit" name="decision" value="aprovado">
-                <CheckCircle2 size={15} /> Aprovar
-              </Button>
-              <Button type="submit" variant="outline" name="decision" value="aprovado_com_ressalvas">
-                <AlertTriangle size={15} /> Aprovar com ressalvas
-              </Button>
-              <Button type="submit" variant="danger" name="decision" value="reprovado">
-                <XCircle size={15} /> Reprovar
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
       <Card className="mt-4 p-5">
         <h2 className="mb-3 text-sm font-semibold">Pareceres por alçada</h2>
         <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
           {stages.map((s) => (
             <li key={s.id} className="flex items-start justify-between gap-3 py-2.5">
               <div>
-                <div className="text-sm font-medium">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  {s.decision === "pendente" && <Clock size={14} className="text-neutral-400" />}
                   {s.sequence}. {stageLabels[s.stageType]}
                 </div>
-                {s.comment && (
-                  <p className="mt-0.5 text-xs text-neutral-500">{s.comment}</p>
-                )}
+                {s.comment && <p className="mt-0.5 text-xs text-neutral-500">{s.comment}</p>}
                 {s.decidedAt && (
                   <p className="mt-0.5 text-[11px] text-neutral-400">{fmtDate(s.decidedAt)}</p>
                 )}
@@ -203,7 +164,7 @@ export default async function ProdutoDetailPage({
           ))}
           {stages.length === 0 && (
             <li className="py-6 text-center text-sm text-neutral-400">
-              Sem alçadas cadastradas para este produto.
+              Aprovação ainda não iniciada.
             </li>
           )}
         </ul>
@@ -218,7 +179,6 @@ export default async function ProdutoDetailPage({
           <Field label="Fornecedor" value={product.supplierName} />
           <Field label="Código de barras" value={product.barcode} />
           <Field label="Preço sugerido" value={product.suggestedPrice ? fmtBRL(Number(product.suggestedPrice)) : "—"} />
-          <Field label="Versão" value={`v${product.currentVersion}`} />
         </dl>
       </Card>
     </div>
