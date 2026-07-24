@@ -13,24 +13,47 @@ import {
   Images,
   ShieldCheck,
   ShoppingCart,
+  Factory,
+  Scale,
+  ScrollText,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const nav: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
-  { href: "/licenciados", label: "Licenciados", icon: Users },
-  { href: "/contratos", label: "Contratos", icon: FileText },
-  { href: "/marcas", label: "Marcas & IP", icon: Star },
-  { href: "/produtos", label: "Aprovação de Produtos", icon: ClipboardCheck },
-  { href: "/royalties", label: "Royalties", icon: Coins },
-  { href: "/financeiro", label: "Financeiro", icon: Landmark },
-  { href: "/biblioteca", label: "Biblioteca Digital", icon: Images },
-];
+type NavItem = { href: string; label: string; icon: LucideIcon };
+type NavGroup = { title: string; items: NavItem[] };
 
-const soon: { label: string; icon: LucideIcon; tag: string }[] = [
-  { label: "Compliance & Auditoria", icon: ShieldCheck, tag: "F5" },
-  { label: "Procurement", icon: ShoppingCart, tag: "F6" },
+const groups: NavGroup[] = [
+  {
+    title: "Operação",
+    items: [
+      { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
+      { href: "/licenciados", label: "Licenciados", icon: Users },
+      { href: "/contratos", label: "Contratos", icon: FileText },
+      { href: "/marcas", label: "Marcas & IP", icon: Star },
+      { href: "/produtos", label: "Aprovação de Produtos", icon: ClipboardCheck },
+      { href: "/royalties", label: "Royalties", icon: Coins },
+      { href: "/financeiro", label: "Financeiro", icon: Landmark },
+      { href: "/biblioteca", label: "Biblioteca Digital", icon: Images },
+    ],
+  },
+  {
+    title: "Suprimentos",
+    items: [
+      { href: "/fornecedores", label: "Fornecedores", icon: Factory },
+      { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
+      { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
+    ],
+  },
+  {
+    title: "Governança & BI",
+    items: [
+      { href: "/compliance", label: "Compliance & Riscos", icon: ShieldCheck },
+      { href: "/auditoria", label: "Auditoria", icon: ScrollText },
+      { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -45,49 +68,37 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
-        <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-          Operação
-        </p>
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = path === href || path.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium",
-                active
-                  ? "bg-blue-600 text-white"
-                  : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
-              )}
-            >
-              <Icon size={18} />
-              {label}
-            </Link>
-          );
-        })}
-
-        <p className="px-3 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-          Próximas fases
-        </p>
-        {soon.map(({ label, icon: Icon, tag }) => (
-          <span
-            key={label}
-            className="mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium text-neutral-400 dark:text-neutral-600"
-          >
-            <Icon size={18} />
-            <span className="flex-1">{label}</span>
-            <span className="rounded-full bg-neutral-100 px-1.5 py-0.5 text-[9.5px] dark:bg-neutral-800">
-              {tag}
-            </span>
-          </span>
+        {groups.map((group) => (
+          <div key={group.title}>
+            <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+              {group.title}
+            </p>
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = path === href || path.startsWith(href + "/");
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium",
+                    active
+                      ? "bg-blue-600 text-white"
+                      : "text-neutral-600 hover:bg-neutral-100 dark:text-neutral-300 dark:hover:bg-neutral-800",
+                  )}
+                >
+                  <Icon size={18} />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
         ))}
       </nav>
 
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.3 — Fases 1–3
+        v0.5 — Fases 1–5
       </div>
     </aside>
   );

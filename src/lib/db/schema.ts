@@ -699,3 +699,135 @@ export const ledgerEntry = pgTable("ledger_entry", {
   createdBy: uuid("created_by"),
 });
 
+/* =========================== FASE 4 — PROCUREMENT =========================== */
+export const supplierStatus = pgEnum("supplier_status", [
+  "em_homologacao",
+  "ativo",
+  "inativo",
+  "bloqueado",
+]);
+export const supplierCategory = pgEnum("supplier_category", [
+  "materia_prima",
+  "manufatura",
+  "embalagem",
+  "logistica",
+  "servicos",
+  "marketing",
+  "tecnologia",
+]);
+export const poStatus = pgEnum("po_status", [
+  "rascunho",
+  "enviado",
+  "confirmado",
+  "em_producao",
+  "embarcado",
+  "recebido",
+  "cancelado",
+]);
+export const sourcingStatus = pgEnum("sourcing_status", [
+  "aberto",
+  "em_analise",
+  "adjudicado",
+  "cancelado",
+]);
+
+export type SupplierStatus = (typeof supplierStatus.enumValues)[number];
+export type SupplierCategory = (typeof supplierCategory.enumValues)[number];
+export type PoStatus = (typeof poStatus.enumValues)[number];
+export type SourcingStatus = (typeof sourcingStatus.enumValues)[number];
+
+export const supplier = pgTable(
+  "supplier",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    code: text("code").notNull(),
+    legalName: text("legal_name").notNull(),
+    tradeName: text("trade_name"),
+    category: supplierCategory("category").notNull().default("manufatura"),
+    countryId: uuid("country_id"),
+    city: text("city"),
+    status: supplierStatus("status").notNull().default("em_homologacao"),
+    rating: numeric("rating", { precision: 3, scale: 1 }),
+    leadTimeDays: integer("lead_time_days"),
+    paymentTerms: text("payment_terms"),
+    email: text("email"),
+    phone: text("phone"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [unique("uq_supplier_code").on(t.tenantId, t.code)],
+);
+
+export const purchaseOrder = pgTable(
+  "purchase_order",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    poNumber: text("po_number").notNull(),
+    supplierId: uuid("supplier_id").notNull(),
+    licenseeId: uuid("licensee_id"),
+    status: poStatus("status").notNull().default("rascunho"),
+    currencyId: uuid("currency_id").notNull(),
+    totalAmount: numeric("total_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+    orderDate: date("order_date"),
+    expectedDate: date("expected_date"),
+    receivedDate: date("received_date"),
+    incoterm: text("incoterm"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_po_number").on(t.tenantId, t.poNumber)],
+);
+
+export const purchaseOrderItem = pgTable("purchase_order_item", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  purchaseOrderId: uuid("purchase_order_id").notNull(),
+  productId: uuid("product_id"),
+  description: text("description").notNull(),
+  sku: text("sku"),
+  quantity: numeric("quantity", { precision: 18, scale: 2 }).notNull().default("0"),
+  unitPrice: numeric("unit_price", { precision: 18, scale: 4 }).notNull().default("0"),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const sourcingEvent = pgTable("sourcing_event", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  title: text("title").notNull(),
+  categoryId: uuid("category_id"),
+  status: sourcingStatus("status").notNull().default("aberto"),
+  dueDate: date("due_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const sourcingQuote = pgTable("sourcing_quote", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  sourcingEventId: uuid("sourcing_event_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id"),
+  leadTimeDays: integer("lead_time_days"),
+  score: numeric("score", { precision: 4, scale: 1 }),
+  isAwarded: boolean("is_awarded").notNull().default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* =========================== FASE 5 — AUDITORIA =========================== */
+export const auditLog = pgTable("audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id"),
+  userId: uuid("user_id"),
+  action: text("action").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: uuid("entity_id"),
+  changes: jsonb("changes"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});
+

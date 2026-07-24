@@ -46,12 +46,13 @@ export default async function DashboardPage() {
       </div>
 
       <Card className="mt-6 p-5">
-        <h2 className="text-sm font-semibold">Fases 1–3 no ar</h2>
+        <h2 className="text-sm font-semibold">Fases 1–5 no ar</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Autenticação, multi-tenant e RBAC/ABAC (Fase 1), Marcas, Produtos e Biblioteca (Fase 2) e agora
-          Contratos, Royalties e Financeiro (Fase 3) — todos ligados ao Supabase. Os quatro indicadores acima
-          são leituras reais do banco: licenciados ativos, contratos vigentes, royalties da competência mais
-          recente e o percentual da garantia mínima já coberto pelos royalties.
+          Núcleo (auth, multi-tenant, RBAC/ABAC), Marcas, Produtos e Biblioteca, Contratos, Royalties e
+          Financeiro, Suprimentos (Fornecedores, Pedidos de Compra e Sourcing) e Governança (Compliance,
+          Auditoria e BI) — tudo ligado ao Supabase. Os quatro indicadores acima são leituras reais do banco:
+          licenciados ativos, contratos vigentes, royalties da competência mais recente e o percentual da
+          garantia mínima já coberto pelos royalties.
         </p>
       </Card>
     </div>
