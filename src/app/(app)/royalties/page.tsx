@@ -1,0 +1,109 @@
+import Link from "next/link";
+import { requireSession } from "@/lib/auth";
+import { listRoyaltyReports } from "@/lib/data/royalties";
+import { Card, Badge } from "@/components/ui";
+import { fmtMoney } from "@/lib/utils";
+import type { RoyaltyReportStatus } from "@/lib/db/schema";
+
+type Tone = "good" | "info" | "neutral" | "warn" | "danger";
+
+const statusTone: Record<RoyaltyReportStatus, Tone> = {
+  rascunho: "neutral",
+  enviado: "info",
+  em_validacao: "info",
+  com_divergencia: "warn",
+  aprovado: "good",
+  rejeitado: "danger",
+};
+const statusLabel: Record<RoyaltyReportStatus, string> = {
+  rascunho: "Rascunho",
+  enviado: "Enviado",
+  em_validacao: "Em validação",
+  com_divergencia: "Com divergência",
+  aprovado: "Aprovado",
+  rejeitado: "Rejeitado",
+};
+
+export default async function RoyaltiesPage() {
+  const session = await requireSession();
+  const reports = await listRoyaltyReports(session.tenantId);
+
+  return (
+    <div>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">Royalties</h1>
+          <p className="text-sm text-neutral-500">
+            Relatórios de vendas, cálculo de royalties e divergências
+          </p>
+        </div>
+        <Badge tone="info">{reports.length} relatório(s)</Badge>
+      </div>
+
+      <Card className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-sm">
+          <thead>
+            <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
+              <th className="px-5 py-3 font-medium">Competência</th>
+              <th className="px-5 py-3 font-medium">Licenciado</th>
+              <th className="px-5 py-3 text-right font-medium">Vendas líq.</th>
+              <th className="px-5 py-3 text-right font-medium">Declarado</th>
+              <th className="px-5 py-3 text-right font-medium">Calculado</th>
+              <th className="px-5 py-3 text-right font-medium">Variância</th>
+              <th className="px-5 py-3 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reports.map((r) => {
+              const iso = r.currencyIso ?? "BRL";
+              const variance = Number(r.variance);
+              return (
+                <tr
+                  key={r.id}
+                  className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+                >
+                  <td className="px-5 py-3">
+                    <Link
+                      href={`/royalties/${r.id}`}
+                      className="font-semibold text-blue-600 hover:underline"
+                    >
+                      {r.referenceLabel}
+                    </Link>
+                    <div className="text-xs text-neutral-400">{r.contractNumber ?? "—"}</div>
+                  </td>
+                  <td className="px-5 py-3">{r.licenseeName ?? "—"}</td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    {fmtMoney(r.netSalesTotal, iso)}
+                  </td>
+                  <td className="px-5 py-3 text-right tabular-nums">
+                    {fmtMoney(r.royaltyDeclared, iso)}
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium tabular-nums">
+                    {fmtMoney(r.royaltyCalculated, iso)}
+                  </td>
+                  <td
+                    className={`px-5 py-3 text-right tabular-nums ${
+                      variance !== 0 ? "font-semibold text-amber-600" : "text-neutral-400"
+                    }`}
+                  >
+                    {variance !== 0 ? fmtMoney(r.variance, iso) : "—"}
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge tone={statusTone[r.status]}>{statusLabel[r.status]}</Badge>
+                  </td>
+                </tr>
+              );
+            })}
+            {reports.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-5 py-10 text-center text-sm text-neutral-400">
+                  Nenhum relatório de royalties.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
+    </div>
+  );
+}

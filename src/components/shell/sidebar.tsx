@@ -20,15 +20,15 @@ import { cn } from "@/lib/utils";
 const nav: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
   { href: "/licenciados", label: "Licenciados", icon: Users },
+  { href: "/contratos", label: "Contratos", icon: FileText },
   { href: "/marcas", label: "Marcas & IP", icon: Star },
   { href: "/produtos", label: "Aprovação de Produtos", icon: ClipboardCheck },
+  { href: "/royalties", label: "Royalties", icon: Coins },
+  { href: "/financeiro", label: "Financeiro", icon: Landmark },
   { href: "/biblioteca", label: "Biblioteca Digital", icon: Images },
 ];
 
 const soon: { label: string; icon: LucideIcon; tag: string }[] = [
-  { label: "Contratos", icon: FileText, tag: "F3" },
-  { label: "Royalties", icon: Coins, tag: "F3" },
-  { label: "Financeiro", icon: Landmark, tag: "F3" },
   { label: "Compliance & Auditoria", icon: ShieldCheck, tag: "F5" },
   { label: "Procurement", icon: ShoppingCart, tag: "F6" },
 ];
@@ -87,7 +87,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.1 — Fase 1 (Núcleo)
+        v0.3 — Fases 1–3
       </div>
     </aside>
   );

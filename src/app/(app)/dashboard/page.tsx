@@ -1,17 +1,26 @@
 import { requireSession } from "@/lib/auth";
 import { countLicensees } from "@/lib/data/licensees";
+import { countActiveContracts } from "@/lib/data/contracts";
+import { royaltiesCompetencia } from "@/lib/data/royalties";
+import { mgRealizedPercent } from "@/lib/data/finance";
 import { Card } from "@/components/ui";
+import { fmtCompactBRL, fmtPct } from "@/lib/utils";
 import { Users, FileText, Coins, TrendingUp, type LucideIcon } from "lucide-react";
 
 export default async function DashboardPage() {
   const session = await requireSession();
-  const licensees = await countLicensees(session.tenantId);
+  const [licensees, activeContracts, royalties, mgPct] = await Promise.all([
+    countLicensees(session.tenantId),
+    countActiveContracts(session.tenantId),
+    royaltiesCompetencia(session.tenantId),
+    mgRealizedPercent(session.tenantId),
+  ]);
 
   const kpis: { label: string; value: string; icon: LucideIcon; tone: string }[] = [
     { label: "Licenciados ativos", value: String(licensees), icon: Users, tone: "text-blue-600" },
-    { label: "Contratos vigentes", value: "1", icon: FileText, tone: "text-emerald-600" },
-    { label: "Royalties (competência)", value: "R$ 851,4 mil", icon: Coins, tone: "text-amber-600" },
-    { label: "MG realizado", value: "61%", icon: TrendingUp, tone: "text-violet-600" },
+    { label: "Contratos vigentes", value: String(activeContracts), icon: FileText, tone: "text-emerald-600" },
+    { label: "Royalties (competência)", value: fmtCompactBRL(royalties), icon: Coins, tone: "text-amber-600" },
+    { label: "MG realizado", value: fmtPct(mgPct), icon: TrendingUp, tone: "text-violet-600" },
   ];
 
   return (
@@ -37,11 +46,12 @@ export default async function DashboardPage() {
       </div>
 
       <Card className="mt-6 p-5">
-        <h2 className="text-sm font-semibold">Fase 1 — Fundação</h2>
+        <h2 className="text-sm font-semibold">Fases 1–3 no ar</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Autenticação, multi-tenant, RBAC/ABAC e o módulo de Licenciados já estão ligados ao banco. O contador de
-          licenciados acima é uma leitura real do Supabase. As demais fases (Contratos, Royalties, Financeiro, Produtos…)
-          entram na sequência do roadmap.
+          Autenticação, multi-tenant e RBAC/ABAC (Fase 1), Marcas, Produtos e Biblioteca (Fase 2) e agora
+          Contratos, Royalties e Financeiro (Fase 3) — todos ligados ao Supabase. Os quatro indicadores acima
+          são leituras reais do banco: licenciados ativos, contratos vigentes, royalties da competência mais
+          recente e o percentual da garantia mínima já coberto pelos royalties.
         </p>
       </Card>
     </div>

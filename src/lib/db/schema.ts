@@ -9,6 +9,7 @@ import {
   integer,
   bigint,
   date,
+  jsonb,
   pgEnum,
   primaryKey,
   unique,
@@ -302,5 +303,399 @@ export const assetDownload = pgTable("asset_download", {
   downloadedBy: uuid("downloaded_by"),
   purpose: text("purpose"),
   downloadedAt: timestamp("downloaded_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* =============================== FASE 3 =============================== */
+/* ---- Enums ---- */
+export const contractStatus = pgEnum("contract_status", [
+  "rascunho",
+  "em_aprovacao",
+  "vigente",
+  "suspenso",
+  "renovado",
+  "expirado",
+  "encerrado",
+]);
+export const exclusivityType = pgEnum("exclusivity_type", ["exclusivo", "nao_exclusivo"]);
+export const feeType = pgEnum("fee_type", [
+  "initial",
+  "annual",
+  "marketing",
+  "renewal",
+  "penalty",
+  "other",
+]);
+export const alertType = pgEnum("alert_type", [
+  "renovacao",
+  "vencimento",
+  "mg_shortfall",
+  "pagamento_vencido",
+  "documento_vencido",
+]);
+export const alertStatus = pgEnum("alert_status", ["agendado", "disparado", "resolvido", "ignorado"]);
+export const contractDocType = pgEnum("contract_doc_type", [
+  "contrato",
+  "aditivo",
+  "nda",
+  "distrato",
+  "anexo",
+  "procuracao",
+]);
+export const royaltyReportStatus = pgEnum("royalty_report_status", [
+  "rascunho",
+  "enviado",
+  "em_validacao",
+  "com_divergencia",
+  "aprovado",
+  "rejeitado",
+]);
+export const reportSource = pgEnum("report_source", ["manual", "excel", "csv", "xml", "api", "erp"]);
+export const validationSeverity = pgEnum("validation_severity", ["info", "warning", "error"]);
+export const royaltyType = pgEnum("royalty_type", ["percentual", "fixo", "hibrido", "escalonado"]);
+export const royaltyBase = pgEnum("royalty_base", ["gross_sales", "net_sales", "units"]);
+export const invoiceStatus = pgEnum("invoice_status", [
+  "rascunho",
+  "emitida",
+  "cancelada",
+  "substituida",
+]);
+export const receivableStatus = pgEnum("receivable_status", [
+  "previsto",
+  "emitido",
+  "parcial",
+  "pago",
+  "vencido",
+  "cancelado",
+]);
+export const paymentMethod = pgEnum("payment_method", [
+  "boleto",
+  "pix",
+  "ted",
+  "wire_transfer",
+  "cartao",
+  "outro",
+]);
+export const ledgerEntryType = pgEnum("ledger_entry_type", [
+  "royalty",
+  "minimum_guarantee",
+  "advance",
+  "initial_fee",
+  "annual_fee",
+  "marketing_fee",
+  "renewal_fee",
+  "penalty",
+  "tax",
+  "adjustment",
+]);
+
+export type ContractStatus = (typeof contractStatus.enumValues)[number];
+export type ExclusivityType = (typeof exclusivityType.enumValues)[number];
+export type FeeType = (typeof feeType.enumValues)[number];
+export type AlertType = (typeof alertType.enumValues)[number];
+export type AlertStatus = (typeof alertStatus.enumValues)[number];
+export type ContractDocType = (typeof contractDocType.enumValues)[number];
+export type RoyaltyReportStatus = (typeof royaltyReportStatus.enumValues)[number];
+export type ReportSource = (typeof reportSource.enumValues)[number];
+export type ValidationSeverity = (typeof validationSeverity.enumValues)[number];
+export type RoyaltyType = (typeof royaltyType.enumValues)[number];
+export type RoyaltyBase = (typeof royaltyBase.enumValues)[number];
+export type InvoiceStatus = (typeof invoiceStatus.enumValues)[number];
+export type ReceivableStatus = (typeof receivableStatus.enumValues)[number];
+export type PaymentMethod = (typeof paymentMethod.enumValues)[number];
+export type LedgerEntryType = (typeof ledgerEntryType.enumValues)[number];
+
+/* ---- Referências (moeda, território, categoria, tributos) ---- */
+export const currency = pgTable("currency", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  isoCode: char("iso_code", { length: 3 }).notNull().unique(),
+  name: text("name").notNull(),
+  symbol: text("symbol"),
+});
+
+export const territory = pgTable("territory", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  parentId: uuid("parent_id"),
+  name: text("name").notNull(),
+  kind: text("kind").notNull(),
+  countryId: uuid("country_id"),
+});
+
+export const category = pgTable("category", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  parentId: uuid("parent_id"),
+  name: text("name").notNull(),
+  code: text("code"),
+});
+
+export const taxType = pgTable("tax_type", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+});
+
+/* ---- Contratos ---- */
+export const contract = pgTable("contract", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractNumber: text("contract_number").notNull(),
+  licenseeId: uuid("licensee_id").notNull(),
+  status: contractStatus("status").notNull().default("rascunho"),
+  exclusivity: exclusivityType("exclusivity").notNull().default("nao_exclusivo"),
+  signingDate: date("signing_date"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  autoRenewal: boolean("auto_renewal").notNull().default(false),
+  renewalTermMonths: integer("renewal_term_months"),
+  minimumGuaranteeTotal: numeric("minimum_guarantee_total", { precision: 18, scale: 2 }),
+  currencyId: uuid("currency_id").notNull(),
+  responsibleUserId: uuid("responsible_user_id"),
+  insuranceRequired: boolean("insurance_required").notNull().default(false),
+  insuranceInfo: text("insurance_info"),
+  notes: text("notes"),
+  extra: jsonb("extra").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+  updatedBy: uuid("updated_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+export const contractFee = pgTable("contract_fee", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  feeType: feeType("fee_type").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  dueDate: date("due_date"),
+  recurrence: text("recurrence"),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const contractBrand = pgTable(
+  "contract_brand",
+  {
+    contractId: uuid("contract_id").notNull(),
+    brandId: uuid("brand_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.contractId, t.brandId] })],
+);
+
+export const contractCategory = pgTable(
+  "contract_category",
+  {
+    contractId: uuid("contract_id").notNull(),
+    categoryId: uuid("category_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.contractId, t.categoryId] })],
+);
+
+export const contractTerritory = pgTable(
+  "contract_territory",
+  {
+    contractId: uuid("contract_id").notNull(),
+    territoryId: uuid("territory_id").notNull(),
+    isExclusive: boolean("is_exclusive").notNull().default(false),
+  },
+  (t) => [primaryKey({ columns: [t.contractId, t.territoryId] })],
+);
+
+export const contractDocument = pgTable("contract_document", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  docType: contractDocType("doc_type").notNull(),
+  fileUri: text("file_uri").notNull(),
+  fileName: text("file_name"),
+  version: integer("version").notNull().default(1),
+  isSigned: boolean("is_signed").notNull().default(false),
+  signedAt: timestamp("signed_at", { withTimezone: true }),
+  uploadedBy: uuid("uploaded_by"),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const minimumGuarantee = pgTable("minimum_guarantee", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  note: text("note"),
+});
+
+export const contractAlert = pgTable("contract_alert", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  alertType: alertType("alert_type").notNull(),
+  daysBefore: integer("days_before"),
+  triggerDate: date("trigger_date").notNull(),
+  status: alertStatus("status").notNull().default("agendado"),
+  channel: text("channel"),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ---- Royalties ---- */
+export const royaltyReport = pgTable("royalty_report", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  licenseeId: uuid("licensee_id").notNull(),
+  referenceLabel: text("reference_label").notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  source: reportSource("source").notNull().default("manual"),
+  status: royaltyReportStatus("status").notNull().default("rascunho"),
+  currencyId: uuid("currency_id").notNull(),
+  grossSalesTotal: numeric("gross_sales_total", { precision: 18, scale: 2 }).notNull().default("0"),
+  netSalesTotal: numeric("net_sales_total", { precision: 18, scale: 2 }).notNull().default("0"),
+  unitsTotal: numeric("units_total", { precision: 18, scale: 2 }).notNull().default("0"),
+  royaltyDeclared: numeric("royalty_declared", { precision: 18, scale: 2 }).notNull().default("0"),
+  royaltyCalculated: numeric("royalty_calculated", { precision: 18, scale: 2 }).notNull().default("0"),
+  variance: numeric("variance", { precision: 18, scale: 2 }).notNull().default("0"),
+  submittedBy: uuid("submitted_by"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  approvedBy: uuid("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const royaltyReportLine = pgTable("royalty_report_line", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  royaltyReportId: uuid("royalty_report_id").notNull(),
+  sku: text("sku"),
+  productName: text("product_name"),
+  categoryId: uuid("category_id"),
+  territoryId: uuid("territory_id"),
+  units: numeric("units", { precision: 18, scale: 2 }).notNull().default("0"),
+  unitPrice: numeric("unit_price", { precision: 18, scale: 4 }).notNull().default("0"),
+  grossAmount: numeric("gross_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  netAmount: numeric("net_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  royaltyBaseAmt: numeric("royalty_base_amt", { precision: 18, scale: 2 }).notNull().default("0"),
+  royaltyRate: numeric("royalty_rate", { precision: 9, scale: 4 }),
+  royaltyAmount: numeric("royalty_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  currencyId: uuid("currency_id"),
+});
+
+export const royaltyReportValidation = pgTable("royalty_report_validation", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  royaltyReportId: uuid("royalty_report_id").notNull(),
+  ruleCode: text("rule_code").notNull(),
+  severity: validationSeverity("severity").notNull(),
+  message: text("message").notNull(),
+  expectedValue: numeric("expected_value", { precision: 18, scale: 2 }),
+  detectedValue: numeric("detected_value", { precision: 18, scale: 2 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const royaltyRule = pgTable("royalty_rule", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  royaltyType: royaltyType("royalty_type").notNull(),
+  base: royaltyBase("base").notNull(),
+  percentage: numeric("percentage", { precision: 9, scale: 4 }),
+  fixedAmount: numeric("fixed_amount", { precision: 18, scale: 2 }),
+  currencyId: uuid("currency_id"),
+  minRoyalty: numeric("min_royalty", { precision: 18, scale: 2 }),
+  maxRoyalty: numeric("max_royalty", { precision: 18, scale: 2 }),
+  categoryId: uuid("category_id"),
+  territoryId: uuid("territory_id"),
+  validFrom: date("valid_from"),
+  validTo: date("valid_to"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const royaltyTier = pgTable("royalty_tier", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  royaltyRuleId: uuid("royalty_rule_id").notNull(),
+  tierFrom: numeric("tier_from", { precision: 18, scale: 2 }).notNull(),
+  tierTo: numeric("tier_to", { precision: 18, scale: 2 }),
+  rate: numeric("rate", { precision: 9, scale: 4 }).notNull(),
+});
+
+/* ---- Financeiro ---- */
+export const invoice = pgTable("invoice", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  licenseeId: uuid("licensee_id").notNull(),
+  contractId: uuid("contract_id"),
+  invoiceNumber: text("invoice_number").notNull(),
+  nfeKey: text("nfe_key"),
+  issueDate: date("issue_date").notNull(),
+  dueDate: date("due_date"),
+  grossAmount: numeric("gross_amount", { precision: 18, scale: 2 }).notNull(),
+  netAmount: numeric("net_amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  status: invoiceStatus("status").notNull().default("rascunho"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const invoiceTax = pgTable("invoice_tax", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  invoiceId: uuid("invoice_id").notNull(),
+  taxTypeId: uuid("tax_type_id").notNull(),
+  baseAmount: numeric("base_amount", { precision: 18, scale: 2 }).notNull(),
+  rate: numeric("rate", { precision: 9, scale: 4 }).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+});
+
+export const receivable = pgTable("receivable", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  licenseeId: uuid("licensee_id").notNull(),
+  contractId: uuid("contract_id"),
+  invoiceId: uuid("invoice_id"),
+  royaltyReportId: uuid("royalty_report_id"),
+  description: text("description"),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  paidAmount: numeric("paid_amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  currencyId: uuid("currency_id").notNull(),
+  dueDate: date("due_date").notNull(),
+  status: receivableStatus("status").notNull().default("previsto"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const payment = pgTable("payment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  receivableId: uuid("receivable_id").notNull(),
+  method: paymentMethod("method").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }).notNull().defaultNow(),
+  reference: text("reference"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const ledgerEntry = pgTable("ledger_entry", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  licenseeId: uuid("licensee_id").notNull(),
+  contractId: uuid("contract_id"),
+  entryType: ledgerEntryType("entry_type").notNull(),
+  referenceType: text("reference_type"),
+  referenceId: uuid("reference_id"),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  fxRate: numeric("fx_rate", { precision: 18, scale: 6 }),
+  amountBaseCurrency: numeric("amount_base_currency", { precision: 18, scale: 2 }),
+  entryDate: date("entry_date").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
