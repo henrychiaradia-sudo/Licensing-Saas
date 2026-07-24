@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, AlertTriangle, Info, CheckCircle2 } from "lucide-react";
 import { requireLicenseeSession } from "@/lib/auth";
 import { getPortalReport } from "@/lib/data/portal";
+import { getContractRoyaltyRule } from "@/lib/data/royalties";
+import { RoyaltyBreakdown } from "@/components/royalty-breakdown";
 import { Card, Badge } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { RoyaltyReportStatus, ValidationSeverity } from "@/lib/db/schema";
@@ -32,6 +34,10 @@ export default async function PortalReportDetail({ params }: { params: Promise<{
   if (!data) notFound();
   const { report: r, lines, validations } = data;
   const iso = r.currencyIso ?? "BRL";
+  const { rule, tiers } = r.contractId
+    ? await getContractRoyaltyRule(session.tenantId, r.contractId)
+    : { rule: null, tiers: [] };
+  const royaltyBase = lines.reduce((a, l) => a + Number(l.royaltyBaseAmt || 0), 0);
 
   return (
     <div>
@@ -64,6 +70,14 @@ export default async function PortalReportDetail({ params }: { params: Promise<{
           </p>
         </Card>
       )}
+
+      <RoyaltyBreakdown
+        rule={rule}
+        tiers={tiers}
+        base={royaltyBase}
+        iso={iso}
+        storedRoyalty={Number(r.royaltyCalculated)}
+      />
 
       <Card className="mt-4 overflow-x-auto p-0">
         <div className="p-5 pb-2">

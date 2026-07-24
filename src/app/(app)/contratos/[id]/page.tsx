@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, Bell, FileText, ShieldCheck } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getContractDetail } from "@/lib/data/contracts";
+import { getContractRoyaltyRule } from "@/lib/data/royalties";
 import { Card, Badge } from "@/components/ui";
+import { RoyaltyRuleForm, type RuleFormValues } from "./royalty-rule-form";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type {
   ContractStatus,
@@ -75,6 +77,20 @@ export default async function ContratoDetailPage({
 
   const { contract: c, fees, guarantees, territories, brands, alerts, documents } = data;
   const iso = c.currencyIso ?? "BRL";
+
+  const { rule, tiers } = await getContractRoyaltyRule(session.tenantId, id);
+  const ruleInitial: RuleFormValues = {
+    royaltyType: rule?.royaltyType === "escalonado" ? "escalonado" : "percentual",
+    base: (rule?.base ?? "net_sales") as RuleFormValues["base"],
+    percentage: rule?.percentage != null ? Number(rule.percentage) : "",
+    minRoyalty: rule?.minRoyalty != null ? Number(rule.minRoyalty) : "",
+    maxRoyalty: rule?.maxRoyalty != null ? Number(rule.maxRoyalty) : "",
+    tiers: tiers.map((t) => ({
+      tierFrom: Number(t.tierFrom),
+      tierTo: t.tierTo == null ? "" : Number(t.tierTo),
+      rate: Number(t.rate),
+    })),
+  };
 
   return (
     <div>
@@ -181,6 +197,15 @@ export default async function ContratoDetailPage({
         ) : (
           <p className="text-sm text-neutral-400">Nenhuma taxa cadastrada.</p>
         )}
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <h2 className="text-sm font-semibold">Regra de royalties</h2>
+        <p className="mb-4 mt-1 text-xs text-neutral-500">
+          Configure a alíquota única ou faixas progressivas (com piso/teto). Os próximos reportes deste
+          contrato usarão esta regra.
+        </p>
+        <RoyaltyRuleForm contractId={id} initial={ruleInitial} iso={iso} />
       </Card>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">

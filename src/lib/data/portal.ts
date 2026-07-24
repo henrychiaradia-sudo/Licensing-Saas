@@ -8,6 +8,7 @@ import {
   royaltyReportLine,
   royaltyReportValidation,
   royaltyRule,
+  royaltyTier,
   receivable,
   payment,
   currency,
@@ -19,6 +20,7 @@ import {
   category,
 } from "@/lib/db/schema";
 import type { ApprovalStageType } from "@/lib/db/schema";
+import { computeRoyalty } from "@/lib/royalties-engine";
 
 /** Converte percentual armazenado (0.15 ou 15) para fração (0.15). */
 function toRate(pct: string | null): number {
@@ -145,6 +147,7 @@ export async function getPortalReport(tenantId: string, licenseeId: string, id: 
       royaltyCalculated: royaltyReport.royaltyCalculated,
       variance: royaltyReport.variance,
       submittedAt: royaltyReport.submittedAt,
+      contractId: royaltyReport.contractId,
       currencyIso: currency.isoCode,
       contractNumber: contract.contractNumber,
     })
@@ -211,15 +214,28 @@ export async function listPortalPayments(tenantId: string, licenseeId: string) {
     .orderBy(desc(payment.paidAt));
 }
 
-/** Contratos do licenciado com a alíquota de royalty vigente (para o formulário de reporte). */
+export type ContractRuleForReport = {
+  royaltyType: "percentual" | "fixo" | "hibrido" | "escalonado";
+  percentage: number | null;
+  fixedAmount: number | null;
+  minRoyalty: number | null;
+  maxRoyalty: number | null;
+};
+export type ContractTierForReport = { tierFrom: number; tierTo: number | null; rate: number };
+
+/** Contratos do licenciado com a regra de royalty vigente + faixas (para o formulário de reporte). */
 export async function getLicenseeContractsForReport(tenantId: string, licenseeId: string) {
   const rows = await db
     .select({
       id: contract.id,
       contractNumber: contract.contractNumber,
       currencyId: contract.currencyId,
+      ruleId: royaltyRule.id,
+      royaltyType: royaltyRule.royaltyType,
       percentage: royaltyRule.percentage,
+      fixedAmount: royaltyRule.fixedAmount,
       minRoyalty: royaltyRule.minRoyalty,
+      maxRoyalty: royaltyRule.maxRoyalty,
     })
     .from(contract)
     .leftJoin(
@@ -235,12 +251,45 @@ export async function getLicenseeContractsForReport(tenantId: string, licenseeId
     )
     .orderBy(desc(contract.startDate));
 
+  const ruleIds = rows.map((r) => r.ruleId).filter((x): x is string => Boolean(x));
+  const tiersByRule = new Map<string, ContractTierForReport[]>();
+  if (ruleIds.length) {
+    const t = await db
+      .select({
+        ruleId: royaltyTier.royaltyRuleId,
+        tierFrom: royaltyTier.tierFrom,
+        tierTo: royaltyTier.tierTo,
+        rate: royaltyTier.rate,
+      })
+      .from(royaltyTier)
+      .where(inArray(royaltyTier.royaltyRuleId, ruleIds));
+    for (const row of t) {
+      const arr = tiersByRule.get(row.ruleId) ?? [];
+      arr.push({
+        tierFrom: Number(row.tierFrom),
+        tierTo: row.tierTo == null ? null : Number(row.tierTo),
+        rate: Number(row.rate),
+      });
+      tiersByRule.set(row.ruleId, arr);
+    }
+  }
+
   return rows.map((r) => ({
     id: r.id,
     contractNumber: r.contractNumber,
     currencyId: r.currencyId,
     ratePct: Math.round(toRate(r.percentage) * 10000) / 100, // ex.: 15
     minRoyalty: r.minRoyalty ? Number(r.minRoyalty) : null,
+    rule: r.ruleId
+      ? ({
+          royaltyType: r.royaltyType ?? "percentual",
+          percentage: r.percentage == null ? null : Number(r.percentage),
+          fixedAmount: r.fixedAmount == null ? null : Number(r.fixedAmount),
+          minRoyalty: r.minRoyalty == null ? null : Number(r.minRoyalty),
+          maxRoyalty: r.maxRoyalty == null ? null : Number(r.maxRoyalty),
+        } satisfies ContractRuleForReport)
+      : null,
+    tiers: r.ruleId ? tiersByRule.get(r.ruleId) ?? [] : [],
   }));
 }
 
@@ -288,25 +337,52 @@ export async function submitRoyaltyReport(params: {
   if (!ctr) throw new Error("Contrato inválido para este licenciado.");
 
   const ruleRows = await db
-    .select({ percentage: royaltyRule.percentage, minRoyalty: royaltyRule.minRoyalty })
+    .select({
+      id: royaltyRule.id,
+      royaltyType: royaltyRule.royaltyType,
+      percentage: royaltyRule.percentage,
+      fixedAmount: royaltyRule.fixedAmount,
+      minRoyalty: royaltyRule.minRoyalty,
+      maxRoyalty: royaltyRule.maxRoyalty,
+    })
     .from(royaltyRule)
     .where(and(eq(royaltyRule.contractId, contractId), eq(royaltyRule.isActive, true)))
     .limit(1);
-  const rate = toRate(ruleRows[0]?.percentage ?? null);
-  const minRoyalty = ruleRows[0]?.minRoyalty ? Number(ruleRows[0].minRoyalty) : null;
+  const ruleRow = ruleRows[0] ?? null;
+  let tiers: { tierFrom: number; tierTo: number | null; rate: number }[] = [];
+  if (ruleRow) {
+    const t = await db
+      .select({ tierFrom: royaltyTier.tierFrom, tierTo: royaltyTier.tierTo, rate: royaltyTier.rate })
+      .from(royaltyTier)
+      .where(eq(royaltyTier.royaltyRuleId, ruleRow.id));
+    tiers = t.map((x) => ({
+      tierFrom: Number(x.tierFrom),
+      tierTo: x.tierTo == null ? null : Number(x.tierTo),
+      rate: Number(x.rate),
+    }));
+  }
+  const minRoyalty = ruleRow?.minRoyalty ? Number(ruleRow.minRoyalty) : null;
 
-  // Cálculo por linha + totais.
+  // Base por linha + totais.
   const computed = lines.map((l) => {
     const gross = Number(l.grossAmount) || 0;
     const ded = Number(l.deductions) || 0;
     const net = gross - ded;
-    const royalty = Math.max(0, net) * rate;
-    return { ...l, gross, ded, net, royalty };
+    return { ...l, gross, ded, net, base: Math.max(0, net) };
   });
   const grossTotal = computed.reduce((a, b) => a + b.gross, 0);
   const netTotal = computed.reduce((a, b) => a + b.net, 0);
   const unitsTotal = computed.reduce((a, b) => a + (Number(b.units) || 0), 0);
-  const royaltyCalculated = computed.reduce((a, b) => a + b.royalty, 0);
+  const baseTotal = computed.reduce((a, b) => a + b.base, 0);
+
+  // Motor de royalties (percentual, faixas escalonadas, piso/teto).
+  const comp = computeRoyalty(
+    baseTotal,
+    ruleRow ?? { royaltyType: "percentual", percentage: null },
+    tiers,
+  );
+  const royaltyCalculated = comp.royalty;
+  const effRate = comp.effectiveRate;
 
   // Validações automáticas.
   const validations: SubmitResult["validations"] = [];
@@ -325,11 +401,17 @@ export async function submitRoyaltyReport(params: {
     else if (l.gross > 0 && l.ded / l.gross > 0.4)
       V("warning", `Linha ${n}: deduções acima de 40% da venda bruta.`, "DEDUCAO_ALTA");
   });
-  if (minRoyalty != null && royaltyCalculated < minRoyalty)
+  if (comp.minApplied && minRoyalty != null)
     V(
       "warning",
-      `Royalty calculado (${royaltyCalculated.toFixed(2)}) abaixo do mínimo contratual (${minRoyalty.toFixed(2)}).`,
-      "ABAIXO_MINIMO",
+      `Royalty apurado ficou abaixo do mínimo contratual; aplicado o piso de ${minRoyalty.toFixed(2)}.`,
+      "MINIMO_APLICADO",
+    );
+  if (comp.maxApplied && ruleRow?.maxRoyalty)
+    V(
+      "info",
+      `Royalty apurado atingiu o teto contratual de ${Number(ruleRow.maxRoyalty).toFixed(2)}.`,
+      "TETO_APLICADO",
     );
 
   const hasError = validations.some((v) => v.severity === "error");
@@ -362,20 +444,24 @@ export async function submitRoyaltyReport(params: {
 
   if (computed.length) {
     await db.insert(royaltyReportLine).values(
-      computed.map((l) => ({
-        tenantId,
-        royaltyReportId: reportId,
-        sku: l.sku || null,
-        productName: l.productName || null,
-        units: String(Number(l.units) || 0),
-        unitPrice: String((Number(l.units) || 0) > 0 ? l.gross / (Number(l.units) || 1) : 0),
-        grossAmount: String(l.gross),
-        netAmount: String(l.net),
-        royaltyBaseAmt: String(Math.max(0, l.net)),
-        royaltyRate: String(rate),
-        royaltyAmount: String(l.royalty),
-        currencyId: ctr.currencyId,
-      })),
+      computed.map((l) => {
+        // Aloca o royalty total (já com faixas/piso/teto) proporcional à base de cada linha.
+        const lineRoyalty = baseTotal > 0 ? royaltyCalculated * (l.base / baseTotal) : 0;
+        return {
+          tenantId,
+          royaltyReportId: reportId,
+          sku: l.sku || null,
+          productName: l.productName || null,
+          units: String(Number(l.units) || 0),
+          unitPrice: String((Number(l.units) || 0) > 0 ? l.gross / (Number(l.units) || 1) : 0),
+          grossAmount: String(l.gross),
+          netAmount: String(l.net),
+          royaltyBaseAmt: String(l.base),
+          royaltyRate: String(effRate),
+          royaltyAmount: String(lineRoyalty),
+          currencyId: ctr.currencyId,
+        };
+      }),
     );
   }
 

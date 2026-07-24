@@ -3,8 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { getRoyaltyReportDetail } from "@/lib/data/royalties";
+import { getRoyaltyReportDetail, getContractRoyaltyRule } from "@/lib/data/royalties";
 import { approveReportAction, rejectReportAction } from "../actions";
+import { RoyaltyBreakdown } from "@/components/royalty-breakdown";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { RoyaltyReportStatus, ValidationSeverity } from "@/lib/db/schema";
@@ -48,6 +49,10 @@ export default async function RoyaltyDetailPage({
 
   const { report: r, lines, validations } = data;
   const iso = r.currencyIso ?? "BRL";
+  const { rule, tiers } = r.contractId
+    ? await getContractRoyaltyRule(session.tenantId, r.contractId)
+    : { rule: null, tiers: [] };
+  const royaltyBase = lines.reduce((a, l) => a + Number(l.royaltyBaseAmt || 0), 0);
   const variance = Number(r.variance);
   const canAct =
     can(session, PERMISSIONS.royaltyApprove) &&
@@ -120,6 +125,14 @@ export default async function RoyaltyDetailPage({
           </p>
         </Card>
       )}
+
+      <RoyaltyBreakdown
+        rule={rule}
+        tiers={tiers}
+        base={royaltyBase}
+        iso={iso}
+        storedRoyalty={Number(r.royaltyCalculated)}
+      />
 
       <Card className="mt-4 overflow-x-auto p-0">
         <div className="p-5 pb-2">

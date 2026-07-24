@@ -5,12 +5,15 @@ import {
   royaltyReport,
   royaltyReportLine,
   royaltyReportValidation,
+  royaltyRule,
+  royaltyTier,
   contract,
   licensee,
   currency,
   receivable,
   ledgerEntry,
 } from "@/lib/db/schema";
+import type { RoyaltyType, RoyaltyBase } from "@/lib/db/schema";
 
 export async function listRoyaltyReports(tenantId: string) {
   return db
@@ -54,6 +57,7 @@ export async function getRoyaltyReportDetail(tenantId: string, id: string) {
       variance: royaltyReport.variance,
       approvedAt: royaltyReport.approvedAt,
       submittedAt: royaltyReport.submittedAt,
+      contractId: royaltyReport.contractId,
       currencyIso: currency.isoCode,
       licenseeName: licensee.legalName,
       contractNumber: contract.contractNumber,
@@ -163,4 +167,101 @@ export async function rejectRoyaltyReport(tenantId: string, id: string) {
     .update(royaltyReport)
     .set({ status: "rejeitado", updatedAt: new Date() })
     .where(and(eq(royaltyReport.id, id), eq(royaltyReport.tenantId, tenantId)));
+}
+
+/** Regra de royalty vigente de um contrato + suas faixas (ordenadas). */
+export async function getContractRoyaltyRule(tenantId: string, contractId: string) {
+  const rules = await db
+    .select()
+    .from(royaltyRule)
+    .where(
+      and(
+        eq(royaltyRule.contractId, contractId),
+        eq(royaltyRule.tenantId, tenantId),
+        eq(royaltyRule.isActive, true),
+      ),
+    )
+    .orderBy(desc(royaltyRule.createdAt))
+    .limit(1);
+  const rule = rules[0] ?? null;
+  const tiers = rule
+    ? await db
+        .select()
+        .from(royaltyTier)
+        .where(eq(royaltyTier.royaltyRuleId, rule.id))
+        .orderBy(royaltyTier.tierFrom)
+    : [];
+  return { rule, tiers };
+}
+
+export type RoyaltyRuleFormInput = {
+  royaltyType: RoyaltyType;
+  base: RoyaltyBase;
+  percentage: number | null;
+  fixedAmount: number | null;
+  minRoyalty: number | null;
+  maxRoyalty: number | null;
+  tiers: { tierFrom: number; tierTo: number | null; rate: number }[];
+};
+
+/**
+ * Salva a regra de royalty de um contrato: desativa a regra vigente,
+ * cria uma nova ativa e (se escalonado) grava as faixas. Preserva o histórico.
+ */
+export async function saveRoyaltyRule(
+  tenantId: string,
+  contractId: string,
+  currencyId: string | null,
+  input: RoyaltyRuleFormInput,
+) {
+  // Segurança: o contrato precisa ser do tenant.
+  const ctr = await db
+    .select({ id: contract.id, currencyId: contract.currencyId })
+    .from(contract)
+    .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)))
+    .limit(1);
+  if (!ctr[0]) throw new Error("Contrato inválido.");
+
+  await db
+    .update(royaltyRule)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(royaltyRule.contractId, contractId),
+        eq(royaltyRule.tenantId, tenantId),
+        eq(royaltyRule.isActive, true),
+      ),
+    );
+
+  const inserted = await db
+    .insert(royaltyRule)
+    .values({
+      tenantId,
+      contractId,
+      royaltyType: input.royaltyType,
+      base: input.base,
+      percentage: input.percentage != null ? String(input.percentage) : null,
+      fixedAmount: input.fixedAmount != null ? String(input.fixedAmount) : null,
+      minRoyalty: input.minRoyalty != null ? String(input.minRoyalty) : null,
+      maxRoyalty: input.maxRoyalty != null ? String(input.maxRoyalty) : null,
+      currencyId: currencyId ?? ctr[0].currencyId,
+      isActive: true,
+    })
+    .returning({ id: royaltyRule.id });
+  const ruleId = inserted[0].id;
+
+  if (input.royaltyType === "escalonado" && input.tiers.length) {
+    const rows = input.tiers
+      .filter((t) => Number.isFinite(t.tierFrom) && Number.isFinite(t.rate))
+      .sort((a, b) => a.tierFrom - b.tierFrom)
+      .map((t) => ({
+        royaltyRuleId: ruleId,
+        tierFrom: String(t.tierFrom),
+        tierTo: t.tierTo != null ? String(t.tierTo) : null,
+        rate: String(t.rate),
+      }));
+    if (rows.length) await db.insert(royaltyTier).values(rows);
+  }
+
+  return { ruleId };
 }

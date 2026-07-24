@@ -5,9 +5,16 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { Plus, Trash2, Send, AlertCircle, Upload, Download } from "lucide-react";
 import { Card, Button, Input, Select, Label } from "@/components/ui";
 import { fmtMoney } from "@/lib/utils";
+import { computeRoyalty, type RoyaltyRuleInput, type TierInput } from "@/lib/royalties-engine";
 import { submitReportAction } from "../actions";
 
-type Contract = { id: string; contractNumber: string; ratePct: number };
+type Contract = {
+  id: string;
+  contractNumber: string;
+  ratePct: number;
+  rule: RoyaltyRuleInput | null;
+  tiers: TierInput[];
+};
 
 type Line = { sku: string; productName: string; units: number; grossAmount: number; deductions: number };
 type FormValues = { contractId: string; referenceLabel: string; lines: Line[] };
@@ -96,26 +103,28 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
 
   const values = watch();
   const contract = contracts.find((c) => c.id === values.contractId) ?? contracts[0];
-  const rate = (contract?.ratePct ?? 0) / 100;
 
-  const rows = (values.lines ?? []).map((l) => {
+  // Prévia com o mesmo motor do servidor (faixas escalonadas, piso/teto).
+  const lineCalc = (values.lines ?? []).map((l) => {
     const gross = Number(l.grossAmount) || 0;
     const ded = Number(l.deductions) || 0;
     const net = gross - ded;
-    const royalty = Math.max(0, net) * rate;
-    return { net, royalty };
+    return { gross, net, base: Math.max(0, net), units: Number(l.units) || 0 };
   });
-  const totals = rows.reduce<{ gross: number; net: number; royalty: number; units: number }>(
-    (acc, r, i) => {
-      const l = values.lines[i];
-      acc.gross += Number(l.grossAmount) || 0;
-      acc.net += r.net;
-      acc.royalty += r.royalty;
-      acc.units += Number(l.units) || 0;
-      return acc;
-    },
-    { gross: 0, net: 0, royalty: 0, units: 0 },
+  const baseTotal = lineCalc.reduce((a, r) => a + r.base, 0);
+  const comp = computeRoyalty(
+    baseTotal,
+    contract?.rule ?? { royaltyType: "percentual", percentage: contract?.ratePct ?? null },
+    contract?.tiers ?? [],
   );
+  const effRate = comp.effectiveRate;
+  const rows = lineCalc.map((r) => ({ net: r.net, royalty: r.base * effRate }));
+  const totals = {
+    gross: lineCalc.reduce((a, r) => a + r.gross, 0),
+    net: lineCalc.reduce((a, r) => a + r.net, 0),
+    royalty: comp.royalty,
+    units: lineCalc.reduce((a, r) => a + r.units, 0),
+  };
 
   function downloadTemplate() {
     const csv =
@@ -179,10 +188,18 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
             <Select {...register("contractId")}>
               {contracts.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.contractNumber} · royalty {c.ratePct.toLocaleString("pt-BR")}%
+                  {c.contractNumber} ·{" "}
+                  {c.rule?.royaltyType === "escalonado" && c.tiers.length
+                    ? "royalty escalonado"
+                    : `royalty ${c.ratePct.toLocaleString("pt-BR")}%`}
                 </option>
               ))}
             </Select>
+            {contract?.rule?.royaltyType === "escalonado" && (contract.tiers?.length ?? 0) > 0 && (
+              <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
+                Royalty escalonado · {contract.tiers.length} faixa(s) progressivas
+              </p>
+            )}
           </div>
           <div>
             <Label>Competência (AAAA-MM)</Label>
@@ -296,7 +313,10 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
       <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Summary label="Vendas brutas" value={fmtMoney(totals.gross)} />
         <Summary label="Vendas líquidas" value={fmtMoney(totals.net)} />
-        <Summary label={`Alíquota`} value={`${(contract?.ratePct ?? 0).toLocaleString("pt-BR")}%`} />
+        <Summary
+          label={comp.isTiered ? "Alíquota efetiva" : "Alíquota"}
+          value={`${(effRate * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`}
+        />
         <Summary label="Royalty a pagar" value={fmtMoney(totals.royalty)} highlight />
       </div>
 
