@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
+  Bell,
   Users,
   Star,
   FileText,
@@ -29,6 +30,7 @@ const groups: NavGroup[] = [
     title: "Operação",
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
+      { href: "/pendencias", label: "Pendências", icon: Bell },
       { href: "/licenciados", label: "Licenciados", icon: Users },
       { href: "/contratos", label: "Contratos", icon: FileText },
       { href: "/marcas", label: "Marcas & IP", icon: Star },

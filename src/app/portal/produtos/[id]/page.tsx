@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { requireLicenseeSession } from "@/lib/auth";
 import { getPortalProduct } from "@/lib/data/portal";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { ApprovalStageType, ApprovalDecision, ProductStatus } from "@/lib/db/schema";
 
@@ -88,12 +88,21 @@ export default async function PortalProdutoDetail({
         </Card>
       )}
       {product.status === "reprovado" && (
-        <Card className="mb-4 flex items-start gap-3 border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
-          <XCircle size={18} className="mt-0.5 shrink-0 text-red-600" />
-          <p className="text-sm text-red-800 dark:text-red-300">
-            Produto reprovado{reprovingStage ? ` na alçada ${stageLabels[reprovingStage.stageType]}` : ""}.
-            {reprovingStage?.comment ? ` Motivo: ${reprovingStage.comment}` : ""}
-          </p>
+        <Card className="mb-4 border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950/40">
+          <div className="flex items-start gap-3">
+            <XCircle size={18} className="mt-0.5 shrink-0 text-red-600" />
+            <p className="text-sm text-red-800 dark:text-red-300">
+              Produto reprovado{reprovingStage ? ` na alçada ${stageLabels[reprovingStage.stageType]}` : ""}.
+              {reprovingStage?.comment ? ` Motivo: ${reprovingStage.comment}` : ""}
+            </p>
+          </div>
+          <div className="mt-3 pl-7">
+            <Link href={`/portal/produtos/${product.id}/reenviar`}>
+              <Button size="sm">
+                <RefreshCw size={14} /> Reenviar nova versão
+              </Button>
+            </Link>
+          </div>
         </Card>
       )}
 

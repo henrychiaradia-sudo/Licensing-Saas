@@ -691,3 +691,85 @@ export async function submitProductForApproval(params: {
 
   return { productId };
 }
+
+/**
+ * Reenvia uma nova versão de um produto reprovado: atualiza a ficha, incrementa a
+ * versão, volta o produto a "submetido" e cria uma nova aprovação com as 8 alçadas.
+ */
+export async function resubmitProduct(params: {
+  tenantId: string;
+  licenseeId: string;
+  userId: string;
+  productId: string;
+  name: string;
+  productLine?: string | null;
+  material?: string | null;
+  color?: string | null;
+  supplierName?: string | null;
+  suggestedPrice?: number | null;
+}): Promise<{ productId: string; version: number }> {
+  const { tenantId, licenseeId, userId, productId } = params;
+
+  const rows = await db
+    .select({ id: product.id, status: product.status, currentVersion: product.currentVersion })
+    .from(product)
+    .where(
+      and(
+        eq(product.id, productId),
+        eq(product.tenantId, tenantId),
+        eq(product.licenseeId, licenseeId),
+      ),
+    )
+    .limit(1);
+  const prod = rows[0];
+  if (!prod) throw new Error("Produto não encontrado.");
+  if (prod.status !== "reprovado")
+    throw new Error("Só é possível reenviar uma nova versão de produtos reprovados.");
+
+  const newVersion = prod.currentVersion + 1;
+
+  await db
+    .update(product)
+    .set({
+      name: params.name,
+      productLine: params.productLine ?? null,
+      material: params.material ?? null,
+      color: params.color ?? null,
+      supplierName: params.supplierName ?? null,
+      suggestedPrice: params.suggestedPrice != null ? String(params.suggestedPrice) : null,
+      status: "submetido",
+      currentVersion: newVersion,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(product.id, productId), eq(product.tenantId, tenantId)));
+
+  const due = new Date();
+  due.setDate(due.getDate() + 10);
+  const insertedAppr = await db
+    .insert(productApproval)
+    .values({
+      tenantId,
+      productId,
+      version: newVersion,
+      status: "em_aprovacao",
+      overallDecision: "pendente",
+      submittedBy: userId,
+      submittedAt: new Date(),
+      slaDueDate: due.toISOString().slice(0, 10),
+    })
+    .returning({ id: productApproval.id });
+  const approvalId = insertedAppr[0].id;
+
+  await db.insert(approvalStage).values(
+    DEFAULT_APPROVAL_STAGES.map((s, i) => ({
+      tenantId,
+      productApprovalId: approvalId,
+      stageType: s.stageType,
+      sequence: i + 1,
+      decision: "pendente" as const,
+      slaHours: s.slaHours,
+    })),
+  );
+
+  return { productId, version: newVersion };
+}
