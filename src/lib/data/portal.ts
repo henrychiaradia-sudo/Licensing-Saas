@@ -534,7 +534,7 @@ export async function submitProductForApproval(params: {
 
   // Segurança: a marca precisa estar licenciada a este licenciado.
   const allowed = await db
-    .select({ id: brand.id })
+    .select({ brandId: contractBrand.brandId })
     .from(contractBrand)
     .innerJoin(contract, eq(contract.id, contractBrand.contractId))
     .where(
