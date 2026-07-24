@@ -12,6 +12,7 @@ import {
   currency,
   contract,
 } from "@/lib/db/schema";
+import type { PaymentMethod } from "@/lib/db/schema";
 
 export async function listReceivables(tenantId: string) {
   return db
@@ -154,5 +155,85 @@ export async function registerPayment(tenantId: string, receivableId: string) {
   await db
     .update(receivable)
     .set({ paidAmount: String(Number(rec.amount)), status: "pago", updatedAt: new Date() })
+    .where(and(eq(receivable.id, receivableId), eq(receivable.tenantId, tenantId)));
+}
+
+/** Detalhe de um recebível + seus pagamentos. */
+export async function getReceivableDetail(tenantId: string, id: string) {
+  const rows = await db
+    .select({
+      id: receivable.id,
+      description: receivable.description,
+      amount: receivable.amount,
+      paidAmount: receivable.paidAmount,
+      status: receivable.status,
+      dueDate: receivable.dueDate,
+      currencyId: receivable.currencyId,
+      currencyIso: currency.isoCode,
+      licenseeName: licensee.legalName,
+      contractNumber: contract.contractNumber,
+    })
+    .from(receivable)
+    .leftJoin(currency, eq(currency.id, receivable.currencyId))
+    .leftJoin(licensee, eq(licensee.id, receivable.licenseeId))
+    .leftJoin(contract, eq(contract.id, receivable.contractId))
+    .where(and(eq(receivable.id, id), eq(receivable.tenantId, tenantId)))
+    .limit(1);
+  const rec = rows[0];
+  if (!rec) return null;
+
+  const payments = await db
+    .select({
+      id: payment.id,
+      method: payment.method,
+      amount: payment.amount,
+      paidAt: payment.paidAt,
+      reference: payment.reference,
+    })
+    .from(payment)
+    .where(and(eq(payment.receivableId, id), eq(payment.tenantId, tenantId)))
+    .orderBy(desc(payment.paidAt));
+
+  return { receivable: rec, payments };
+}
+
+/** Registra um pagamento (parcial ou total) num recebível, com método e data. */
+export async function registerPaymentDetailed(
+  tenantId: string,
+  receivableId: string,
+  input: { amount: number; method: PaymentMethod; paidAt: string; reference?: string | null },
+) {
+  const rows = await db
+    .select()
+    .from(receivable)
+    .where(and(eq(receivable.id, receivableId), eq(receivable.tenantId, tenantId)))
+    .limit(1);
+  const rec = rows[0];
+  if (!rec) throw new Error("Recebível não encontrado.");
+  const outstanding = Number(rec.amount) - Number(rec.paidAmount);
+  if (outstanding <= 0) throw new Error("Este recebível já está quitado.");
+
+  const amount = Math.min(Math.max(0, input.amount), outstanding);
+  if (amount <= 0) throw new Error("Informe um valor de pagamento válido.");
+
+  await db.insert(payment).values({
+    tenantId,
+    receivableId,
+    method: input.method,
+    amount: String(amount),
+    currencyId: rec.currencyId,
+    paidAt: new Date(input.paidAt + "T12:00:00Z"),
+    reference: input.reference || null,
+  });
+
+  const newPaid = Number(rec.paidAmount) + amount;
+  const fullyPaid = newPaid >= Number(rec.amount) - 0.005;
+  await db
+    .update(receivable)
+    .set({
+      paidAmount: String(newPaid),
+      status: fullyPaid ? "pago" : "parcial",
+      updatedAt: new Date(),
+    })
     .where(and(eq(receivable.id, receivableId), eq(receivable.tenantId, tenantId)));
 }

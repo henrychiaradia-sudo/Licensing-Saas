@@ -91,6 +91,22 @@ export async function getProductDetail(tenantId: string, id: string) {
   return { product: prod, approval, stages };
 }
 
+/** Todas as versões de aprovação de um produto (para o histórico de versões). */
+export async function getProductApprovalVersions(tenantId: string, productId: string) {
+  return db
+    .select({
+      id: productApproval.id,
+      version: productApproval.version,
+      status: productApproval.status,
+      overallDecision: productApproval.overallDecision,
+      submittedAt: productApproval.submittedAt,
+      decidedAt: productApproval.decidedAt,
+    })
+    .from(productApproval)
+    .where(and(eq(productApproval.productId, productId), eq(productApproval.tenantId, tenantId)))
+    .orderBy(desc(productApproval.version));
+}
+
 /** Aprova a próxima etapa pendente; se todas ficarem aprovadas, aprova o produto. */
 export async function approveNextStage(tenantId: string, approvalId: string) {
   const owner = await db

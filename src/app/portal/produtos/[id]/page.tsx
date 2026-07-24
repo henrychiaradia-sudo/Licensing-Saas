@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, Clock, RefreshCw } from "lucide-react";
 import { requireLicenseeSession } from "@/lib/auth";
 import { getPortalProduct } from "@/lib/data/portal";
+import { getProductApprovalVersions } from "@/lib/data/products";
+import { ProductVersions } from "@/components/product-versions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { ApprovalStageType, ApprovalDecision, ProductStatus } from "@/lib/db/schema";
@@ -48,6 +50,7 @@ export default async function PortalProdutoDetail({
   if (!data) notFound();
 
   const { product, stages } = data;
+  const versions = await getProductApprovalVersions(session.tenantId, id);
   const decidedCount = stages.filter((s) => s.decision !== "pendente").length;
   const total = stages.length || 8;
   const reprovingStage = stages.find((s) => s.decision === "reprovado") ?? null;
@@ -178,6 +181,8 @@ export default async function PortalProdutoDetail({
           )}
         </ul>
       </Card>
+
+      <ProductVersions versions={versions} currentVersion={product.currentVersion} />
 
       <Card className="mt-4 p-5">
         <h2 className="mb-3 text-sm font-semibold">Ficha técnica</h2>

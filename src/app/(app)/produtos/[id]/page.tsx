@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getProductDetail } from "@/lib/data/products";
+import { getProductDetail, getProductApprovalVersions } from "@/lib/data/products";
 import { decideStageAction } from "../actions";
+import { ProductVersions } from "@/components/product-versions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { ApprovalStageType, ApprovalDecision, ProductStatus } from "@/lib/db/schema";
@@ -48,6 +49,7 @@ export default async function ProdutoDetailPage({
   if (!data) notFound();
 
   const { product, approval, stages } = data;
+  const versions = await getProductApprovalVersions(session.tenantId, id);
   const firstPendingIdx = stages.findIndex((s) => s.decision === "pendente");
   const decidedCount = stages.filter((s) => s.decision !== "pendente").length;
   const currentStage = firstPendingIdx >= 0 ? stages[firstPendingIdx] : null;
@@ -208,6 +210,8 @@ export default async function ProdutoDetailPage({
           )}
         </ul>
       </Card>
+
+      <ProductVersions versions={versions} currentVersion={product.currentVersion} />
 
       <Card className="mt-4 p-5">
         <h2 className="mb-3 text-sm font-semibold">Ficha técnica</h2>

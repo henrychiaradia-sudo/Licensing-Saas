@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { Wallet, TrendingUp, AlertCircle, Target } from "lucide-react";
-import { requireSession, can } from "@/lib/auth";
-import { PERMISSIONS } from "@/lib/rbac";
+import { requireSession } from "@/lib/auth";
 import {
   listReceivables,
   listInvoices,
@@ -9,8 +9,8 @@ import {
   financeSummary,
   mgRealizedPercent,
 } from "@/lib/data/finance";
-import { registerPaymentAction } from "./actions";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL, fmtPct } from "@/lib/utils";
 import type {
   ReceivableStatus,
@@ -80,7 +80,25 @@ export default async function FinanceiroPage() {
     financeSummary(session.tenantId),
     mgRealizedPercent(session.tenantId),
   ]);
-  const canWrite = can(session, PERMISSIONS.financeWrite);
+
+  const recvCsvColumns = [
+    { key: "descricao", label: "Descrição" },
+    { key: "licenciado", label: "Licenciado" },
+    { key: "vencimento", label: "Vencimento" },
+    { key: "valor", label: "Valor" },
+    { key: "pago", label: "Pago" },
+    { key: "em_aberto", label: "Em aberto" },
+    { key: "status", label: "Status" },
+  ];
+  const recvCsvRows = receivables.map((r) => ({
+    descricao: r.description ?? "",
+    licenciado: r.licenseeName ?? "",
+    vencimento: r.dueDate,
+    valor: Number(r.amount),
+    pago: Number(r.paidAmount),
+    em_aberto: Number(r.amount) - Number(r.paidAmount),
+    status: recvLabel[r.status],
+  }));
 
   return (
     <div>
@@ -99,8 +117,9 @@ export default async function FinanceiroPage() {
       </div>
 
       <Card className="mt-6 overflow-x-auto p-0">
-        <div className="p-5 pb-2">
+        <div className="flex items-center justify-between p-5 pb-2">
           <h2 className="text-sm font-semibold">Recebíveis</h2>
+          <ExportCsvButton filename="recebiveis.csv" columns={recvCsvColumns} rows={recvCsvRows} />
         </div>
         <table className="w-full min-w-[820px] text-sm">
           <thead>
@@ -132,13 +151,12 @@ export default async function FinanceiroPage() {
                     <Badge tone={recvTone[r.status]}>{recvLabel[r.status]}</Badge>
                   </td>
                   <td className="px-5 py-2 text-right">
-                    {open && canWrite && (
-                      <form action={registerPaymentAction.bind(null, r.id)}>
-                        <Button type="submit" variant="outline" size="sm">
-                          Registrar pagamento
-                        </Button>
-                      </form>
-                    )}
+                    <Link
+                      href={`/financeiro/${r.id}`}
+                      className="text-sm font-medium text-blue-600 hover:underline"
+                    >
+                      {open ? "Registrar pagamento" : "Ver"}
+                    </Link>
                   </td>
                 </tr>
               );

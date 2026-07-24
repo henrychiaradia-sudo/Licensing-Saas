@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { listRoyaltyReports } from "@/lib/data/royalties";
 import { Card, Badge } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney } from "@/lib/utils";
 import type { RoyaltyReportStatus } from "@/lib/db/schema";
 
@@ -28,16 +29,40 @@ export default async function RoyaltiesPage() {
   const session = await requireSession();
   const reports = await listRoyaltyReports(session.tenantId);
 
+  const csvColumns = [
+    { key: "competencia", label: "Competência" },
+    { key: "contrato", label: "Contrato" },
+    { key: "licenciado", label: "Licenciado" },
+    { key: "vendas_liquidas", label: "Vendas líquidas" },
+    { key: "royalty_declarado", label: "Royalty declarado" },
+    { key: "royalty_calculado", label: "Royalty calculado" },
+    { key: "variancia", label: "Variância" },
+    { key: "status", label: "Status" },
+  ];
+  const csvRows = reports.map((r) => ({
+    competencia: r.referenceLabel,
+    contrato: r.contractNumber ?? "",
+    licenciado: r.licenseeName ?? "",
+    vendas_liquidas: Number(r.netSalesTotal),
+    royalty_declarado: Number(r.royaltyDeclared),
+    royalty_calculado: Number(r.royaltyCalculated),
+    variancia: Number(r.variance),
+    status: statusLabel[r.status],
+  }));
+
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Royalties</h1>
           <p className="text-sm text-neutral-500">
             Relatórios de vendas, cálculo de royalties e divergências
           </p>
         </div>
-        <Badge tone="info">{reports.length} relatório(s)</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone="info">{reports.length} relatório(s)</Badge>
+          <ExportCsvButton filename="royalties.csv" columns={csvColumns} rows={csvRows} />
+        </div>
       </div>
 
       <Card className="overflow-x-auto">
