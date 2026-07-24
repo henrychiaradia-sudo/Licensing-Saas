@@ -19,6 +19,7 @@ type FormValues = {
   color: string;
   supplierName: string;
   suggestedPrice: number;
+  imageUrl: string;
 };
 
 export function ProductForm({ brands, categories }: { brands: Brand[]; categories: Category[] }) {
@@ -28,6 +29,7 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -40,8 +42,10 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
       color: "",
       supplierName: "",
       suggestedPrice: 0,
+      imageUrl: "",
     },
   });
+  const imageUrl = watch("imageUrl");
 
   async function onSubmit(data: FormValues) {
     setServerError(null);
@@ -56,6 +60,7 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
       color: data.color,
       supplierName: data.supplierName,
       suggestedPrice: Number(data.suggestedPrice) || 0,
+      imageUrl: data.imageUrl?.trim() ?? "",
     });
     // Em caso de sucesso o servidor redireciona; só chegamos aqui em erro.
     if (res && !res.ok) {
@@ -126,6 +131,24 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
               min="0"
               {...register("suggestedPrice", { valueAsNumber: true })}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Imagem / arte do produto (URL)</Label>
+            <Input
+              placeholder="https://…/arte-do-produto.png"
+              {...register("imageUrl")}
+            />
+            <p className="mt-1 text-xs text-neutral-400">
+              Cole o link público de uma imagem (PNG/JPG). O time de aprovação verá a arte anexada.
+            </p>
+            {imageUrl && /^https?:\/\//i.test(imageUrl.trim()) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl.trim()}
+                alt="Prévia da arte"
+                className="mt-3 max-h-48 rounded-lg border border-neutral-200 object-contain dark:border-neutral-700"
+              />
+            )}
           </div>
         </div>
       </Card>

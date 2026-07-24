@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { getRoyaltyReportDetail, getContractRoyaltyRule } from "@/lib/data/royalties";
+import { getRoyaltyReportDetail, getContractRoyaltyRule, getReportInvoice } from "@/lib/data/royalties";
 import { approveReportAction, rejectReportAction } from "../actions";
 import { RoyaltyBreakdown } from "@/components/royalty-breakdown";
 import { Card, Badge, Button } from "@/components/ui";
@@ -49,6 +49,8 @@ export default async function RoyaltyDetailPage({
 
   const { report: r, lines, validations } = data;
   const iso = r.currencyIso ?? "BRL";
+  const reportInvoice =
+    r.status === "aprovado" ? await getReportInvoice(session.tenantId, r.id) : null;
   const { rule, tiers } = r.contractId
     ? await getContractRoyaltyRule(session.tenantId, r.contractId)
     : { rule: null, tiers: [] };
@@ -119,10 +121,19 @@ export default async function RoyaltyDetailPage({
       {r.status === "aprovado" && (
         <Card className="mt-4 flex items-start gap-3 border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
           <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
-          <p className="text-sm text-emerald-800 dark:text-emerald-300">
-            Relatório aprovado e faturado — o recebível foi gerado e já aparece no Financeiro e no portal
-            do licenciado.
-          </p>
+          <div className="text-sm text-emerald-800 dark:text-emerald-300">
+            <p>
+              Relatório aprovado e faturado — o recebível foi gerado e já aparece no Financeiro e no
+              portal do licenciado.
+            </p>
+            {reportInvoice && (
+              <p className="mt-1 font-medium">
+                Nota de débito <strong>{reportInvoice.invoiceNumber}</strong> emitida em{" "}
+                {fmtDate(reportInvoice.issueDate)} · {fmtMoney(reportInvoice.netAmount, iso)} · vence{" "}
+                {fmtDate(reportInvoice.dueDate)}.
+              </p>
+            )}
+          </div>
         </Card>
       )}
 

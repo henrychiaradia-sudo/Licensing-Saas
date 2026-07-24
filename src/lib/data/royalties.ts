@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc, sql, count } from "drizzle-orm";
+import { and, eq, desc, sql, count, or, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   royaltyReport,
@@ -11,11 +11,26 @@ import {
   licensee,
   currency,
   receivable,
+  invoice,
   ledgerEntry,
 } from "@/lib/db/schema";
-import type { RoyaltyType, RoyaltyBase } from "@/lib/db/schema";
+import type { RoyaltyType, RoyaltyBase, RoyaltyReportStatus } from "@/lib/db/schema";
 
-export async function listRoyaltyReports(tenantId: string) {
+export async function listRoyaltyReports(
+  tenantId: string,
+  opts?: { status?: RoyaltyReportStatus; q?: string },
+) {
+  const conds = [eq(royaltyReport.tenantId, tenantId)];
+  if (opts?.status) conds.push(eq(royaltyReport.status, opts.status));
+  if (opts?.q && opts.q.trim()) {
+    const term = `%${opts.q.trim()}%`;
+    const match = or(
+      ilike(royaltyReport.referenceLabel, term),
+      ilike(licensee.legalName, term),
+      ilike(contract.contractNumber, term),
+    );
+    if (match) conds.push(match);
+  }
   return db
     .select({
       id: royaltyReport.id,
@@ -35,7 +50,7 @@ export async function listRoyaltyReports(tenantId: string) {
     .leftJoin(licensee, eq(licensee.id, royaltyReport.licenseeId))
     .leftJoin(contract, eq(contract.id, royaltyReport.contractId))
     .leftJoin(currency, eq(currency.id, royaltyReport.currencyId))
-    .where(eq(royaltyReport.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(desc(royaltyReport.periodStart))
     .limit(200);
 }
@@ -84,6 +99,26 @@ export async function getRoyaltyReportDetail(tenantId: string, id: string) {
     .orderBy(desc(royaltyReportValidation.createdAt));
 
   return { report, lines, validations };
+}
+
+/** Nota de débito (fatura) emitida a partir de um relatório de royalty aprovado, se houver. */
+export async function getReportInvoice(tenantId: string, reportId: string) {
+  const rows = await db
+    .select({
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      netAmount: invoice.netAmount,
+      status: invoice.status,
+      currencyIso: currency.isoCode,
+    })
+    .from(receivable)
+    .innerJoin(invoice, eq(invoice.id, receivable.invoiceId))
+    .leftJoin(currency, eq(currency.id, invoice.currencyId))
+    .where(and(eq(receivable.tenantId, tenantId), eq(receivable.royaltyReportId, reportId)))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 /** Soma dos royalties calculados na competência mais recente (para o KPI do dashboard). */
@@ -136,10 +171,34 @@ export async function approveAndInvoiceReport(tenantId: string, id: string, user
   due.setDate(due.getDate() + 30);
   const dueStr = due.toISOString().slice(0, 10);
 
+  // Emite a nota de débito (fatura) da competência aprovada.
+  const invCount = await db
+    .select({ c: count() })
+    .from(invoice)
+    .where(eq(invoice.tenantId, tenantId));
+  const invNumber = `ND-${todayStr.slice(0, 4)}-${String((invCount[0]?.c ?? 0) + 1).padStart(4, "0")}`;
+  const insertedInvoice = await db
+    .insert(invoice)
+    .values({
+      tenantId,
+      licenseeId: rep.licenseeId,
+      contractId: rep.contractId,
+      invoiceNumber: invNumber,
+      issueDate: todayStr,
+      dueDate: dueStr,
+      grossAmount: rep.royalty,
+      netAmount: rep.royalty,
+      currencyId: rep.currencyId,
+      status: "emitida",
+    })
+    .returning({ id: invoice.id });
+  const invoiceId = insertedInvoice[0].id;
+
   await db.insert(receivable).values({
     tenantId,
     licenseeId: rep.licenseeId,
     contractId: rep.contractId,
+    invoiceId,
     royaltyReportId: id,
     description: `Royalty ${rep.ref}`,
     amount: rep.royalty,

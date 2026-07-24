@@ -41,6 +41,7 @@ export default async function ReenviarProduto({ params }: { params: Promise<{ id
           color: p.color ?? "",
           supplierName: p.supplierName ?? "",
           suggestedPrice: p.suggestedPrice != null ? Number(p.suggestedPrice) : "",
+          imageUrl: p.imageUrl ?? "",
         }}
       />
     </div>

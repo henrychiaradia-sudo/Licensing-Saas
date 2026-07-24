@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { requireSession } from "@/lib/auth";
+import { Plus, Search } from "lucide-react";
+import { requireSession, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { listContracts } from "@/lib/data/contracts";
-import { Card, Badge } from "@/components/ui";
+import { Button, Card, Badge, Input } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
+import { CONTRACT_STATUS } from "./schema";
 import type { ContractStatus } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
@@ -26,21 +29,81 @@ const statusLabel: Record<ContractStatus, string> = {
   encerrado: "Encerrado",
 };
 
-export default async function ContratosPage() {
+export default async function ContratosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const session = await requireSession();
-  const contracts = await listContracts(session.tenantId);
+  const { q, status } = await searchParams;
+  const statusFilter =
+    status && (CONTRACT_STATUS as readonly string[]).includes(status)
+      ? (status as ContractStatus)
+      : undefined;
+  const contracts = await listContracts(session.tenantId, { q, status: statusFilter });
+  const canWrite = can(session, PERMISSIONS.contractWrite);
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold">Contratos</h1>
           <p className="text-sm text-neutral-500">
-            Licenças, vigências, garantias mínimas e alertas — lido do Supabase
+            Licenças, vigências, garantias mínimas e alertas
           </p>
         </div>
-        <Badge tone="info">{contracts.length} contrato(s)</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone="info">{contracts.length} contrato(s)</Badge>
+          {canWrite && (
+            <Link href="/contratos/new">
+              <Button>
+                <Plus size={16} /> Novo contrato
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Buscar</label>
+          <div className="relative">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
+            <Input
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Número do contrato ou licenciado"
+              className="pl-9"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Status</label>
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {CONTRACT_STATUS.map((s) => (
+              <option key={s} value={s}>
+                {statusLabel[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+        {(q || statusFilter) && (
+          <Link href="/contratos" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
@@ -86,7 +149,7 @@ export default async function ContratosPage() {
             {contracts.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-5 py-10 text-center text-sm text-neutral-400">
-                  Nenhum contrato cadastrado.
+                  Nenhum contrato encontrado.
                 </td>
               </tr>
             )}

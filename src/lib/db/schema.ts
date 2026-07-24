@@ -210,6 +210,7 @@ export const product = pgTable(
     color: text("color"),
     suggestedPrice: numeric("suggested_price", { precision: 18, scale: 4 }),
     barcode: text("barcode"),
+    imageUrl: text("image_url"),
     status: productStatus("status").notNull().default("rascunho"),
     currentVersion: integer("current_version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

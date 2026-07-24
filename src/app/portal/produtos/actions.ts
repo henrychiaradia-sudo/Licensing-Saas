@@ -15,6 +15,7 @@ const schema = z.object({
   color: z.string().trim().max(80).optional().default(""),
   supplierName: z.string().trim().max(160).optional().default(""),
   suggestedPrice: z.coerce.number().min(0).max(1_000_000_000).optional().default(0),
+  imageUrl: z.string().trim().max(1000).optional().default(""),
 });
 
 export type SubmitProductResult = { ok: false; error: string };
@@ -43,6 +44,7 @@ export async function submitProductAction(input: unknown): Promise<SubmitProduct
       color: d.color || null,
       supplierName: d.supplierName || null,
       suggestedPrice: d.suggestedPrice && d.suggestedPrice > 0 ? d.suggestedPrice : null,
+      imageUrl: d.imageUrl || null,
     });
     productId = result.productId;
   } catch (e) {
@@ -62,6 +64,7 @@ const resubmitSchema = z.object({
   color: z.string().trim().max(80).optional().default(""),
   supplierName: z.string().trim().max(160).optional().default(""),
   suggestedPrice: z.coerce.number().min(0).max(1_000_000_000).optional().default(0),
+  imageUrl: z.string().trim().max(1000).optional().default(""),
 });
 
 export async function resubmitProductAction(
@@ -88,6 +91,7 @@ export async function resubmitProductAction(
       color: d.color || null,
       supplierName: d.supplierName || null,
       suggestedPrice: d.suggestedPrice && d.suggestedPrice > 0 ? d.suggestedPrice : null,
+      imageUrl: d.imageUrl || null,
     });
   } catch (e) {
     return {

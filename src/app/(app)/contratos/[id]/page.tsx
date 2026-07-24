@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Bell, FileText, ShieldCheck } from "lucide-react";
-import { requireSession } from "@/lib/auth";
+import { ArrowLeft, Bell, FileText, ShieldCheck, Pencil } from "lucide-react";
+import { requireSession, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { getContractDetail } from "@/lib/data/contracts";
 import { getContractRoyaltyRule } from "@/lib/data/royalties";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import { RoyaltyRuleForm, type RuleFormValues } from "./royalty-rule-form";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type {
@@ -77,6 +78,7 @@ export default async function ContratoDetailPage({
 
   const { contract: c, fees, guarantees, territories, brands, alerts, documents } = data;
   const iso = c.currencyIso ?? "BRL";
+  const canWrite = can(session, PERMISSIONS.contractWrite);
 
   const { rule, tiers } = await getContractRoyaltyRule(session.tenantId, id);
   const ruleInitial: RuleFormValues = {
@@ -108,7 +110,16 @@ export default async function ContratoDetailPage({
             {c.licenseeName} · {c.exclusivity === "exclusivo" ? "Exclusivo" : "Não exclusivo"}
           </p>
         </div>
-        <Badge tone={statusTone[c.status]}>{statusLabel[c.status]}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone={statusTone[c.status]}>{statusLabel[c.status]}</Badge>
+          {canWrite && (
+            <Link href={`/contratos/${id}/editar`}>
+              <Button variant="outline" size="sm">
+                <Pencil size={14} /> Editar
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

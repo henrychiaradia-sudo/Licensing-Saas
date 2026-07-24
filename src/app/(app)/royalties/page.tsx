@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listRoyaltyReports } from "@/lib/data/royalties";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney } from "@/lib/utils";
 import type { RoyaltyReportStatus } from "@/lib/db/schema";
@@ -25,9 +26,20 @@ const statusLabel: Record<RoyaltyReportStatus, string> = {
   rejeitado: "Rejeitado",
 };
 
-export default async function RoyaltiesPage() {
+const STATUS_KEYS = Object.keys(statusLabel) as RoyaltyReportStatus[];
+
+export default async function RoyaltiesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const session = await requireSession();
-  const reports = await listRoyaltyReports(session.tenantId);
+  const { q, status } = await searchParams;
+  const statusFilter =
+    status && (STATUS_KEYS as string[]).includes(status)
+      ? (status as RoyaltyReportStatus)
+      : undefined;
+  const reports = await listRoyaltyReports(session.tenantId, { q, status: statusFilter });
 
   const csvColumns = [
     { key: "competencia", label: "Competência" },
@@ -64,6 +76,50 @@ export default async function RoyaltiesPage() {
           <ExportCsvButton filename="royalties.csv" columns={csvColumns} rows={csvRows} />
         </div>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Buscar</label>
+          <div className="relative">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
+            <Input
+              name="q"
+              defaultValue={q ?? ""}
+              placeholder="Competência, licenciado ou contrato"
+              className="pl-9"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Status</label>
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {STATUS_KEYS.map((s) => (
+              <option key={s} value={s}>
+                {statusLabel[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          className="h-10 rounded-lg border border-neutral-200 bg-white px-4 text-sm font-medium hover:border-blue-500 dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          Filtrar
+        </button>
+        {(q || statusFilter) && (
+          <Link href="/royalties" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">

@@ -13,6 +13,7 @@ type FormValues = {
   color: string;
   supplierName: string;
   suggestedPrice: number | string;
+  imageUrl: string;
 };
 
 export function ResubmitForm({
@@ -32,8 +33,10 @@ export function ResubmitForm({
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({ defaultValues: initial });
+  const imageUrl = watch("imageUrl");
 
   async function onSubmit(data: FormValues) {
     setServerError(null);
@@ -45,6 +48,7 @@ export function ResubmitForm({
       color: data.color,
       supplierName: data.supplierName,
       suggestedPrice: Number(data.suggestedPrice) || 0,
+      imageUrl: (data.imageUrl ?? "").trim(),
     });
     if (res && !res.ok) {
       setServerError(res.error);
@@ -88,6 +92,18 @@ export function ResubmitForm({
           <div>
             <Label>Preço sugerido (R$)</Label>
             <Input type="number" step="0.01" min="0" {...register("suggestedPrice", { valueAsNumber: true })} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Imagem / arte do produto (URL)</Label>
+            <Input placeholder="https://…/arte-do-produto.png" {...register("imageUrl")} />
+            {imageUrl && /^https?:\/\//i.test(imageUrl.trim()) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={imageUrl.trim()}
+                alt="Prévia da arte"
+                className="mt-3 max-h-48 rounded-lg border border-neutral-200 object-contain dark:border-neutral-700"
+              />
+            )}
           </div>
         </div>
       </Card>

@@ -109,6 +109,18 @@ export default async function PortalProdutoDetail({
         </Card>
       )}
 
+      {product.imageUrl && (
+        <Card className="mb-4 p-5">
+          <h2 className="mb-3 text-sm font-semibold">Arte do produto</h2>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="max-h-72 rounded-lg border border-neutral-200 object-contain dark:border-neutral-800"
+          />
+        </Card>
+      )}
+
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>

@@ -559,6 +559,7 @@ export async function getPortalProduct(tenantId: string, licenseeId: string, id:
       color: product.color,
       suggestedPrice: product.suggestedPrice,
       barcode: product.barcode,
+      imageUrl: product.imageUrl,
       currentVersion: product.currentVersion,
     })
     .from(product)
@@ -615,6 +616,7 @@ export async function submitProductForApproval(params: {
   color?: string | null;
   supplierName?: string | null;
   suggestedPrice?: number | null;
+  imageUrl?: string | null;
 }): Promise<{ productId: string }> {
   const { tenantId, licenseeId, userId, brandId } = params;
 
@@ -655,6 +657,7 @@ export async function submitProductForApproval(params: {
       material: params.material ?? null,
       color: params.color ?? null,
       suggestedPrice: params.suggestedPrice != null ? String(params.suggestedPrice) : null,
+      imageUrl: params.imageUrl ?? null,
       status: "submetido",
       currentVersion: 1,
     })
@@ -707,6 +710,7 @@ export async function resubmitProduct(params: {
   color?: string | null;
   supplierName?: string | null;
   suggestedPrice?: number | null;
+  imageUrl?: string | null;
 }): Promise<{ productId: string; version: number }> {
   const { tenantId, licenseeId, userId, productId } = params;
 
@@ -737,6 +741,7 @@ export async function resubmitProduct(params: {
       color: params.color ?? null,
       supplierName: params.supplierName ?? null,
       suggestedPrice: params.suggestedPrice != null ? String(params.suggestedPrice) : null,
+      imageUrl: params.imageUrl ?? null,
       status: "submetido",
       currentVersion: newVersion,
       updatedAt: new Date(),
