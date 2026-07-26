@@ -1,7 +1,8 @@
-import { Award } from "lucide-react";
+import Link from "next/link";
+import { Award, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listSourcing } from "@/lib/data/sourcing";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { SourcingStatus } from "@/lib/db/schema";
 
@@ -26,11 +27,18 @@ export default async function SourcingPage() {
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-xl font-bold">Sourcing &amp; Cotações</h1>
-        <p className="text-sm text-neutral-500">
-          Eventos de cotação e comparação de propostas de fornecedores
-        </p>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Sourcing &amp; Cotações</h1>
+          <p className="text-sm text-neutral-500">
+            Eventos de cotação e comparação de propostas de fornecedores
+          </p>
+        </div>
+        <Link href="/sourcing/new">
+          <Button>
+            <Plus size={16} /> Novo RFQ
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-4">
@@ -43,7 +51,12 @@ export default async function SourcingPage() {
             <Card key={e.id} className="overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 p-5 dark:border-neutral-800">
                 <div>
-                  <h2 className="text-sm font-semibold">{e.title}</h2>
+                  <Link
+                    href={`/sourcing/${e.id}`}
+                    className="text-sm font-semibold text-blue-600 hover:underline"
+                  >
+                    {e.title}
+                  </Link>
                   <p className="text-xs text-neutral-400">
                     Prazo: {fmtDate(e.dueDate)} · {e.quotes.length} cotação(ões)
                   </p>
