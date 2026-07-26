@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ShoppingCart, PackageCheck, Clock } from "lucide-react";
+import { ShoppingCart, PackageCheck, Clock, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listPurchaseOrders, purchaseSummary } from "@/lib/data/purchase-orders";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate, fmtCompactBRL } from "@/lib/utils";
 import type { PoStatus } from "@/lib/db/schema";
 
@@ -36,11 +36,18 @@ export default async function ComprasPage() {
 
   return (
     <div>
-      <div className="mb-5">
-        <h1 className="text-xl font-bold">Pedidos de Compra</h1>
-        <p className="text-sm text-neutral-500">
-          Sourcing de produção e suprimentos — status, prazos e valores
-        </p>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold">Pedidos de Compra</h1>
+          <p className="text-sm text-neutral-500">
+            Sourcing de produção e suprimentos — status, prazos e valores
+          </p>
+        </div>
+        <Link href="/compras/new">
+          <Button>
+            <Plus size={16} /> Novo pedido
+          </Button>
+        </Link>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

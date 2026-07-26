@@ -11,8 +11,12 @@ export type FormState = { error: string | null };
 
 function parseNumOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
-  const s = String(v).trim().replace(/\./g, "").replace(",", ".");
+  let s = String(v).trim();
   if (s === "") return null;
+  // Se houver vírgula, é formato BR (ponto = milhar, vírgula = decimal).
+  // Um <input type="number"> já envia com ponto decimal (ex.: "500000.5"),
+  // então não removemos o ponto nesse caso.
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }

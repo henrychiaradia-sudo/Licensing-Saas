@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, Star } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Star, Pencil } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getSupplierDetail } from "@/lib/data/suppliers";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import { categoryLabel } from "../page";
 import type { SupplierStatus, PoStatus } from "@/lib/db/schema";
@@ -68,7 +68,14 @@ export default async function FornecedorDetailPage({
             {s.legalName} · {s.code} · {categoryLabel[s.category]}
           </p>
         </div>
-        <Badge tone={statusTone[s.status]}>{statusLabel[s.status]}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone={statusTone[s.status]}>{statusLabel[s.status]}</Badge>
+          <Link href={`/fornecedores/${id}/editar`}>
+            <Button variant="outline" size="sm">
+              <Pencil size={14} /> Editar
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

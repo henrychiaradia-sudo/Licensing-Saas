@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listSuppliers } from "@/lib/data/suppliers";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, Button } from "@/components/ui";
 import type { SupplierStatus, SupplierCategory } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
@@ -42,7 +42,14 @@ export default async function FornecedoresPage() {
             Base de fornecedores homologados — categorias, lead time e avaliação
           </p>
         </div>
-        <Badge tone="info">{suppliers.length} fornecedor(es)</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone="info">{suppliers.length} fornecedor(es)</Badge>
+          <Link href="/fornecedores/new">
+            <Button>
+              <Plus size={16} /> Novo fornecedor
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="overflow-x-auto">

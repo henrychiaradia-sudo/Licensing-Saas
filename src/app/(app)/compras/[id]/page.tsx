@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, XCircle, CheckCircle2 } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getPurchaseOrderDetail } from "@/lib/data/purchase-orders";
-import { Card, Badge } from "@/components/ui";
+import { getPurchaseOrderDetail, nextPoStatus } from "@/lib/data/purchase-orders";
+import { setPoStatusAction } from "../actions";
+import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { PoStatus } from "@/lib/db/schema";
 
@@ -39,6 +40,8 @@ export default async function CompraDetailPage({
   if (!data) notFound();
   const { order: o, items } = data;
   const iso = o.currencyIso ?? "BRL";
+  const next = nextPoStatus(o.status);
+  const isFinal = o.status === "recebido" || o.status === "cancelado";
 
   return (
     <div>
@@ -59,6 +62,37 @@ export default async function CompraDetailPage({
         </div>
         <Badge tone={poTone[o.status]}>{poLabel[o.status]}</Badge>
       </div>
+
+      {!isFinal && (
+        <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-sm text-neutral-600 dark:text-neutral-300">
+            Avance o pedido pelo fluxo de suprimentos ou cancele-o.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {next && (
+              <form action={setPoStatusAction.bind(null, o.id, next)}>
+                <Button type="submit">
+                  {next === "recebido" ? <CheckCircle2 size={15} /> : <ArrowRight size={15} />}
+                  Avançar para {poLabel[next]}
+                </Button>
+              </form>
+            )}
+            <form action={setPoStatusAction.bind(null, o.id, "cancelado")}>
+              <Button type="submit" variant="outline">
+                <XCircle size={15} /> Cancelar pedido
+              </Button>
+            </form>
+          </div>
+        </Card>
+      )}
+      {o.status === "recebido" && (
+        <Card className="mb-4 flex items-start gap-3 border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+          <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-emerald-600" />
+          <p className="text-sm text-emerald-800 dark:text-emerald-300">
+            Pedido recebido{o.receivedDate ? ` em ${fmtDate(o.receivedDate)}` : ""}. Fluxo concluído.
+          </p>
+        </Card>
+      )}
 
       <Card className="p-5">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
