@@ -3,11 +3,16 @@ import Link from "next/link";
 import { ArrowLeft, Bell, FileText, ShieldCheck, Pencil } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { getContractDetail, getContractDateAlerts } from "@/lib/data/contracts";
+import {
+  getContractDetail,
+  getContractDateAlerts,
+  listContractAmendments,
+} from "@/lib/data/contracts";
 import { getContractRoyaltyRule } from "@/lib/data/royalties";
 import { getContractRecoupment } from "@/lib/data/finance";
 import { Card, Badge, Button } from "@/components/ui";
 import { RoyaltyRuleForm, type RuleFormValues } from "./royalty-rule-form";
+import { AmendmentForm } from "./amendment-form";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type {
   ContractStatus,
@@ -15,7 +20,16 @@ import type {
   AlertType,
   AlertStatus,
   ContractDocType,
+  ContractAmendmentType,
 } from "@/lib/db/schema";
+
+const amendmentTypeLabel: Record<ContractAmendmentType, string> = {
+  aditivo: "Aditivo",
+  prorrogacao: "Prorrogação",
+  reajuste: "Reajuste",
+  rescisao: "Rescisão",
+  outro: "Outro",
+};
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
 
@@ -83,6 +97,7 @@ export default async function ContratoDetailPage({
 
   const recoup = await getContractRecoupment(session.tenantId, id);
   const dateAlerts = await getContractDateAlerts(session.tenantId, id);
+  const amendments = await listContractAmendments(session.tenantId, id);
   const { rule, tiers } = await getContractRoyaltyRule(session.tenantId, id);
   const ruleInitial: RuleFormValues = {
     royaltyType: rule?.royaltyType === "escalonado" ? "escalonado" : "percentual",
@@ -323,6 +338,39 @@ export default async function ContratoDetailPage({
           )}
         </Card>
       </div>
+
+      <Card className="mt-4 p-5">
+        <h2 className="mb-3 text-sm font-semibold">Aditivos contratuais</h2>
+        {amendments.length ? (
+          <ul className="mb-4 divide-y divide-neutral-100 dark:divide-neutral-800">
+            {amendments.map((a) => (
+              <li key={a.id} className="flex items-start justify-between gap-3 py-2.5">
+                <div>
+                  <div className="text-sm font-medium">
+                    {a.amendmentNumber} · {amendmentTypeLabel[a.amendmentType]}
+                  </div>
+                  {a.description && <p className="text-xs text-neutral-500">{a.description}</p>}
+                  <p className="text-[11px] text-neutral-400">
+                    {a.effectiveDate ? `Vigência: ${fmtDate(a.effectiveDate)}` : ""}
+                    {a.newEndDate ? ` · Nova data fim: ${fmtDate(a.newEndDate)}` : ""}
+                  </p>
+                </div>
+                <span className="text-[11px] text-neutral-400">{fmtDate(a.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mb-4 text-sm text-neutral-400">Nenhum aditivo registrado.</p>
+        )}
+        {canWrite && (
+          <div className="border-t border-neutral-100 pt-4 dark:border-neutral-800">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
+              Registrar aditivo
+            </h3>
+            <AmendmentForm contractId={id} />
+          </div>
+        )}
+      </Card>
 
       <Card className="mt-4 p-5">
         <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">

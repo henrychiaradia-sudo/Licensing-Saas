@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Send, CheckCircle2, XCircle, ShoppingCart } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getRequisitionDetail } from "@/lib/data/requisitions";
+import { getRequisitionDetail, requisitionAlcada } from "@/lib/data/requisitions";
 import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { listCurrencyOptions } from "@/lib/data/contracts";
 import { submitRequisitionAction, decideRequisitionAction } from "../actions";
@@ -40,6 +40,7 @@ export default async function RequisitionDetailPage({
     (a, it) => a + Number(it.quantity) * Number(it.estimatedUnitPrice),
     0,
   );
+  const alcada = requisitionAlcada(estTotal);
 
   return (
     <div>
@@ -58,7 +59,10 @@ export default async function RequisitionDetailPage({
             {r.requesterName ? ` · por ${r.requesterName}` : ""}
           </p>
         </div>
-        <Badge tone={statusTone[r.status]}>{reqStatusLabel[r.status]}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge tone="neutral">Alçada: {alcada.label}</Badge>
+          <Badge tone={statusTone[r.status]}>{reqStatusLabel[r.status]}</Badge>
+        </div>
       </div>
 
       {r.status === "rascunho" && (
@@ -78,7 +82,8 @@ export default async function RequisitionDetailPage({
         <Card className="mb-4 p-5">
           <h2 className="text-sm font-semibold">Aprovação da requisição</h2>
           <p className="mb-3 text-xs text-neutral-500">
-            Estimativa de {fmtBRL(estTotal)}. Registre o parecer.
+            Estimativa de {fmtBRL(estTotal)} · alçada exigida:{" "}
+            <strong>{alcada.label}</strong> ({alcada.note}). Registre o parecer.
           </p>
           <form action={decideRequisitionAction.bind(null, r.id)}>
             <textarea

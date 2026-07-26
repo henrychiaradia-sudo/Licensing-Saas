@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Mail, Phone, Star, Pencil } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Star, Pencil, CheckCircle2, Ban } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getSupplierDetail } from "@/lib/data/suppliers";
+import { setSupplierStatusAction } from "../actions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import { categoryLabel } from "../page";
@@ -77,6 +78,42 @@ export default async function FornecedorDetailPage({
           </Link>
         </div>
       </div>
+
+      <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          Homologação — gerencie a situação cadastral do fornecedor.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {s.status === "em_homologacao" && (
+            <form action={setSupplierStatusAction.bind(null, id, "ativo")}>
+              <Button type="submit" size="sm">
+                <CheckCircle2 size={14} /> Homologar
+              </Button>
+            </form>
+          )}
+          {s.status === "ativo" && (
+            <form action={setSupplierStatusAction.bind(null, id, "inativo")}>
+              <Button type="submit" size="sm" variant="outline">
+                Inativar
+              </Button>
+            </form>
+          )}
+          {(s.status === "inativo" || s.status === "bloqueado") && (
+            <form action={setSupplierStatusAction.bind(null, id, "ativo")}>
+              <Button type="submit" size="sm">
+                <CheckCircle2 size={14} /> Reativar
+              </Button>
+            </form>
+          )}
+          {s.status !== "bloqueado" && (
+            <form action={setSupplierStatusAction.bind(null, id, "bloqueado")}>
+              <Button type="submit" size="sm" variant="danger">
+                <Ban size={14} /> Bloquear
+              </Button>
+            </form>
+          )}
+        </div>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">

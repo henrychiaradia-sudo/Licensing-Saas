@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { ShoppingCart, PackageCheck, Clock, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listPurchaseOrders, purchaseSummary } from "@/lib/data/purchase-orders";
+import { listPurchaseOrders, purchaseSummary, purchaseSpendAnalysis } from "@/lib/data/purchase-orders";
 import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL } from "@/lib/utils";
-import type { PoStatus } from "@/lib/db/schema";
+import type { PoStatus, SupplierCategory } from "@/lib/db/schema";
+
+const categoryLabel: Record<SupplierCategory, string> = {
+  materia_prima: "Matéria-prima",
+  manufatura: "Manufatura",
+  embalagem: "Embalagem",
+  logistica: "Logística",
+  servicos: "Serviços",
+  marketing: "Marketing",
+  tecnologia: "Tecnologia",
+};
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
 
@@ -30,10 +40,13 @@ const poLabel: Record<PoStatus, string> = {
 
 export default async function ComprasPage() {
   const session = await requireSession();
-  const [orders, summary] = await Promise.all([
+  const [orders, summary, spend] = await Promise.all([
     listPurchaseOrders(session.tenantId),
     purchaseSummary(session.tenantId),
+    purchaseSpendAnalysis(session.tenantId),
   ]);
+  const maxSupplierSpend = Math.max(1, ...spend.bySupplier.map((s) => s.total));
+  const maxCategorySpend = Math.max(1, ...spend.byCategory.map((c) => c.total));
 
   const csvColumns = [
     { key: "pedido", label: "Pedido" },
@@ -76,6 +89,57 @@ export default async function ComprasPage() {
         <Kpi label="Em aberto" value={fmtCompactBRL(summary.open)} icon={<Clock size={18} className="text-amber-500" />} />
         <Kpi label="Recebido" value={fmtCompactBRL(summary.received)} icon={<PackageCheck size={18} className="text-emerald-600" />} />
       </div>
+
+      {(spend.bySupplier.length > 0 || spend.byCategory.length > 0) && (
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <Card className="p-5">
+            <h2 className="mb-3 text-sm font-semibold">Spend por fornecedor</h2>
+            <div className="space-y-2.5">
+              {spend.bySupplier.map((s) => (
+                <div key={s.name}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="truncate text-neutral-600 dark:text-neutral-300">{s.name}</span>
+                    <span className="font-medium tabular-nums">{fmtCompactBRL(s.total)}</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                    <div
+                      className="h-full rounded-full bg-blue-500"
+                      style={{ width: `${(s.total / maxSupplierSpend) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {spend.bySupplier.length === 0 && (
+                <p className="text-sm text-neutral-400">Sem gasto comprometido.</p>
+              )}
+            </div>
+          </Card>
+          <Card className="p-5">
+            <h2 className="mb-3 text-sm font-semibold">Spend por categoria</h2>
+            <div className="space-y-2.5">
+              {spend.byCategory.map((c) => (
+                <div key={c.category ?? "sem"}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="text-neutral-600 dark:text-neutral-300">
+                      {c.category ? categoryLabel[c.category] : "Sem categoria"}
+                    </span>
+                    <span className="font-medium tabular-nums">{fmtCompactBRL(c.total)}</span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+                    <div
+                      className="h-full rounded-full bg-emerald-500"
+                      style={{ width: `${(c.total / maxCategorySpend) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+              {spend.byCategory.length === 0 && (
+                <p className="text-sm text-neutral-400">Sem gasto comprometido.</p>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">

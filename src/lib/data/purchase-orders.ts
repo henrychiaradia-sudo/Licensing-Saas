@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc, sql, asc, isNull } from "drizzle-orm";
+import { and, eq, desc, sql, asc, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { purchaseOrder, purchaseOrderItem, supplier, licensee, currency } from "@/lib/db/schema";
 import type { PoStatus } from "@/lib/db/schema";
@@ -221,6 +221,100 @@ export async function setPurchaseOrderStatus(
     .update(purchaseOrder)
     .set(patch)
     .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)));
+}
+
+/** Registra o recebimento (conferência) das quantidades por item. Se tudo recebido → pedido recebido. */
+export async function receivePurchaseOrder(
+  tenantId: string,
+  id: string,
+  receipts: { itemId: string; receivedQty: number }[],
+): Promise<{ fullyReceived: boolean }> {
+  const rows = await db
+    .select({ id: purchaseOrder.id, status: purchaseOrder.status })
+    .from(purchaseOrder)
+    .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)))
+    .limit(1);
+  const po = rows[0];
+  if (!po) throw new Error("Pedido não encontrado.");
+  if (!["confirmado", "em_producao", "embarcado"].includes(po.status))
+    throw new Error("O recebimento só é possível em pedidos confirmados, em produção ou embarcados.");
+
+  const items = await db
+    .select()
+    .from(purchaseOrderItem)
+    .where(eq(purchaseOrderItem.purchaseOrderId, id));
+
+  for (const it of items) {
+    const r = receipts.find((x) => x.itemId === it.id);
+    if (!r) continue;
+    const rq = Math.max(0, Math.min(Number(it.quantity), Number.isFinite(r.receivedQty) ? r.receivedQty : 0));
+    await db
+      .update(purchaseOrderItem)
+      .set({ receivedQty: rq.toFixed(2) })
+      .where(and(eq(purchaseOrderItem.id, it.id), eq(purchaseOrderItem.tenantId, tenantId)));
+  }
+
+  const fresh = await db
+    .select({ quantity: purchaseOrderItem.quantity, receivedQty: purchaseOrderItem.receivedQty })
+    .from(purchaseOrderItem)
+    .where(eq(purchaseOrderItem.purchaseOrderId, id));
+  const fullyReceived =
+    fresh.length > 0 && fresh.every((it) => Number(it.receivedQty) >= Number(it.quantity) - 0.001);
+
+  if (fullyReceived) {
+    await db
+      .update(purchaseOrder)
+      .set({
+        status: "recebido",
+        receivedDate: new Date().toISOString().slice(0, 10),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)));
+  } else {
+    await db
+      .update(purchaseOrder)
+      .set({ updatedAt: new Date() })
+      .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)));
+  }
+  return { fullyReceived };
+}
+
+/** Spend analysis: gasto comprometido por fornecedor e por categoria de fornecedor. */
+export async function purchaseSpendAnalysis(tenantId: string) {
+  const committed = notInArray(purchaseOrder.status, ["rascunho", "cancelado"]);
+
+  const bySupplier = await db
+    .select({
+      name: supplier.legalName,
+      total: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}), 0)`,
+      orders: sql<string>`count(*)`,
+    })
+    .from(purchaseOrder)
+    .leftJoin(supplier, eq(supplier.id, purchaseOrder.supplierId))
+    .where(and(eq(purchaseOrder.tenantId, tenantId), committed))
+    .groupBy(supplier.legalName)
+    .orderBy(desc(sql`sum(${purchaseOrder.totalAmount})`))
+    .limit(8);
+
+  const byCategory = await db
+    .select({
+      category: supplier.category,
+      total: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}), 0)`,
+    })
+    .from(purchaseOrder)
+    .leftJoin(supplier, eq(supplier.id, purchaseOrder.supplierId))
+    .where(and(eq(purchaseOrder.tenantId, tenantId), committed))
+    .groupBy(supplier.category)
+    .orderBy(desc(sql`sum(${purchaseOrder.totalAmount})`));
+
+  return {
+    bySupplier: bySupplier.map((r) => ({
+      name: r.name ?? "—",
+      total: Number(r.total),
+      orders: Number(r.orders),
+    })),
+    byCategory: byCategory.map((r) => ({ category: r.category, total: Number(r.total) })),
+  };
 }
 
 export async function purchaseSummary(tenantId: string) {

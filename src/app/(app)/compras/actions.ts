@@ -6,6 +6,7 @@ import { requireSession } from "@/lib/auth";
 import {
   createPurchaseOrder,
   setPurchaseOrderStatus,
+  receivePurchaseOrder,
   type PurchaseOrderInput,
 } from "@/lib/data/purchase-orders";
 import { purchaseOrderSchema } from "./schema";
@@ -54,6 +55,20 @@ export async function createPurchaseOrderAction(input: unknown): Promise<CreateP
 export async function setPoStatusAction(id: string, target: PoStatus): Promise<void> {
   const session = await requireSession();
   await setPurchaseOrderStatus(session.tenantId, id, target);
+  revalidatePath(`/compras/${id}`);
+  revalidatePath("/compras");
+}
+
+export async function receivePoAction(id: string, formData: FormData): Promise<void> {
+  const session = await requireSession();
+  const receipts: { itemId: string; receivedQty: number }[] = [];
+  for (const [k, v] of formData.entries()) {
+    if (k.startsWith("qty_")) {
+      const n = Number(String(v).replace(",", "."));
+      receipts.push({ itemId: k.slice(4), receivedQty: Number.isFinite(n) ? n : 0 });
+    }
+  }
+  await receivePurchaseOrder(session.tenantId, id, receipts);
   revalidatePath(`/compras/${id}`);
   revalidatePath("/compras");
 }

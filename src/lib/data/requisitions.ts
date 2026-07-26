@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc, sql, inArray, asc } from "drizzle-orm";
+import { and, eq, desc, sql, inArray, asc, or, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   purchaseRequisition,
@@ -10,12 +10,27 @@ import type { PurchaseRequisitionStatus } from "@/lib/db/schema";
 import { createPurchaseOrder } from "./purchase-orders";
 import { purchaseOrder } from "@/lib/db/schema";
 
+/** Alçada de aprovação exigida conforme o valor estimado da requisição. */
+export function requisitionAlcada(total: number): { level: string; label: string; note: string } {
+  if (total <= 50_000) return { level: "gestor", label: "Gestor de Suprimentos", note: "até R$ 50 mil" };
+  if (total <= 200_000) return { level: "diretor", label: "Diretor", note: "de R$ 50 mil a R$ 200 mil" };
+  return { level: "diretoria", label: "Diretoria", note: "acima de R$ 200 mil" };
+}
+
 export async function listRequisitions(
   tenantId: string,
-  opts?: { status?: PurchaseRequisitionStatus },
+  opts?: { status?: PurchaseRequisitionStatus; q?: string },
 ) {
   const conds = [eq(purchaseRequisition.tenantId, tenantId)];
   if (opts?.status) conds.push(eq(purchaseRequisition.status, opts.status));
+  if (opts?.q && opts.q.trim()) {
+    const term = `%${opts.q.trim()}%`;
+    const match = or(
+      ilike(purchaseRequisition.requisitionNumber, term),
+      ilike(purchaseRequisition.title, term),
+    );
+    if (match) conds.push(match);
+  }
   const reqs = await db
     .select({
       id: purchaseRequisition.id,

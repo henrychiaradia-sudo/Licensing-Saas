@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, XCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, XCircle, CheckCircle2, PackageCheck } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getPurchaseOrderDetail, nextPoStatus } from "@/lib/data/purchase-orders";
-import { setPoStatusAction } from "../actions";
+import { setPoStatusAction, receivePoAction } from "../actions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { PoStatus } from "@/lib/db/schema";
@@ -42,6 +42,7 @@ export default async function CompraDetailPage({
   const iso = o.currencyIso ?? "BRL";
   const next = nextPoStatus(o.status);
   const isFinal = o.status === "recebido" || o.status === "cancelado";
+  const canReceive = ["confirmado", "em_producao", "embarcado"].includes(o.status);
 
   return (
     <div>
@@ -94,6 +95,48 @@ export default async function CompraDetailPage({
         </Card>
       )}
 
+      {canReceive && (
+        <Card className="mb-4 p-5">
+          <h2 className="mb-1 text-sm font-semibold">Conferência de recebimento</h2>
+          <p className="mb-3 text-xs text-neutral-500">
+            Informe a quantidade recebida por item. Quando todos os itens forem recebidos por
+            completo, o pedido é marcado como Recebido.
+          </p>
+          <form action={receivePoAction.bind(null, o.id)}>
+            <div className="space-y-2">
+              {items.map((it) => (
+                <div
+                  key={it.id}
+                  className="flex items-center justify-between gap-3 border-b border-neutral-100 pb-2 last:border-0 dark:border-neutral-800"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{it.description}</div>
+                    <div className="text-xs text-neutral-400">
+                      Pedido: {Number(it.quantity).toLocaleString("pt-BR")} · Já recebido:{" "}
+                      {Number(it.receivedQty).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                  <input
+                    name={`qty_${it.id}`}
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    max={Number(it.quantity)}
+                    defaultValue={Number(it.receivedQty) > 0 ? Number(it.receivedQty) : Number(it.quantity)}
+                    className="w-28 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-right text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <Button type="submit">
+                <PackageCheck size={15} /> Registrar recebimento
+              </Button>
+            </div>
+          </form>
+        </Card>
+      )}
+
       <Card className="p-5">
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-4">
           <Field label="Emissão" value={fmtDate(o.orderDate)} />
@@ -117,6 +160,7 @@ export default async function CompraDetailPage({
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
               <th className="px-5 py-2 font-medium">Descrição</th>
               <th className="px-5 py-2 text-right font-medium">Qtd.</th>
+              <th className="px-5 py-2 text-right font-medium">Recebido</th>
               <th className="px-5 py-2 text-right font-medium">Preço unit.</th>
               <th className="px-5 py-2 text-right font-medium">Valor</th>
             </tr>
@@ -130,6 +174,15 @@ export default async function CompraDetailPage({
                 </td>
                 <td className="px-5 py-2 text-right tabular-nums">
                   {Number(it.quantity).toLocaleString("pt-BR")}
+                </td>
+                <td className="px-5 py-2 text-right tabular-nums">
+                  {Number(it.receivedQty) >= Number(it.quantity) - 0.001 && Number(it.quantity) > 0 ? (
+                    <span className="text-emerald-600">{Number(it.receivedQty).toLocaleString("pt-BR")}</span>
+                  ) : (
+                    <span className={Number(it.receivedQty) > 0 ? "text-amber-600" : "text-neutral-400"}>
+                      {Number(it.receivedQty).toLocaleString("pt-BR")}
+                    </span>
+                  )}
                 </td>
                 <td className="px-5 py-2 text-right tabular-nums">{fmtMoney(it.unitPrice, iso)}</td>
                 <td className="px-5 py-2 text-right font-medium tabular-nums">
@@ -147,7 +200,7 @@ export default async function CompraDetailPage({
           </tbody>
           <tfoot>
             <tr className="border-t border-neutral-200 dark:border-neutral-800">
-              <td colSpan={3} className="px-5 py-3 text-right text-sm font-semibold">
+              <td colSpan={4} className="px-5 py-3 text-right text-sm font-semibold">
                 Total do pedido
               </td>
               <td className="px-5 py-3 text-right text-sm font-bold tabular-nums">

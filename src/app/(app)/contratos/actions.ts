@@ -4,10 +4,18 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { createContract, updateContract, type ContractInput } from "@/lib/data/contracts";
+import {
+  createContract,
+  updateContract,
+  addContractAmendment,
+  type ContractInput,
+} from "@/lib/data/contracts";
 import { contractSchema } from "./schema";
+import type { ContractAmendmentType } from "@/lib/db/schema";
 
 export type FormState = { error: string | null };
+
+const AMENDMENT_TYPES = ["aditivo", "prorrogacao", "reajuste", "rescisao", "outro"] as const;
 
 function parseNumOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
@@ -77,4 +85,36 @@ export async function saveContract(
 
   revalidatePath("/contratos");
   redirect("/contratos");
+}
+
+export async function addAmendmentAction(
+  contractId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await requireSession();
+  if (!can(session, PERMISSIONS.contractWrite)) {
+    return { error: "Você não tem permissão para editar contratos." };
+  }
+  const type = String(formData.get("amendmentType") ?? "aditivo");
+  if (!(AMENDMENT_TYPES as readonly string[]).includes(type)) {
+    return { error: "Tipo de aditivo inválido." };
+  }
+  try {
+    await addContractAmendment(
+      session.tenantId,
+      contractId,
+      {
+        amendmentType: type as ContractAmendmentType,
+        description: emptyToNull(formData.get("description")),
+        effectiveDate: emptyToNull(formData.get("effectiveDate")),
+        newEndDate: emptyToNull(formData.get("newEndDate")),
+      },
+      session.userId,
+    );
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível registrar o aditivo." };
+  }
+  revalidatePath(`/contratos/${contractId}`);
+  return { error: null };
 }

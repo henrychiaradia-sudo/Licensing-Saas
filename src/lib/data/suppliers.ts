@@ -109,6 +109,24 @@ export async function getSupplierForEdit(tenantId: string, id: string) {
   return rows[0] ?? null;
 }
 
+/** Transição de status do fornecedor (homologar / bloquear / reativar / inativar). */
+export async function setSupplierStatus(
+  tenantId: string,
+  id: string,
+  status: SupplierStatus,
+): Promise<void> {
+  const exists = await db
+    .select({ id: supplier.id })
+    .from(supplier)
+    .where(and(eq(supplier.id, id), eq(supplier.tenantId, tenantId), isNull(supplier.deletedAt)))
+    .limit(1);
+  if (!exists[0]) throw new Error("Fornecedor não encontrado.");
+  await db
+    .update(supplier)
+    .set({ status, updatedAt: new Date() })
+    .where(and(eq(supplier.id, id), eq(supplier.tenantId, tenantId)));
+}
+
 export type SupplierInput = {
   code: string;
   legalName: string;

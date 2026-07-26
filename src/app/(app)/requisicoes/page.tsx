@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listRequisitions } from "@/lib/data/requisitions";
-import { Button, Card, Badge } from "@/components/ui";
+import { Button, Card, Badge, Input } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { PurchaseRequisitionStatus } from "@/lib/db/schema";
 
@@ -25,9 +26,37 @@ export const reqStatusLabel: Record<PurchaseRequisitionStatus, string> = {
   cancelada: "Cancelada",
 };
 
-export default async function RequisicoesPage() {
+const STATUS_KEYS = Object.keys(reqStatusLabel) as PurchaseRequisitionStatus[];
+
+export default async function RequisicoesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
   const session = await requireSession();
-  const reqs = await listRequisitions(session.tenantId);
+  const { q, status } = await searchParams;
+  const statusFilter =
+    status && (STATUS_KEYS as string[]).includes(status)
+      ? (status as PurchaseRequisitionStatus)
+      : undefined;
+  const reqs = await listRequisitions(session.tenantId, { q, status: statusFilter });
+
+  const csvColumns = [
+    { key: "numero", label: "Requisição" },
+    { key: "titulo", label: "Título" },
+    { key: "necessario", label: "Necessário até" },
+    { key: "itens", label: "Itens" },
+    { key: "estimativa", label: "Estimativa" },
+    { key: "status", label: "Status" },
+  ];
+  const csvRows = reqs.map((r) => ({
+    numero: r.requisitionNumber,
+    titulo: r.title,
+    necessario: r.neededBy ?? "",
+    itens: r.itemCount,
+    estimativa: r.estimatedTotal,
+    status: reqStatusLabel[r.status],
+  }));
 
   return (
     <div>
@@ -38,12 +67,51 @@ export default async function RequisicoesPage() {
             Solicitação interna → aprovação → pedido de compra
           </p>
         </div>
-        <Link href="/requisicoes/new">
-          <Button>
-            <Plus size={16} /> Nova requisição
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportCsvButton filename="requisicoes.csv" columns={csvColumns} rows={csvRows} />
+          <Link href="/requisicoes/new">
+            <Button>
+              <Plus size={16} /> Nova requisição
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Buscar</label>
+          <div className="relative">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+            />
+            <Input name="q" defaultValue={q ?? ""} placeholder="Número ou título" className="pl-9" />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Status</label>
+          <select
+            name="status"
+            defaultValue={statusFilter ?? ""}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {STATUS_KEYS.map((s) => (
+              <option key={s} value={s}>
+                {reqStatusLabel[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+        {(q || statusFilter) && (
+          <Link href="/requisicoes" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">

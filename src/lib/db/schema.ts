@@ -794,6 +794,7 @@ export const purchaseOrderItem = pgTable("purchase_order_item", {
   quantity: numeric("quantity", { precision: 18, scale: 2 }).notNull().default("0"),
   unitPrice: numeric("unit_price", { precision: 18, scale: 4 }).notNull().default("0"),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+  receivedQty: numeric("received_qty", { precision: 18, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -864,6 +865,29 @@ export const purchaseRequisitionItem = pgTable("purchase_requisition_item", {
     .notNull()
     .default("0"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ---- Aditivos de contrato ---- */
+export const contractAmendmentType = pgEnum("contract_amendment_type", [
+  "aditivo",
+  "prorrogacao",
+  "reajuste",
+  "rescisao",
+  "outro",
+]);
+export type ContractAmendmentType = (typeof contractAmendmentType.enumValues)[number];
+
+export const contractAmendment = pgTable("contract_amendment", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractId: uuid("contract_id").notNull(),
+  amendmentNumber: text("amendment_number").notNull(),
+  amendmentType: contractAmendmentType("amendment_type").notNull().default("aditivo"),
+  description: text("description"),
+  effectiveDate: date("effective_date"),
+  newEndDate: date("new_end_date"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
 /* =========================== FASE 5 — AUDITORIA =========================== */

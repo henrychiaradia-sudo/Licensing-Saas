@@ -4,8 +4,16 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { createSupplier, updateSupplier, type SupplierInput } from "@/lib/data/suppliers";
+import {
+  createSupplier,
+  updateSupplier,
+  setSupplierStatus,
+  type SupplierInput,
+} from "@/lib/data/suppliers";
 import { supplierSchema } from "./schema";
+import type { SupplierStatus } from "@/lib/db/schema";
+
+const SUPPLIER_STATUS_VALUES = ["em_homologacao", "ativo", "inativo", "bloqueado"] as const;
 
 export type FormState = { error: string | null };
 
@@ -77,4 +85,13 @@ export async function saveSupplier(
 
   revalidatePath("/fornecedores");
   redirect("/fornecedores");
+}
+
+export async function setSupplierStatusAction(id: string, status: string): Promise<void> {
+  const session = await requireSession();
+  if (!canWriteSupplier(session)) return;
+  if (!(SUPPLIER_STATUS_VALUES as readonly string[]).includes(status)) return;
+  await setSupplierStatus(session.tenantId, id, status as SupplierStatus);
+  revalidatePath(`/fornecedores/${id}`);
+  revalidatePath("/fornecedores");
 }

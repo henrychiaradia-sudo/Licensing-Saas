@@ -9,12 +9,13 @@ import {
   contractBrand,
   contractAlert,
   contractDocument,
+  contractAmendment,
   licensee,
   currency,
   brand,
   territory,
 } from "@/lib/db/schema";
-import type { ContractStatus, ExclusivityType } from "@/lib/db/schema";
+import type { ContractStatus, ExclusivityType, ContractAmendmentType } from "@/lib/db/schema";
 
 export async function listContracts(
   tenantId: string,
@@ -162,6 +163,91 @@ export async function getContractDetail(tenantId: string, id: string) {
     .orderBy(desc(contractDocument.uploadedAt));
 
   return { contract: head, fees, guarantees, territories, brands, alerts, documents };
+}
+
+/* ---------------------------------------------------------------------------
+ * Aditivos de contrato
+ * ------------------------------------------------------------------------- */
+
+export async function listContractAmendments(tenantId: string, contractId: string) {
+  return db
+    .select({
+      id: contractAmendment.id,
+      amendmentNumber: contractAmendment.amendmentNumber,
+      amendmentType: contractAmendment.amendmentType,
+      description: contractAmendment.description,
+      effectiveDate: contractAmendment.effectiveDate,
+      newEndDate: contractAmendment.newEndDate,
+      createdAt: contractAmendment.createdAt,
+    })
+    .from(contractAmendment)
+    .where(and(eq(contractAmendment.tenantId, tenantId), eq(contractAmendment.contractId, contractId)))
+    .orderBy(desc(contractAmendment.createdAt));
+}
+
+export type ContractAmendmentInput = {
+  amendmentType: ContractAmendmentType;
+  description: string | null;
+  effectiveDate: string | null;
+  newEndDate: string | null;
+};
+
+export async function addContractAmendment(
+  tenantId: string,
+  contractId: string,
+  input: ContractAmendmentInput,
+  userId: string,
+): Promise<void> {
+  const ctr = await db
+    .select({ id: contract.id })
+    .from(contract)
+    .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)))
+    .limit(1);
+  if (!ctr[0]) throw new Error("Contrato inválido.");
+
+  const cnt = await db
+    .select({ c: count() })
+    .from(contractAmendment)
+    .where(and(eq(contractAmendment.tenantId, tenantId), eq(contractAmendment.contractId, contractId)));
+  const amendmentNumber = `AD-${String((cnt[0]?.c ?? 0) + 1).padStart(2, "0")}`;
+
+  await db.insert(contractAmendment).values({
+    tenantId,
+    contractId,
+    amendmentNumber,
+    amendmentType: input.amendmentType,
+    description: input.description,
+    effectiveDate: input.effectiveDate,
+    newEndDate: input.newEndDate,
+    createdBy: userId,
+  });
+
+  // Efeitos no contrato: rescisão encerra; prorrogação/aditivo com nova data estende a vigência.
+  if (input.amendmentType === "rescisao") {
+    const patch: {
+      status: ContractStatus;
+      updatedBy: string;
+      updatedAt: Date;
+      endDate?: string;
+    } = { status: "encerrado", updatedBy: userId, updatedAt: new Date() };
+    if (input.effectiveDate) patch.endDate = input.effectiveDate;
+    await db
+      .update(contract)
+      .set(patch)
+      .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)));
+  } else if (input.newEndDate) {
+    const patch: {
+      endDate: string;
+      updatedBy: string;
+      updatedAt: Date;
+      status?: ContractStatus;
+    } = { endDate: input.newEndDate, updatedBy: userId, updatedAt: new Date() };
+    if (input.amendmentType === "prorrogacao") patch.status = "renovado";
+    await db
+      .update(contract)
+      .set(patch)
+      .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)));
+  }
 }
 
 /* ---------------------------------------------------------------------------
