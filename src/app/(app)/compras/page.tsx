@@ -3,6 +3,7 @@ import { ShoppingCart, PackageCheck, Clock, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listPurchaseOrders, purchaseSummary } from "@/lib/data/purchase-orders";
 import { Card, Badge, Button } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL } from "@/lib/utils";
 import type { PoStatus } from "@/lib/db/schema";
 
@@ -34,6 +35,23 @@ export default async function ComprasPage() {
     purchaseSummary(session.tenantId),
   ]);
 
+  const csvColumns = [
+    { key: "pedido", label: "Pedido" },
+    { key: "fornecedor", label: "Fornecedor" },
+    { key: "licenciado", label: "Licenciado" },
+    { key: "previsao", label: "Previsão" },
+    { key: "valor", label: "Valor" },
+    { key: "status", label: "Status" },
+  ];
+  const csvRows = orders.map((o) => ({
+    pedido: o.poNumber,
+    fornecedor: o.supplierName ?? "",
+    licenciado: o.licenseeName ?? "",
+    previsao: o.expectedDate ?? "",
+    valor: Number(o.totalAmount),
+    status: poLabel[o.status],
+  }));
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -43,11 +61,14 @@ export default async function ComprasPage() {
             Sourcing de produção e suprimentos — status, prazos e valores
           </p>
         </div>
-        <Link href="/compras/new">
-          <Button>
-            <Plus size={16} /> Novo pedido
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <ExportCsvButton filename="pedidos-compra.csv" columns={csvColumns} rows={csvRows} />
+          <Link href="/compras/new">
+            <Button>
+              <Plus size={16} /> Novo pedido
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">

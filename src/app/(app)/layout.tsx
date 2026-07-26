@@ -19,13 +19,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-neutral-200 bg-white/90 px-5 py-2.5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
-          <div className="hidden items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-neutral-400 sm:flex dark:border-neutral-700">
+          <form
+            action="/busca"
+            className="hidden items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-neutral-400 sm:flex dark:border-neutral-700"
+          >
             <Search size={15} />
             <input
-              placeholder="Buscar…"
-              className="w-56 bg-transparent text-sm text-neutral-800 outline-none dark:text-neutral-100"
+              name="q"
+              placeholder="Buscar contratos, produtos, fornecedores…"
+              className="w-64 bg-transparent text-sm text-neutral-800 outline-none dark:text-neutral-100"
             />
-          </div>
+          </form>
           <div className="ml-auto flex items-center gap-3">
             <ThemeToggle />
             <div className="flex items-center gap-2">

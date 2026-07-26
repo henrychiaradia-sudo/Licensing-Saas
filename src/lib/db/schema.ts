@@ -821,6 +821,51 @@ export const sourcingQuote = pgTable("sourcing_quote", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/* ---- Requisição de compra ---- */
+export const purchaseRequisitionStatus = pgEnum("purchase_requisition_status", [
+  "rascunho",
+  "enviada",
+  "aprovada",
+  "reprovada",
+  "convertida",
+  "cancelada",
+]);
+export type PurchaseRequisitionStatus = (typeof purchaseRequisitionStatus.enumValues)[number];
+
+export const purchaseRequisition = pgTable(
+  "purchase_requisition",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    requisitionNumber: text("requisition_number").notNull(),
+    title: text("title").notNull(),
+    justification: text("justification"),
+    requesterUserId: uuid("requester_user_id"),
+    status: purchaseRequisitionStatus("status").notNull().default("rascunho"),
+    neededBy: date("needed_by"),
+    decidedBy: uuid("decided_by"),
+    decidedAt: timestamp("decided_at", { withTimezone: true }),
+    decisionComment: text("decision_comment"),
+    convertedPoId: uuid("converted_po_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_requisition_number").on(t.tenantId, t.requisitionNumber)],
+);
+
+export const purchaseRequisitionItem = pgTable("purchase_requisition_item", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  purchaseRequisitionId: uuid("purchase_requisition_id").notNull(),
+  description: text("description").notNull(),
+  sku: text("sku"),
+  quantity: numeric("quantity", { precision: 18, scale: 2 }).notNull().default("0"),
+  estimatedUnitPrice: numeric("estimated_unit_price", { precision: 18, scale: 4 })
+    .notNull()
+    .default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 /* =========================== FASE 5 — AUDITORIA =========================== */
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -1,10 +1,18 @@
 import Link from "next/link";
-import { Coins, ClipboardCheck, Bell, ChevronRight } from "lucide-react";
+import { Coins, ClipboardCheck, Bell, ChevronRight, CalendarClock } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getInternalPendencias } from "@/lib/data/alerts";
+import { listContractsAttention } from "@/lib/data/contracts";
 import { Card, Badge } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { AlertType } from "@/lib/db/schema";
+
+type Tone = "good" | "info" | "neutral" | "warn" | "danger";
+const sevTone: Record<"info" | "warn" | "danger", Tone> = {
+  info: "info",
+  warn: "warn",
+  danger: "danger",
+};
 
 const alertLabel: Record<AlertType, string> = {
   renovacao: "Renovação",
@@ -17,6 +25,7 @@ const alertLabel: Record<AlertType, string> = {
 export default async function PendenciasPage() {
   const session = await requireSession();
   const { reports, products, alerts } = await getInternalPendencias(session.tenantId);
+  const contractAttention = await listContractsAttention(session.tenantId);
 
   return (
     <div>
@@ -25,11 +34,48 @@ export default async function PendenciasPage() {
         <p className="text-sm text-neutral-500">Itens que aguardam ação do time de licenciamento.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Reportes a aprovar" value={reports.length} icon={<Coins size={18} className="text-blue-600" />} />
         <Kpi label="Produtos a revisar" value={products.length} icon={<ClipboardCheck size={18} className="text-violet-600" />} />
-        <Kpi label="Alertas de contrato" value={alerts.length} icon={<Bell size={18} className="text-amber-600" />} />
+        <Kpi label="Contratos a vencer" value={contractAttention.length} icon={<CalendarClock size={18} className="text-amber-600" />} />
+        <Kpi label="Alertas de contrato" value={alerts.length} icon={<Bell size={18} className="text-rose-600" />} />
       </div>
+
+      <Card className="mt-6 p-0">
+        <div className="p-5 pb-2">
+          <h2 className="text-sm font-semibold">Contratos a vencer / renovar</h2>
+          <p className="text-xs text-neutral-500">Gerado automaticamente pelas datas dos contratos.</p>
+        </div>
+        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          {contractAttention.map((c, i) => (
+            <li key={`${c.id}-${i}`}>
+              <Link
+                href={`/contratos/${c.id}`}
+                className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
+              >
+                <div>
+                  <div className="text-sm font-medium">{c.alert.label}</div>
+                  <div className="text-xs text-neutral-400">
+                    {c.contractNumber} · {c.licenseeName ?? "—"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="tabular-nums text-xs text-neutral-500">{fmtDate(c.alert.date)}</span>
+                  <Badge tone={sevTone[c.alert.severity]}>
+                    {c.alert.kind === "vencido"
+                      ? "Vencido"
+                      : c.alert.kind === "renovacao"
+                        ? "Renovação"
+                        : "Vencimento"}
+                  </Badge>
+                  <ChevronRight size={16} className="text-neutral-300" />
+                </div>
+              </Link>
+            </li>
+          ))}
+          {contractAttention.length === 0 && <Empty>Nenhum contrato próximo do vencimento.</Empty>}
+        </ul>
+      </Card>
 
       <Card className="mt-6 p-0">
         <div className="p-5 pb-2">

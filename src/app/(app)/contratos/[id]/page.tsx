@@ -3,8 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, Bell, FileText, ShieldCheck, Pencil } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { getContractDetail } from "@/lib/data/contracts";
+import { getContractDetail, getContractDateAlerts } from "@/lib/data/contracts";
 import { getContractRoyaltyRule } from "@/lib/data/royalties";
+import { getContractRecoupment } from "@/lib/data/finance";
 import { Card, Badge, Button } from "@/components/ui";
 import { RoyaltyRuleForm, type RuleFormValues } from "./royalty-rule-form";
 import { fmtMoney, fmtDate } from "@/lib/utils";
@@ -80,6 +81,8 @@ export default async function ContratoDetailPage({
   const iso = c.currencyIso ?? "BRL";
   const canWrite = can(session, PERMISSIONS.contractWrite);
 
+  const recoup = await getContractRecoupment(session.tenantId, id);
+  const dateAlerts = await getContractDateAlerts(session.tenantId, id);
   const { rule, tiers } = await getContractRoyaltyRule(session.tenantId, id);
   const ruleInitial: RuleFormValues = {
     royaltyType: rule?.royaltyType === "escalonado" ? "escalonado" : "percentual",
@@ -121,6 +124,25 @@ export default async function ContratoDetailPage({
           )}
         </div>
       </div>
+
+      {dateAlerts.length > 0 && (
+        <div className="mb-4 space-y-2">
+          {dateAlerts.map((a, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2 rounded-lg border p-3 text-sm ${
+                a.severity === "danger"
+                  ? "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+                  : a.severity === "warn"
+                    ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                    : "border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+              }`}
+            >
+              <Bell size={15} className="shrink-0" /> {a.label} · {fmtDate(a.date)}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-5 lg:col-span-2">
@@ -218,6 +240,43 @@ export default async function ContratoDetailPage({
         </p>
         <RoyaltyRuleForm contractId={id} initial={ruleInitial} iso={iso} />
       </Card>
+
+      {recoup.gmTotal > 0 && (
+        <Card className="mt-4 p-5">
+          <h2 className="mb-1 text-sm font-semibold">Garantia mínima &amp; recoupment</h2>
+          <p className="mb-4 text-xs text-neutral-500">
+            Os royalties apurados (aprovados) abatem a garantia mínima. O que passar da GM é
+            excedente, cobrado além dela.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-4">
+            <Field label="Garantia mínima" value={fmtMoney(recoup.gmTotal, iso)} />
+            <Field label="Royalties apurados" value={fmtMoney(recoup.earned, iso)} />
+            <Field label="Recuperado" value={fmtMoney(recoup.recouped, iso)} />
+            <Field
+              label={recoup.surplus > 0 ? "Excedente (acima da GM)" : "Saldo a recuperar"}
+              value={fmtMoney(recoup.surplus > 0 ? recoup.surplus : recoup.outstanding, iso)}
+            />
+          </div>
+          <div className="mt-4">
+            <div className="mb-1 flex justify-between text-xs text-neutral-500">
+              <span>Recoupment da garantia mínima</span>
+              <span className="tabular-nums">{recoup.pct}%</span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${recoup.pct}%` }}
+              />
+            </div>
+            {recoup.surplus > 0 && (
+              <p className="mt-2 text-xs text-emerald-600">
+                Garantia mínima recuperada — excedente de {fmtMoney(recoup.surplus, iso)} cobrado além
+                da GM.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card className="p-5">

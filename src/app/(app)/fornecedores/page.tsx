@@ -3,6 +3,7 @@ import { Star, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listSuppliers } from "@/lib/data/suppliers";
 import { Card, Badge, Button } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import type { SupplierStatus, SupplierCategory } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
@@ -33,6 +34,25 @@ export default async function FornecedoresPage() {
   const session = await requireSession();
   const suppliers = await listSuppliers(session.tenantId);
 
+  const csvColumns = [
+    { key: "codigo", label: "Código" },
+    { key: "fornecedor", label: "Fornecedor" },
+    { key: "categoria", label: "Categoria" },
+    { key: "local", label: "Local" },
+    { key: "lead_time", label: "Lead time (dias)" },
+    { key: "rating", label: "Avaliação" },
+    { key: "status", label: "Status" },
+  ];
+  const csvRows = suppliers.map((s) => ({
+    codigo: s.code,
+    fornecedor: s.tradeName ?? s.legalName,
+    categoria: categoryLabel[s.category],
+    local: [s.city, s.countryName].filter(Boolean).join(" · "),
+    lead_time: s.leadTimeDays ?? "",
+    rating: s.rating ?? "",
+    status: statusLabel[s.status],
+  }));
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between">
@@ -44,6 +64,7 @@ export default async function FornecedoresPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge tone="info">{suppliers.length} fornecedor(es)</Badge>
+          <ExportCsvButton filename="fornecedores.csv" columns={csvColumns} rows={csvRows} />
           <Link href="/fornecedores/new">
             <Button>
               <Plus size={16} /> Novo fornecedor

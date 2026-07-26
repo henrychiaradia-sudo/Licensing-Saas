@@ -130,6 +130,40 @@ export async function mgRealizedPercent(tenantId: string) {
   return Math.min(100, Math.round((royTotal / mgTotal) * 100));
 }
 
+/**
+ * Recoupment da garantia mínima de um contrato: quanto dos royalties apurados
+ * (aprovados) já recuperou a GM, o saldo a recuperar e o excedente.
+ */
+export async function getContractRecoupment(tenantId: string, contractId: string) {
+  const ctr = await db
+    .select({ mgTotal: contract.minimumGuaranteeTotal })
+    .from(contract)
+    .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)))
+    .limit(1);
+  const mg = await db
+    .select({ total: sql<string>`coalesce(sum(${minimumGuarantee.amount}), 0)` })
+    .from(minimumGuarantee)
+    .where(and(eq(minimumGuarantee.tenantId, tenantId), eq(minimumGuarantee.contractId, contractId)));
+  const roy = await db
+    .select({ total: sql<string>`coalesce(sum(${royaltyReport.royaltyCalculated}), 0)` })
+    .from(royaltyReport)
+    .where(
+      and(
+        eq(royaltyReport.tenantId, tenantId),
+        eq(royaltyReport.contractId, contractId),
+        eq(royaltyReport.status, "aprovado"),
+      ),
+    );
+  const mgRows = Number(mg[0]?.total ?? 0);
+  const gmTotal = mgRows > 0 ? mgRows : Number(ctr[0]?.mgTotal ?? 0);
+  const earned = Number(roy[0]?.total ?? 0);
+  const recouped = Math.min(earned, gmTotal);
+  const outstanding = Math.max(0, gmTotal - earned);
+  const surplus = Math.max(0, earned - gmTotal);
+  const pct = gmTotal > 0 ? Math.min(100, Math.round((earned / gmTotal) * 100)) : 0;
+  return { gmTotal, earned, recouped, outstanding, surplus, pct };
+}
+
 /** Registra o pagamento integral em aberto de um recebível (baixa manual). */
 export async function registerPayment(tenantId: string, receivableId: string) {
   const rows = await db

@@ -165,6 +165,96 @@ export async function getContractDetail(tenantId: string, id: string) {
 }
 
 /* ---------------------------------------------------------------------------
+ * Alertas automáticos por data (vencimento / renovação)
+ * ------------------------------------------------------------------------- */
+
+export type ContractDateAlert = {
+  kind: "vencimento" | "renovacao" | "vencido";
+  label: string;
+  date: string;
+  daysUntil: number;
+  severity: "info" | "warn" | "danger";
+};
+
+function computeContractAlerts(
+  endDate: string | null,
+  autoRenewal: boolean,
+  today: Date,
+): ContractDateAlert[] {
+  if (!endDate) return [];
+  const end = new Date(endDate + "T00:00:00Z");
+  const days = Math.round((end.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) {
+    return [
+      {
+        kind: "vencido",
+        label: `Contrato vencido há ${Math.abs(days)} dia(s)`,
+        date: endDate,
+        daysUntil: days,
+        severity: "danger",
+      },
+    ];
+  }
+  if (days <= 180) {
+    const severity: ContractDateAlert["severity"] =
+      days <= 30 ? "danger" : days <= 90 ? "warn" : "info";
+    if (autoRenewal) {
+      return [
+        { kind: "renovacao", label: `Renova automaticamente em ${days} dia(s)`, date: endDate, daysUntil: days, severity },
+      ];
+    }
+    return [{ kind: "vencimento", label: `Vence em ${days} dia(s)`, date: endDate, daysUntil: days, severity }];
+  }
+  return [];
+}
+
+/** Alertas automáticos (por data) de um contrato. */
+export async function getContractDateAlerts(
+  tenantId: string,
+  contractId: string,
+): Promise<ContractDateAlert[]> {
+  const rows = await db
+    .select({ endDate: contract.endDate, autoRenewal: contract.autoRenewal })
+    .from(contract)
+    .where(and(eq(contract.id, contractId), eq(contract.tenantId, tenantId)))
+    .limit(1);
+  if (!rows[0]) return [];
+  return computeContractAlerts(rows[0].endDate, rows[0].autoRenewal, new Date());
+}
+
+/** Contratos que precisam de atenção (vencendo/renovando/vencidos) para as Pendências. */
+export async function listContractsAttention(tenantId: string) {
+  const rows = await db
+    .select({
+      id: contract.id,
+      contractNumber: contract.contractNumber,
+      endDate: contract.endDate,
+      autoRenewal: contract.autoRenewal,
+      status: contract.status,
+      licenseeName: licensee.legalName,
+    })
+    .from(contract)
+    .leftJoin(licensee, eq(licensee.id, contract.licenseeId))
+    .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt)))
+    .limit(300);
+  const today = new Date();
+  const out: {
+    id: string;
+    contractNumber: string;
+    licenseeName: string | null;
+    alert: ContractDateAlert;
+  }[] = [];
+  for (const r of rows) {
+    if (r.status === "encerrado") continue;
+    for (const a of computeContractAlerts(r.endDate, r.autoRenewal, today)) {
+      out.push({ id: r.id, contractNumber: r.contractNumber, licenseeName: r.licenseeName, alert: a });
+    }
+  }
+  out.sort((a, b) => a.alert.daysUntil - b.alert.daysUntil);
+  return out;
+}
+
+/* ---------------------------------------------------------------------------
  * Cadastro / edição de contratos
  * ------------------------------------------------------------------------- */
 

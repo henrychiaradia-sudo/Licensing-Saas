@@ -18,6 +18,7 @@ import {
   Scale,
   ScrollText,
   BarChart3,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const groups: NavGroup[] = [
     title: "Suprimentos",
     items: [
       { href: "/fornecedores", label: "Fornecedores", icon: Factory },
+      { href: "/requisicoes", label: "Requisições", icon: ClipboardList },
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
     ],

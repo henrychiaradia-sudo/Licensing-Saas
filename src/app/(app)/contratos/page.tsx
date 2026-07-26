@@ -4,6 +4,7 @@ import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
 import { listContracts } from "@/lib/data/contracts";
 import { Button, Card, Badge, Input } from "@/components/ui";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import { CONTRACT_STATUS } from "./schema";
 import type { ContractStatus } from "@/lib/db/schema";
@@ -43,6 +44,23 @@ export default async function ContratosPage({
   const contracts = await listContracts(session.tenantId, { q, status: statusFilter });
   const canWrite = can(session, PERMISSIONS.contractWrite);
 
+  const csvColumns = [
+    { key: "contrato", label: "Contrato" },
+    { key: "licenciado", label: "Licenciado" },
+    { key: "inicio", label: "Início" },
+    { key: "fim", label: "Fim" },
+    { key: "garantia", label: "Garantia mínima" },
+    { key: "status", label: "Status" },
+  ];
+  const csvRows = contracts.map((c) => ({
+    contrato: c.contractNumber,
+    licenciado: c.licenseeName ?? "",
+    inicio: c.startDate ?? "",
+    fim: c.endDate ?? "",
+    garantia: c.minimumGuaranteeTotal != null ? Number(c.minimumGuaranteeTotal) : "",
+    status: statusLabel[c.status],
+  }));
+
   return (
     <div>
       <div className="mb-5 flex items-center justify-between gap-3">
@@ -54,6 +72,7 @@ export default async function ContratosPage({
         </div>
         <div className="flex items-center gap-2">
           <Badge tone="info">{contracts.length} contrato(s)</Badge>
+          <ExportCsvButton filename="contratos.csv" columns={csvColumns} rows={csvRows} />
           {canWrite && (
             <Link href="/contratos/new">
               <Button>
