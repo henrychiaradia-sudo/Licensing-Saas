@@ -890,6 +890,71 @@ export const contractAmendment = pgTable("contract_amendment", {
   createdBy: uuid("created_by"),
 });
 
+/* ---- Qualidade ---- */
+export const qualityInspectionType = pgEnum("quality_inspection_type", [
+  "recebimento",
+  "producao",
+  "auditoria",
+  "outro",
+]);
+export const qualityResult = pgEnum("quality_result", [
+  "pendente",
+  "aprovado",
+  "aprovado_condicional",
+  "reprovado",
+]);
+export const ncSeverity = pgEnum("nc_severity", ["baixa", "media", "alta", "critica"]);
+export const ncStatus = pgEnum("nc_status", ["aberta", "em_tratamento", "resolvida", "cancelada"]);
+export type QualityInspectionType = (typeof qualityInspectionType.enumValues)[number];
+export type QualityResult = (typeof qualityResult.enumValues)[number];
+export type NcSeverity = (typeof ncSeverity.enumValues)[number];
+export type NcStatus = (typeof ncStatus.enumValues)[number];
+
+export const qualityInspection = pgTable(
+  "quality_inspection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    inspectionNumber: text("inspection_number").notNull(),
+    inspectionType: qualityInspectionType("inspection_type").notNull().default("recebimento"),
+    supplierId: uuid("supplier_id"),
+    purchaseOrderId: uuid("purchase_order_id"),
+    productId: uuid("product_id"),
+    title: text("title").notNull(),
+    result: qualityResult("result").notNull().default("pendente"),
+    sampleSize: integer("sample_size").notNull().default(0),
+    defectsFound: integer("defects_found").notNull().default(0),
+    inspectedAt: date("inspected_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_inspection_number").on(t.tenantId, t.inspectionNumber)],
+);
+
+export const nonConformity = pgTable(
+  "non_conformity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    ncNumber: text("nc_number").notNull(),
+    qualityInspectionId: uuid("quality_inspection_id"),
+    supplierId: uuid("supplier_id"),
+    severity: ncSeverity("severity").notNull().default("media"),
+    status: ncStatus("status").notNull().default("aberta"),
+    description: text("description").notNull(),
+    disposition: text("disposition"),
+    correctiveAction: text("corrective_action"),
+    openedAt: date("opened_at"),
+    resolvedAt: date("resolved_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_nc_number").on(t.tenantId, t.ncNumber)],
+);
+
 /* =========================== FASE 5 — AUDITORIA =========================== */
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").primaryKey().defaultRandom(),

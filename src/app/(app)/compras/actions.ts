@@ -9,6 +9,7 @@ import {
   receivePurchaseOrder,
   type PurchaseOrderInput,
 } from "@/lib/data/purchase-orders";
+import { logAudit } from "@/lib/data/audit";
 import { purchaseOrderSchema } from "./schema";
 import type { PoStatus } from "@/lib/db/schema";
 
@@ -49,12 +50,29 @@ export async function createPurchaseOrderAction(input: unknown): Promise<CreateP
     return { ok: false, error: e instanceof Error ? e.message : "Não foi possível criar o pedido." };
   }
 
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "purchase_order.create",
+    "purchase_order",
+    poId,
+    `Pedido ${poInput.poNumber} criado`,
+  );
+
   redirect(`/compras/${poId}`);
 }
 
 export async function setPoStatusAction(id: string, target: PoStatus): Promise<void> {
   const session = await requireSession();
   await setPurchaseOrderStatus(session.tenantId, id, target);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "purchase_order.status",
+    "purchase_order",
+    id,
+    `Status do pedido → ${target}`,
+  );
   revalidatePath(`/compras/${id}`);
   revalidatePath("/compras");
 }
@@ -69,6 +87,14 @@ export async function receivePoAction(id: string, formData: FormData): Promise<v
     }
   }
   await receivePurchaseOrder(session.tenantId, id, receipts);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "purchase_order.receive",
+    "purchase_order",
+    id,
+    `Recebimento registrado (${receipts.length} item(ns))`,
+  );
   revalidatePath(`/compras/${id}`);
   revalidatePath("/compras");
 }

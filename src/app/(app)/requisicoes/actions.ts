@@ -10,6 +10,7 @@ import {
   convertRequisitionToPo,
   type RequisitionInput,
 } from "@/lib/data/requisitions";
+import { logAudit } from "@/lib/data/audit";
 import { requisitionSchema } from "./schema";
 
 export type CreateReqResult = { ok: false; error: string };
@@ -55,6 +56,14 @@ export async function decideRequisitionAction(id: string, formData: FormData): P
   const comment = String(formData.get("comment") ?? "").trim() || null;
   if (decision !== "aprovada" && decision !== "reprovada") return;
   await decideRequisition(session.tenantId, id, decision, comment, session.userId);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "requisition.decide",
+    "purchase_requisition",
+    id,
+    `Requisição ${decision}${comment ? `: ${comment}` : ""}`,
+  );
   revalidatePath(`/requisicoes/${id}`);
 }
 
@@ -73,5 +82,13 @@ export async function convertRequisitionAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível gerar o pedido." };
   }
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "requisition.convert",
+    "purchase_requisition",
+    id,
+    "Requisição convertida em pedido de compra",
+  );
   redirect(`/compras/${poId}`);
 }

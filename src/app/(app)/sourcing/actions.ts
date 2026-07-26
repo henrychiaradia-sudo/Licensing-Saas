@@ -9,6 +9,7 @@ import {
   awardSourcingQuote,
   generatePoFromQuote,
 } from "@/lib/data/sourcing";
+import { logAudit } from "@/lib/data/audit";
 import { sourcingEventSchema, sourcingQuoteSchema } from "./schema";
 
 export type FormState = { error: string | null };
@@ -91,6 +92,14 @@ export async function addQuoteAction(
 export async function awardQuoteAction(eventId: string, quoteId: string): Promise<void> {
   const session = await requireSession();
   await awardSourcingQuote(session.tenantId, eventId, quoteId);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "sourcing.award",
+    "sourcing_event",
+    eventId,
+    "Proposta vencedora selecionada",
+  );
   revalidatePath(`/sourcing/${eventId}`);
 }
 

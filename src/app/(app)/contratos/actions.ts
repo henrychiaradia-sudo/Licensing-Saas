@@ -10,6 +10,7 @@ import {
   addContractAmendment,
   type ContractInput,
 } from "@/lib/data/contracts";
+import { logAudit } from "@/lib/data/audit";
 import { contractSchema } from "./schema";
 import type { ContractAmendmentType } from "@/lib/db/schema";
 
@@ -77,8 +78,27 @@ export async function saveContract(
   const input: ContractInput = parsed.data;
 
   try {
-    if (id) await updateContract(session.tenantId, id, input, session.userId);
-    else await createContract(session.tenantId, input, session.userId);
+    if (id) {
+      await updateContract(session.tenantId, id, input, session.userId);
+      await logAudit(
+        session.tenantId,
+        session.userId,
+        "contract.update",
+        "contract",
+        id,
+        `Contrato ${input.contractNumber} atualizado`,
+      );
+    } else {
+      const res = await createContract(session.tenantId, input, session.userId);
+      await logAudit(
+        session.tenantId,
+        session.userId,
+        "contract.create",
+        "contract",
+        res.id,
+        `Contrato ${input.contractNumber} criado`,
+      );
+    }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível salvar o contrato." };
   }
@@ -115,6 +135,14 @@ export async function addAmendmentAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível registrar o aditivo." };
   }
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "contract.amendment",
+    "contract",
+    contractId,
+    `Aditivo (${type}) registrado`,
+  );
   revalidatePath(`/contratos/${contractId}`);
   return { error: null };
 }

@@ -10,6 +10,7 @@ import {
   setSupplierStatus,
   type SupplierInput,
 } from "@/lib/data/suppliers";
+import { logAudit } from "@/lib/data/audit";
 import { supplierSchema } from "./schema";
 import type { SupplierStatus } from "@/lib/db/schema";
 
@@ -77,8 +78,27 @@ export async function saveSupplier(
   const input: SupplierInput = parsed.data;
 
   try {
-    if (id) await updateSupplier(session.tenantId, id, input);
-    else await createSupplier(session.tenantId, input);
+    if (id) {
+      await updateSupplier(session.tenantId, id, input);
+      await logAudit(
+        session.tenantId,
+        session.userId,
+        "supplier.update",
+        "supplier",
+        id,
+        `Fornecedor ${input.legalName} atualizado`,
+      );
+    } else {
+      const res = await createSupplier(session.tenantId, input);
+      await logAudit(
+        session.tenantId,
+        session.userId,
+        "supplier.create",
+        "supplier",
+        res.id,
+        `Fornecedor ${input.legalName} cadastrado`,
+      );
+    }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível salvar o fornecedor." };
   }
@@ -92,6 +112,14 @@ export async function setSupplierStatusAction(id: string, status: string): Promi
   if (!canWriteSupplier(session)) return;
   if (!(SUPPLIER_STATUS_VALUES as readonly string[]).includes(status)) return;
   await setSupplierStatus(session.tenantId, id, status as SupplierStatus);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "supplier.status",
+    "supplier",
+    id,
+    `Status do fornecedor → ${status}`,
+  );
   revalidatePath(`/fornecedores/${id}`);
   revalidatePath("/fornecedores");
 }

@@ -19,6 +19,7 @@ import {
   ScrollText,
   BarChart3,
   ClipboardList,
+  Microscope,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,6 +55,7 @@ const groups: NavGroup[] = [
     title: "Governança & BI",
     items: [
       { href: "/compliance", label: "Compliance & Riscos", icon: ShieldCheck },
+      { href: "/qualidade", label: "Qualidade", icon: Microscope },
       { href: "/auditoria", label: "Auditoria", icon: ScrollText },
       { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
     ],
@@ -102,7 +104,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.5 — Fases 1–5
+        v0.6 — Fases 1–6
       </div>
     </aside>
   );
