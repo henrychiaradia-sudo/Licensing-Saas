@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import {
   sourcingEvent,
   sourcingQuote,
+  negotiationRound,
   supplier,
   currency,
   category,
@@ -72,6 +73,10 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
       status: sourcingEvent.status,
       dueDate: sourcingEvent.dueDate,
       baselineAmount: sourcingEvent.baselineAmount,
+      weightPrice: sourcingEvent.weightPrice,
+      weightLead: sourcingEvent.weightLead,
+      weightQuality: sourcingEvent.weightQuality,
+      weightPayment: sourcingEvent.weightPayment,
       categoryName: category.name,
     })
     .from(sourcingEvent)
@@ -88,6 +93,10 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
       amount: sourcingQuote.amount,
       leadTimeDays: sourcingQuote.leadTimeDays,
       score: sourcingQuote.score,
+      freightCost: sourcingQuote.freightCost,
+      taxCost: sourcingQuote.taxCost,
+      otherCost: sourcingQuote.otherCost,
+      paymentTermsDays: sourcingQuote.paymentTermsDays,
       isAwarded: sourcingQuote.isAwarded,
       notes: sourcingQuote.notes,
       currencyIso: currency.isoCode,
@@ -183,6 +192,204 @@ export async function sourcingSavings(tenantId: string) {
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * Equalização ponderada (pesos + TCO/landed cost)
+ * ------------------------------------------------------------------------- */
+
+export type EqualizationWeights = {
+  price: number;
+  lead: number;
+  quality: number;
+  payment: number;
+};
+
+type EqInputQuote = {
+  id: string;
+  supplierName: string | null;
+  currencyIso: string | null;
+  amount: string | number;
+  leadTimeDays: number | null;
+  score: string | number | null;
+  freightCost: string | number;
+  taxCost: string | number;
+  otherCost: string | number;
+  paymentTermsDays: number | null;
+  isAwarded: boolean;
+};
+
+export type EqualizedRow = EqInputQuote & {
+  landed: number;
+  priceScore: number;
+  leadScore: number;
+  qualityScore: number;
+  paymentScore: number;
+  weightedTotal: number;
+  rank: number;
+};
+
+/**
+ * Calcula o mapa de equalização: custo total (landed = valor + frete + imposto +
+ * outros), notas normalizadas por critério (melhor da rodada = 100) e a nota
+ * ponderada pelos pesos do evento. Ordena pela nota ponderada (a melhor pode
+ * NÃO ser a de menor preço).
+ */
+export function equalizeQuotes(
+  weights: EqualizationWeights,
+  quotes: EqInputQuote[],
+): { rows: EqualizedRow[]; bestId: string | null } {
+  if (quotes.length === 0) return { rows: [], bestId: null };
+
+  const landeds = quotes.map(
+    (q) => Number(q.amount) + Number(q.freightCost) + Number(q.taxCost) + Number(q.otherCost),
+  );
+  const range = (vals: (number | null)[]) => {
+    const v = vals.filter((x): x is number => x != null);
+    return v.length ? [Math.min(...v), Math.max(...v)] : [0, 0];
+  };
+  // menor é melhor → melhor (min) recebe 100
+  const normLow = (val: number | null, min: number, max: number) =>
+    val == null ? 0 : max === min ? 100 : ((max - val) / (max - min)) * 100;
+  // maior é melhor → melhor (max) recebe 100
+  const normHigh = (val: number | null, min: number, max: number) =>
+    val == null ? 0 : max === min ? 100 : ((val - min) / (max - min)) * 100;
+
+  const [lMin, lMax] = [Math.min(...landeds), Math.max(...landeds)];
+  const [ldMin, ldMax] = range(quotes.map((q) => q.leadTimeDays));
+  const [qMin, qMax] = range(quotes.map((q) => (q.score != null ? Number(q.score) : null)));
+  const [pMin, pMax] = range(quotes.map((q) => q.paymentTermsDays));
+
+  const sumW = weights.price + weights.lead + weights.quality + weights.payment || 1;
+
+  const rows: EqualizedRow[] = quotes.map((q, i) => {
+    const priceScore = normLow(landeds[i], lMin, lMax);
+    const leadScore = normLow(q.leadTimeDays, ldMin, ldMax);
+    const qualityScore = normHigh(q.score != null ? Number(q.score) : null, qMin, qMax);
+    const paymentScore = normHigh(q.paymentTermsDays, pMin, pMax);
+    const weightedTotal =
+      (priceScore * weights.price +
+        leadScore * weights.lead +
+        qualityScore * weights.quality +
+        paymentScore * weights.payment) /
+      sumW;
+    return {
+      ...q,
+      landed: landeds[i],
+      priceScore: Math.round(priceScore),
+      leadScore: Math.round(leadScore),
+      qualityScore: Math.round(qualityScore),
+      paymentScore: Math.round(paymentScore),
+      weightedTotal: Math.round(weightedTotal * 10) / 10,
+      rank: 0,
+    };
+  });
+
+  rows.sort((a, b) => b.weightedTotal - a.weightedTotal);
+  rows.forEach((r, i) => {
+    r.rank = i + 1;
+  });
+  return { rows, bestId: rows[0]?.id ?? null };
+}
+
+export async function setEventWeights(
+  tenantId: string,
+  eventId: string,
+  weights: EqualizationWeights,
+): Promise<void> {
+  const ev = await db
+    .select({ id: sourcingEvent.id })
+    .from(sourcingEvent)
+    .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)))
+    .limit(1);
+  if (!ev[0]) throw new Error("Evento não encontrado.");
+  await db
+    .update(sourcingEvent)
+    .set({
+      weightPrice: weights.price,
+      weightLead: weights.lead,
+      weightQuality: weights.quality,
+      weightPayment: weights.payment,
+    })
+    .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)));
+}
+
+export async function listNegotiationRounds(tenantId: string, quoteId: string) {
+  return db
+    .select()
+    .from(negotiationRound)
+    .where(and(eq(negotiationRound.tenantId, tenantId), eq(negotiationRound.sourcingQuoteId, quoteId)))
+    .orderBy(asc(negotiationRound.roundNumber));
+}
+
+/** Todas as rodadas de negociação das propostas de um evento (para o detalhe do RFQ). */
+export async function listNegotiationsForEvent(tenantId: string, eventId: string) {
+  return db
+    .select({
+      id: negotiationRound.id,
+      sourcingQuoteId: negotiationRound.sourcingQuoteId,
+      roundNumber: negotiationRound.roundNumber,
+      amount: negotiationRound.amount,
+      notes: negotiationRound.notes,
+      createdAt: negotiationRound.createdAt,
+    })
+    .from(negotiationRound)
+    .innerJoin(sourcingQuote, eq(sourcingQuote.id, negotiationRound.sourcingQuoteId))
+    .where(and(eq(negotiationRound.tenantId, tenantId), eq(sourcingQuote.sourcingEventId, eventId)))
+    .orderBy(asc(negotiationRound.roundNumber));
+}
+
+/**
+ * Registra uma rodada de negociação e atualiza o valor corrente da proposta
+ * para o valor negociado (o novo valor entra na equalização).
+ */
+export async function addNegotiationRound(
+  tenantId: string,
+  quoteId: string,
+  amount: number,
+  notes: string | null,
+  userId: string,
+): Promise<void> {
+  const q = await db
+    .select({ id: sourcingQuote.id, amount: sourcingQuote.amount })
+    .from(sourcingQuote)
+    .where(and(eq(sourcingQuote.id, quoteId), eq(sourcingQuote.tenantId, tenantId)))
+    .limit(1);
+  if (!q[0]) throw new Error("Proposta não encontrada.");
+
+  const existing = await db
+    .select({ c: count() })
+    .from(negotiationRound)
+    .where(and(eq(negotiationRound.tenantId, tenantId), eq(negotiationRound.sourcingQuoteId, quoteId)));
+  let nextRound = Number(existing[0]?.c ?? 0) + 1;
+
+  // Na primeira negociação, registra a proposta inicial como rodada 1.
+  if (nextRound === 1) {
+    await db.insert(negotiationRound).values({
+      tenantId,
+      sourcingQuoteId: quoteId,
+      roundNumber: 1,
+      amount: q[0].amount,
+      notes: "Proposta inicial",
+      createdBy: userId,
+    });
+    nextRound = 2;
+  }
+
+  await db.insert(negotiationRound).values({
+    tenantId,
+    sourcingQuoteId: quoteId,
+    roundNumber: nextRound,
+    amount: amount.toFixed(2),
+    notes,
+    createdBy: userId,
+  });
+
+  // o valor corrente da proposta passa a ser o valor negociado
+  await db
+    .update(sourcingQuote)
+    .set({ amount: amount.toFixed(2) })
+    .where(and(eq(sourcingQuote.id, quoteId), eq(sourcingQuote.tenantId, tenantId)));
+}
+
 export type SourcingQuoteInput = {
   sourcingEventId: string;
   supplierId: string;
@@ -190,6 +397,10 @@ export type SourcingQuoteInput = {
   currencyId: string | null;
   leadTimeDays: number | null;
   score: number | null;
+  freightCost: number;
+  taxCost: number;
+  otherCost: number;
+  paymentTermsDays: number | null;
   notes: string | null;
 };
 
@@ -228,6 +439,10 @@ export async function addSourcingQuote(
     currencyId,
     leadTimeDays: input.leadTimeDays,
     score: input.score != null ? String(input.score) : null,
+    freightCost: input.freightCost.toFixed(2),
+    taxCost: input.taxCost.toFixed(2),
+    otherCost: input.otherCost.toFixed(2),
+    paymentTermsDays: input.paymentTermsDays,
     notes: input.notes,
   });
 

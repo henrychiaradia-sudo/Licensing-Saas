@@ -806,6 +806,10 @@ export const sourcingEvent = pgTable("sourcing_event", {
   status: sourcingStatus("status").notNull().default("aberto"),
   dueDate: date("due_date"),
   baselineAmount: numeric("baseline_amount", { precision: 18, scale: 2 }),
+  weightPrice: integer("weight_price").notNull().default(50),
+  weightLead: integer("weight_lead").notNull().default(20),
+  weightQuality: integer("weight_quality").notNull().default(20),
+  weightPayment: integer("weight_payment").notNull().default(10),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -818,9 +822,24 @@ export const sourcingQuote = pgTable("sourcing_quote", {
   currencyId: uuid("currency_id"),
   leadTimeDays: integer("lead_time_days"),
   score: numeric("score", { precision: 4, scale: 1 }),
+  freightCost: numeric("freight_cost", { precision: 18, scale: 2 }).notNull().default("0"),
+  taxCost: numeric("tax_cost", { precision: 18, scale: 2 }).notNull().default("0"),
+  otherCost: numeric("other_cost", { precision: 18, scale: 2 }).notNull().default("0"),
+  paymentTermsDays: integer("payment_terms_days"),
   isAwarded: boolean("is_awarded").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const negotiationRound = pgTable("negotiation_round", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  sourcingQuoteId: uuid("sourcing_quote_id").notNull(),
+  roundNumber: integer("round_number").notNull().default(1),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
 /* ---- Requisição de compra ---- */

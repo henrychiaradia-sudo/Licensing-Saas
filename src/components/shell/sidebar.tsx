@@ -106,7 +106,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.6 — Fases 1–6
+        v0.7 — Fases 1–8
       </div>
     </aside>
   );

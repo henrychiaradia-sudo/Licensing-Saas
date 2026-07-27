@@ -8,9 +8,11 @@ import {
   addSourcingQuote,
   awardSourcingQuote,
   generatePoFromQuote,
+  setEventWeights,
+  addNegotiationRound,
 } from "@/lib/data/sourcing";
 import { logAudit } from "@/lib/data/audit";
-import { sourcingEventSchema, sourcingQuoteSchema } from "./schema";
+import { sourcingEventSchema, sourcingQuoteSchema, weightsSchema } from "./schema";
 
 export type FormState = { error: string | null };
 
@@ -71,6 +73,10 @@ export async function addQuoteAction(
     amount: numOrNull(formData.get("amount")) ?? 0,
     leadTimeDays: intOrNull(formData.get("leadTimeDays")),
     score: numOrNull(formData.get("score")),
+    freightCost: numOrNull(formData.get("freightCost")) ?? 0,
+    taxCost: numOrNull(formData.get("taxCost")) ?? 0,
+    otherCost: numOrNull(formData.get("otherCost")) ?? 0,
+    paymentTermsDays: intOrNull(formData.get("paymentTermsDays")),
     notes: emptyToNull(formData.get("notes")),
   };
   const parsed = sourcingQuoteSchema.safeParse(candidate);
@@ -86,6 +92,68 @@ export async function addQuoteAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível registrar a proposta." };
   }
+  revalidatePath(`/sourcing/${eventId}`);
+  return { error: null };
+}
+
+export async function setWeightsAction(
+  eventId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await requireSession();
+  const candidate = {
+    price: intOrNull(formData.get("price")) ?? 0,
+    lead: intOrNull(formData.get("lead")) ?? 0,
+    quality: intOrNull(formData.get("quality")) ?? 0,
+    payment: intOrNull(formData.get("payment")) ?? 0,
+  };
+  const parsed = weightsSchema.safeParse(candidate);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Pesos inválidos." };
+  }
+  try {
+    await setEventWeights(session.tenantId, eventId, parsed.data);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível salvar os pesos." };
+  }
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "sourcing.weights",
+    "sourcing_event",
+    eventId,
+    `Pesos: preço ${parsed.data.price} / prazo ${parsed.data.lead} / qualidade ${parsed.data.quality} / pagamento ${parsed.data.payment}`,
+  );
+  revalidatePath(`/sourcing/${eventId}`);
+  return { error: null };
+}
+
+export async function addNegotiationAction(
+  eventId: string,
+  quoteId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await requireSession();
+  const amount = numOrNull(formData.get("amount"));
+  const notes = emptyToNull(formData.get("notes"));
+  if (amount == null || amount <= 0) {
+    return { error: "Informe o valor negociado." };
+  }
+  try {
+    await addNegotiationRound(session.tenantId, quoteId, amount, notes, session.userId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível registrar a rodada." };
+  }
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "sourcing.negotiation",
+    "sourcing_event",
+    eventId,
+    `Rodada de negociação registrada (${amount.toFixed(2)})`,
+  );
   revalidatePath(`/sourcing/${eventId}`);
   return { error: null };
 }
