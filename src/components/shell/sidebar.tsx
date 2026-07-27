@@ -21,6 +21,7 @@ import {
   ClipboardList,
   Microscope,
   Truck,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
       { href: "/pendencias", label: "Pendências", icon: Bell },
+      { href: "/pipeline", label: "Pipeline (CRM)", icon: Target },
       { href: "/licenciados", label: "Licenciados", icon: Users },
       { href: "/contratos", label: "Contratos", icon: FileText },
       { href: "/marcas", label: "Marcas & IP", icon: Star },

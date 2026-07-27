@@ -29,6 +29,9 @@ const actionLabel: Record<string, string> = {
   "quality.inspection.result": "Atualizou resultado de inspeção",
   "quality.nc.create": "Registrou não-conformidade",
   "quality.nc.status": "Alterou status de não-conformidade",
+  "opportunity.create": "Criou oportunidade",
+  "opportunity.stage": "Moveu oportunidade de estágio",
+  "opportunity.convert": "Converteu oportunidade em licenciado",
 };
 
 const entityLabel: Record<string, string> = {
@@ -45,6 +48,7 @@ const entityLabel: Record<string, string> = {
   quality_inspection: "Inspeção",
   non_conformity: "Não-conformidade",
   shipment: "Embarque",
+  licensing_opportunity: "Oportunidade",
 };
 
 const ENTITY_FILTERS = [
@@ -56,6 +60,7 @@ const ENTITY_FILTERS = [
   "quality_inspection",
   "non_conformity",
   "shipment",
+  "licensing_opportunity",
   "royalty_report",
   "receivable",
 ] as const;

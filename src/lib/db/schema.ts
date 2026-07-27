@@ -1069,3 +1069,54 @@ export const shipmentEvent = pgTable("shipment_event", {
   createdBy: uuid("created_by"),
 });
 
+/* ============ FASE 7 — PIPELINE DE LICENCIAMENTO (CRM) ============ */
+export const opportunityStage = pgEnum("opportunity_stage", [
+  "prospeccao",
+  "qualificacao",
+  "proposta",
+  "negociacao",
+  "ganho",
+  "perdido",
+]);
+export type OpportunityStage = (typeof opportunityStage.enumValues)[number];
+
+export const licensingOpportunity = pgTable(
+  "licensing_opportunity",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    opportunityNumber: text("opportunity_number").notNull(),
+    name: text("name").notNull(),
+    companyName: text("company_name"),
+    contactName: text("contact_name"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    brandId: uuid("brand_id"),
+    segmentId: uuid("segment_id"),
+    stage: opportunityStage("stage").notNull().default("prospeccao"),
+    estimatedValue: numeric("estimated_value", { precision: 18, scale: 2 }).notNull().default("0"),
+    probability: integer("probability").notNull().default(20),
+    source: text("source"),
+    expectedCloseDate: date("expected_close_date"),
+    ownerUserId: uuid("owner_user_id"),
+    notes: text("notes"),
+    lostReason: text("lost_reason"),
+    licenseeId: uuid("licensee_id"),
+    contractId: uuid("contract_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_opportunity_number").on(t.tenantId, t.opportunityNumber)],
+);
+
+export const opportunityActivity = pgTable("opportunity_activity", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  opportunityId: uuid("opportunity_id").notNull(),
+  activityType: text("activity_type").notNull().default("nota"),
+  description: text("description").notNull(),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
