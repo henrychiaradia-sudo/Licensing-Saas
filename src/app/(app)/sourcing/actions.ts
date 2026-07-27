@@ -44,6 +44,7 @@ export async function createSourcingEventAction(
     categoryId: emptyToNull(formData.get("categoryId")),
     dueDate: emptyToNull(formData.get("dueDate")),
     status: String(formData.get("status") ?? "aberto"),
+    baselineAmount: numOrNull(formData.get("baselineAmount")),
   };
   const parsed = sourcingEventSchema.safeParse(candidate);
   if (!parsed.success) {

@@ -3,10 +3,13 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, XCircle, CheckCircle2, PackageCheck } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getPurchaseOrderDetail, nextPoStatus } from "@/lib/data/purchase-orders";
+import { listShipmentsForPo } from "@/lib/data/shipments";
 import { setPoStatusAction, receivePoAction } from "../actions";
+import { shipmentTone, shipmentLabel } from "../../logistica/page";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
-import type { PoStatus } from "@/lib/db/schema";
+import { Truck, Plus } from "lucide-react";
+import type { PoStatus, ShipmentStatus } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
 
@@ -39,6 +42,7 @@ export default async function CompraDetailPage({
   const data = await getPurchaseOrderDetail(session.tenantId, id);
   if (!data) notFound();
   const { order: o, items } = data;
+  const shipments = await listShipmentsForPo(session.tenantId, id);
   const iso = o.currencyIso ?? "BRL";
   const next = nextPoStatus(o.status);
   const isFinal = o.status === "recebido" || o.status === "cancelado";
@@ -209,6 +213,39 @@ export default async function CompraDetailPage({
             </tr>
           </tfoot>
         </table>
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <Truck size={16} className="text-blue-500" /> Embarques
+          </h2>
+          <Link href={`/logistica/new`}>
+            <Button variant="outline" size="sm">
+              <Plus size={14} /> Novo embarque
+            </Button>
+          </Link>
+        </div>
+        {shipments.length === 0 ? (
+          <p className="text-sm text-neutral-400">Nenhum embarque vinculado a este pedido.</p>
+        ) : (
+          <div className="grid gap-2">
+            {shipments.map((sh) => (
+              <Link
+                key={sh.id}
+                href={`/logistica/${sh.id}`}
+                className="flex items-center justify-between rounded-lg border border-neutral-200 px-4 py-2.5 text-sm hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+              >
+                <span className="font-medium text-blue-600">{sh.shipmentNumber}</span>
+                <span className="text-neutral-500">{sh.carrier ?? "—"}</span>
+                <span className="tabular-nums text-neutral-400">ETA {fmtDate(sh.eta)}</span>
+                <Badge tone={shipmentTone[sh.status as ShipmentStatus]}>
+                  {shipmentLabel[sh.status as ShipmentStatus]}
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

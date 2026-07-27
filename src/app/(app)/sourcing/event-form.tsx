@@ -36,6 +36,13 @@ export function EventForm({ categories }: { categories: { id: string; label: str
           <Input id="dueDate" name="dueDate" type="date" />
         </div>
       </div>
+      <div>
+        <Label htmlFor="baselineAmount">Orçamento base (baseline)</Label>
+        <Input id="baselineAmount" name="baselineAmount" type="number" min="0" step="0.01" placeholder="Ex.: 100000" />
+        <p className="mt-1 text-xs text-neutral-400">
+          Valor de referência antes da negociação. Usado para calcular o savings ao adjudicar.
+        </p>
+      </div>
       <input type="hidden" name="status" value="aberto" />
 
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}

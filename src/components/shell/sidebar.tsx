@@ -20,6 +20,7 @@ import {
   BarChart3,
   ClipboardList,
   Microscope,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ const groups: NavGroup[] = [
       { href: "/requisicoes", label: "Requisições", icon: ClipboardList },
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
+      { href: "/logistica", label: "Logística", icon: Truck },
     ],
   },
   {

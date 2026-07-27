@@ -11,7 +11,8 @@ import {
   type SupplierInput,
 } from "@/lib/data/suppliers";
 import { logAudit } from "@/lib/data/audit";
-import { supplierSchema } from "./schema";
+import { createEvaluation, type EvaluationInput } from "@/lib/data/evaluations";
+import { supplierSchema, evaluationSchema } from "./schema";
 import type { SupplierStatus } from "@/lib/db/schema";
 
 const SUPPLIER_STATUS_VALUES = ["em_homologacao", "ativo", "inativo", "bloqueado"] as const;
@@ -35,6 +36,10 @@ function intOrNull(v: FormDataEntryValue | null): number | null {
   if (s === "") return null;
   const n = parseInt(s, 10);
   return Number.isFinite(n) ? n : null;
+}
+function intOrZero(v: FormDataEntryValue | null): number {
+  const n = intOrNull(v);
+  return n == null ? 0 : n;
 }
 
 // Fornecedores usam permissão de compras; se não houver, cai para acesso interno.
@@ -122,4 +127,54 @@ export async function setSupplierStatusAction(id: string, status: string): Promi
   );
   revalidatePath(`/fornecedores/${id}`);
   revalidatePath("/fornecedores");
+}
+
+export async function createEvaluationAction(
+  supplierId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await requireSession();
+  if (!canWriteSupplier(session)) {
+    return { error: "Você não tem permissão para avaliar fornecedores." };
+  }
+
+  const candidate = {
+    supplierId,
+    periodLabel: String(formData.get("periodLabel") ?? "").trim(),
+    qualityScore: intOrZero(formData.get("qualityScore")),
+    deliveryScore: intOrZero(formData.get("deliveryScore")),
+    costScore: intOrZero(formData.get("costScore")),
+    complianceScore: intOrZero(formData.get("complianceScore")),
+    riskLevel: String(formData.get("riskLevel") ?? "medio"),
+    strengths: emptyToNull(formData.get("strengths")),
+    weaknesses: emptyToNull(formData.get("weaknesses")),
+    notes: emptyToNull(formData.get("notes")),
+    evaluatedAt: emptyToNull(formData.get("evaluatedAt")),
+  };
+
+  const parsed = evaluationSchema.safeParse(candidate);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  const input: EvaluationInput = parsed.data;
+
+  let id: string;
+  try {
+    id = (await createEvaluation(session.tenantId, input, session.userId)).id;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível salvar a avaliação." };
+  }
+
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "supplier.evaluation",
+    "supplier",
+    supplierId,
+    `Avaliação ${input.periodLabel} — risco ${input.riskLevel}`,
+  );
+
+  revalidatePath(`/fornecedores/${supplierId}`);
+  return { error: null };
 }

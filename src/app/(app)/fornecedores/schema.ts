@@ -28,3 +28,21 @@ export const supplierSchema = z.object({
 });
 
 export type SupplierFormData = z.infer<typeof supplierSchema>;
+
+export const SUPPLIER_RISK_LEVEL = ["baixo", "medio", "alto", "critico"] as const;
+
+const score = z.number().int().min(0).max(100);
+
+export const evaluationSchema = z.object({
+  supplierId: z.string().uuid(),
+  periodLabel: z.string().trim().min(2, "Informe o período (ex.: 2026-Q2).").max(40),
+  qualityScore: score,
+  deliveryScore: score,
+  costScore: score,
+  complianceScore: score,
+  riskLevel: z.enum(SUPPLIER_RISK_LEVEL),
+  strengths: z.string().trim().max(1000).nullable(),
+  weaknesses: z.string().trim().max(1000).nullable(),
+  notes: z.string().trim().max(1000).nullable(),
+  evaluatedAt: z.string().nullable(),
+});

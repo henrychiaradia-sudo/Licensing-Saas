@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc, asc, inArray, count } from "drizzle-orm";
+import { and, eq, desc, asc, inArray, count, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   sourcingEvent,
@@ -71,6 +71,7 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
       title: sourcingEvent.title,
       status: sourcingEvent.status,
       dueDate: sourcingEvent.dueDate,
+      baselineAmount: sourcingEvent.baselineAmount,
       categoryName: category.name,
     })
     .from(sourcingEvent)
@@ -106,6 +107,7 @@ export type SourcingEventInput = {
   categoryId: string | null;
   dueDate: string | null;
   status: SourcingStatus;
+  baselineAmount: number | null;
 };
 
 export async function createSourcingEvent(
@@ -128,9 +130,57 @@ export async function createSourcingEvent(
       categoryId: input.categoryId,
       status: input.status,
       dueDate: input.dueDate,
+      baselineAmount: input.baselineAmount != null ? String(input.baselineAmount) : null,
     })
     .returning({ id: sourcingEvent.id });
   return { id: inserted[0].id };
+}
+
+/**
+ * Savings de sourcing: para eventos com baseline definido e proposta adjudicada,
+ * economia = baseline − valor adjudicado.
+ */
+export async function sourcingSavings(tenantId: string) {
+  const rows = await db
+    .select({
+      id: sourcingEvent.id,
+      title: sourcingEvent.title,
+      baseline: sourcingEvent.baselineAmount,
+      awarded: sourcingQuote.amount,
+      supplierName: supplier.legalName,
+      createdAt: sourcingEvent.createdAt,
+    })
+    .from(sourcingEvent)
+    .innerJoin(
+      sourcingQuote,
+      and(eq(sourcingQuote.sourcingEventId, sourcingEvent.id), eq(sourcingQuote.isAwarded, true)),
+    )
+    .leftJoin(supplier, eq(supplier.id, sourcingQuote.supplierId))
+    .where(and(eq(sourcingEvent.tenantId, tenantId), isNotNull(sourcingEvent.baselineAmount)))
+    .orderBy(desc(sourcingEvent.createdAt));
+
+  const events = rows.map((r) => {
+    const baseline = Number(r.baseline ?? 0);
+    const awarded = Number(r.awarded ?? 0);
+    const savings = baseline - awarded;
+    return {
+      id: r.id,
+      title: r.title,
+      supplierName: r.supplierName,
+      baseline,
+      awarded,
+      savings,
+      savingsPct: baseline > 0 ? Math.round((savings / baseline) * 100) : 0,
+    };
+  });
+  const totalSavings = events.reduce((a, e) => a + e.savings, 0);
+  const totalBaseline = events.reduce((a, e) => a + e.baseline, 0);
+  return {
+    events,
+    totalSavings,
+    totalBaseline,
+    avgPct: totalBaseline > 0 ? Math.round((totalSavings / totalBaseline) * 100) : 0,
+  };
 }
 
 export type SourcingQuoteInput = {

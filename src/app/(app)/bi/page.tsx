@@ -1,4 +1,4 @@
-import { Coins, Wallet, ShoppingCart } from "lucide-react";
+import { Coins, Wallet, ShoppingCart, PiggyBank } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import {
   royaltiesByCompetencia,
@@ -7,8 +7,19 @@ import {
   revenueByLicensee,
   type Slice,
 } from "@/lib/data/bi";
+import { sourcingSavings } from "@/lib/data/sourcing";
+import { listLatestEvaluations } from "@/lib/data/evaluations";
 import { Card } from "@/components/ui";
 import { fmtCompactBRL, fmtMoney } from "@/lib/utils";
+import type { SupplierRiskLevel } from "@/lib/db/schema";
+
+const riskOrder: SupplierRiskLevel[] = ["baixo", "medio", "alto", "critico"];
+const riskLabel: Record<SupplierRiskLevel, string> = {
+  baixo: "Baixo",
+  medio: "Médio",
+  alto: "Alto",
+  critico: "Crítico",
+};
 
 const receivableStatusLabel: Record<string, string> = {
   previsto: "Previsto",
@@ -21,11 +32,13 @@ const receivableStatusLabel: Record<string, string> = {
 
 export default async function BiPage() {
   const session = await requireSession();
-  const [royalties, purchases, receivables, revenue] = await Promise.all([
+  const [royalties, purchases, receivables, revenue, savings, evaluations] = await Promise.all([
     royaltiesByCompetencia(session.tenantId),
     purchasesBySupplier(session.tenantId),
     receivablesByStatus(session.tenantId),
     revenueByLicensee(session.tenantId),
+    sourcingSavings(session.tenantId),
+    listLatestEvaluations(session.tenantId),
   ]);
 
   const sum = (arr: Slice[]) => arr.reduce((a, b) => a + b.value, 0);
@@ -33,6 +46,13 @@ export default async function BiPage() {
     label: receivableStatusLabel[r.label] ?? r.label,
     value: r.value,
   }));
+
+  const riskCounts = riskOrder
+    .map((r) => ({
+      label: riskLabel[r],
+      value: evaluations.filter((e) => e.riskLevel === r).length,
+    }))
+    .filter((s) => s.value > 0);
 
   return (
     <div>
@@ -43,10 +63,11 @@ export default async function BiPage() {
         </p>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="Royalties acumulados" value={fmtCompactBRL(sum(royalties))} icon={<Coins size={18} className="text-amber-600" />} />
         <Kpi label="Receita faturada" value={fmtCompactBRL(sum(revenue))} icon={<Wallet size={18} className="text-emerald-600" />} />
         <Kpi label="Compras comprometidas" value={fmtCompactBRL(sum(purchases))} icon={<ShoppingCart size={18} className="text-blue-600" />} />
+        <Kpi label="Savings de sourcing" value={fmtCompactBRL(savings.totalSavings)} icon={<PiggyBank size={18} className="text-emerald-600" />} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -61,6 +82,9 @@ export default async function BiPage() {
         </ChartCard>
         <ChartCard title="Compras por fornecedor">
           <BarList data={purchases} format={(n) => fmtMoney(n)} />
+        </ChartCard>
+        <ChartCard title="Risco de fornecedores (avaliados)">
+          <BarList data={riskCounts} format={(n) => `${n} fornecedor(es)`} />
         </ChartCard>
       </div>
     </div>

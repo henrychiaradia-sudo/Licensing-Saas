@@ -805,6 +805,7 @@ export const sourcingEvent = pgTable("sourcing_event", {
   categoryId: uuid("category_id"),
   status: sourcingStatus("status").notNull().default("aberto"),
   dueDate: date("due_date"),
+  baselineAmount: numeric("baseline_amount", { precision: 18, scale: 2 }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -965,5 +966,87 @@ export const auditLog = pgTable("audit_log", {
   entityId: uuid("entity_id"),
   changes: jsonb("changes"),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ============ FASE 6 — SUPRIMENTOS: PERFORMANCE, RISCO & LOGÍSTICA ============ */
+
+/* ---- Avaliação de fornecedor (scorecard + risco) ---- */
+export const supplierRiskLevel = pgEnum("supplier_risk_level", [
+  "baixo",
+  "medio",
+  "alto",
+  "critico",
+]);
+export type SupplierRiskLevel = (typeof supplierRiskLevel.enumValues)[number];
+
+export const supplierEvaluation = pgTable(
+  "supplier_evaluation",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    supplierId: uuid("supplier_id").notNull(),
+    periodLabel: text("period_label").notNull(),
+    qualityScore: integer("quality_score").notNull().default(0),
+    deliveryScore: integer("delivery_score").notNull().default(0),
+    costScore: integer("cost_score").notNull().default(0),
+    complianceScore: integer("compliance_score").notNull().default(0),
+    overallScore: integer("overall_score").notNull().default(0),
+    riskLevel: supplierRiskLevel("risk_level").notNull().default("medio"),
+    strengths: text("strengths"),
+    weaknesses: text("weaknesses"),
+    notes: text("notes"),
+    evaluatedAt: date("evaluated_at"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_supplier_evaluation_period").on(t.tenantId, t.supplierId, t.periodLabel)],
+);
+
+/* ---- Rastreamento logístico (supply chain) ---- */
+export const shipmentStatus = pgEnum("shipment_status", [
+  "preparacao",
+  "em_transito",
+  "desembaraco",
+  "entregue",
+  "atrasado",
+  "cancelado",
+]);
+export type ShipmentStatus = (typeof shipmentStatus.enumValues)[number];
+
+export const shipment = pgTable(
+  "shipment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    shipmentNumber: text("shipment_number").notNull(),
+    purchaseOrderId: uuid("purchase_order_id"),
+    supplierId: uuid("supplier_id"),
+    carrier: text("carrier"),
+    trackingCode: text("tracking_code"),
+    status: shipmentStatus("status").notNull().default("preparacao"),
+    origin: text("origin"),
+    destination: text("destination"),
+    incoterm: text("incoterm"),
+    dispatchedAt: date("dispatched_at"),
+    eta: date("eta"),
+    deliveredAt: date("delivered_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_shipment_number").on(t.tenantId, t.shipmentNumber)],
+);
+
+export const shipmentEvent = pgTable("shipment_event", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  shipmentId: uuid("shipment_id").notNull(),
+  status: shipmentStatus("status").notNull(),
+  description: text("description"),
+  location: text("location"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 

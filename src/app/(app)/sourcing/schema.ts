@@ -7,6 +7,7 @@ export const sourcingEventSchema = z.object({
   categoryId: z.string().uuid().nullable(),
   dueDate: z.string().nullable(),
   status: z.enum(SOURCING_STATUS),
+  baselineAmount: z.number().min(0).max(1_000_000_000).nullable(),
 });
 
 export const sourcingQuoteSchema = z.object({

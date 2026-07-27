@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Award, Plus } from "lucide-react";
+import { Award, Plus, PiggyBank } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listSourcing } from "@/lib/data/sourcing";
+import { listSourcing, sourcingSavings } from "@/lib/data/sourcing";
 import { Card, Badge, Button } from "@/components/ui";
-import { fmtMoney, fmtDate } from "@/lib/utils";
+import { fmtMoney, fmtBRL, fmtDate } from "@/lib/utils";
 import type { SourcingStatus } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
@@ -23,7 +23,10 @@ const statusLabel: Record<SourcingStatus, string> = {
 
 export default async function SourcingPage() {
   const session = await requireSession();
-  const events = await listSourcing(session.tenantId);
+  const [events, savings] = await Promise.all([
+    listSourcing(session.tenantId),
+    sourcingSavings(session.tenantId),
+  ]);
 
   return (
     <div>
@@ -40,6 +43,41 @@ export default async function SourcingPage() {
           </Button>
         </Link>
       </div>
+
+      {savings.events.length > 0 && (
+        <Card className="mb-5 p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="flex items-center gap-2 text-sm font-semibold">
+              <PiggyBank size={16} className="text-emerald-500" /> Savings de sourcing
+            </h2>
+            <div className="text-right">
+              <div className="text-lg font-bold tabular-nums text-emerald-600">
+                {fmtBRL(savings.totalSavings)}
+              </div>
+              <div className="text-[11px] text-neutral-400">
+                {savings.avgPct}% sobre {fmtBRL(savings.totalBaseline)} de baseline
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            {savings.events.map((s) => (
+              <div
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-neutral-200 px-4 py-2 text-sm dark:border-neutral-800"
+              >
+                <span className="font-medium">{s.title}</span>
+                <span className="text-xs text-neutral-400">{s.supplierName ?? "—"}</span>
+                <span className="tabular-nums text-neutral-500">
+                  {fmtBRL(s.baseline)} → {fmtBRL(s.awarded)}
+                </span>
+                <Badge tone={s.savings >= 0 ? "good" : "danger"}>
+                  {fmtBRL(s.savings)} ({s.savingsPct}%)
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="space-y-4">
         {events.map((e) => {

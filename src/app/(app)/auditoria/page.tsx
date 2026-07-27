@@ -11,6 +11,9 @@ const actionLabel: Record<string, string> = {
   "supplier.create": "Cadastrou fornecedor",
   "supplier.update": "Atualizou fornecedor",
   "supplier.status": "Alterou status de fornecedor",
+  "supplier.evaluation": "Avaliou fornecedor (scorecard)",
+  "shipment.create": "Registrou embarque",
+  "shipment.status": "Alterou status de embarque",
   "purchase_order.create": "Criou pedido de compra",
   "purchase_order.status": "Alterou status de pedido",
   "purchase_order.receive": "Registrou recebimento",
@@ -41,6 +44,7 @@ const entityLabel: Record<string, string> = {
   licensee: "Licenciado",
   quality_inspection: "Inspeção",
   non_conformity: "Não-conformidade",
+  shipment: "Embarque",
 };
 
 const ENTITY_FILTERS = [
@@ -51,6 +55,7 @@ const ENTITY_FILTERS = [
   "sourcing_event",
   "quality_inspection",
   "non_conformity",
+  "shipment",
   "royalty_report",
   "receivable",
 ] as const;
