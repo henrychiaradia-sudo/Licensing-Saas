@@ -38,6 +38,7 @@ export async function authenticate(
     email: user.email,
     permissions,
     licenseeId: user.licenseeId ?? null,
+    supplierId: user.supplierId ?? null,
     isInternal: user.isInternal,
   });
   return { ok: true };
@@ -60,6 +61,14 @@ export async function requireLicenseeSession(): Promise<SessionData & { licensee
   if (!session) redirect("/login");
   if (!session.licenseeId) redirect("/dashboard");
   return session as SessionData & { licenseeId: string };
+}
+
+/** Portal do fornecedor: exige um usuário vinculado a um fornecedor; senão redireciona. */
+export async function requireSupplierSession(): Promise<SessionData & { supplierId: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!session.supplierId) redirect("/dashboard");
+  return session as SessionData & { supplierId: string };
 }
 
 export function can(session: SessionData, permission: string) {

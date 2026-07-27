@@ -14,6 +14,7 @@ async function logoutAction() {
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession();
   if (session.licenseeId) redirect("/portal");
+  if (session.supplierId) redirect("/fornecedor");
   return (
     <div className="flex min-h-screen">
       <Sidebar />

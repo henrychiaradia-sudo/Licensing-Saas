@@ -33,9 +33,11 @@ export default async function LoginPage({
               Entrar
             </Button>
           </form>
-          <p className="mt-4 text-xs text-neutral-400">
-            Demo: <span className="font-medium">admin@novasport.com</span> / <span className="font-medium">aurora123</span>
-          </p>
+          <div className="mt-4 space-y-1 text-xs text-neutral-400">
+            <p>Interno: <span className="font-medium">admin@novasport.com</span> / <span className="font-medium">aurora123</span></p>
+            <p>Portal licenciado: <span className="font-medium">portal@vestebem.com</span> / <span className="font-medium">portal123</span></p>
+            <p>Portal fornecedor: <span className="font-medium">portal@pacificmfg.com</span> / <span className="font-medium">portal123</span></p>
+          </div>
         </div>
       </div>
     </div>

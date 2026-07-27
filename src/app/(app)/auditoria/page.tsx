@@ -29,6 +29,7 @@ const actionLabel: Record<string, string> = {
   "quality.inspection.result": "Atualizou resultado de inspeção",
   "quality.nc.create": "Registrou não-conformidade",
   "quality.nc.status": "Alterou status de não-conformidade",
+  "quality.nc.supplier_response": "Fornecedor respondeu não-conformidade (portal)",
   "opportunity.create": "Criou oportunidade",
   "opportunity.stage": "Moveu oportunidade de estágio",
   "opportunity.convert": "Converteu oportunidade em licenciado",

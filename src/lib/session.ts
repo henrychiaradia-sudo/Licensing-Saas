@@ -14,6 +14,8 @@ export type SessionData = {
   permissions: string[];
   /** Se preenchido, o usuário é um licenciado e só enxerga os dados deste licensee. */
   licenseeId: string | null;
+  /** Se preenchido, o usuário é um fornecedor e só enxerga os dados deste supplier. */
+  supplierId: string | null;
   isInternal: boolean;
 };
 
