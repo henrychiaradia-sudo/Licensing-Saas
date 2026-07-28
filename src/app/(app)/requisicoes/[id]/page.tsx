@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Send, CheckCircle2, XCircle, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Send, CheckCircle2, XCircle, ShoppingCart, Clock, GitBranch } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getRequisitionDetail, requisitionAlcada } from "@/lib/data/requisitions";
+import { getRequisitionDetail } from "@/lib/data/requisitions";
+import { listRequisitionSteps, alcadaFor } from "@/lib/data/approvals";
 import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { listCurrencyOptions } from "@/lib/data/contracts";
 import { submitRequisitionAction, decideRequisitionAction } from "../actions";
@@ -29,10 +30,11 @@ export default async function RequisitionDetailPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [data, suppliers, currencies] = await Promise.all([
+  const [data, suppliers, currencies, steps] = await Promise.all([
     getRequisitionDetail(session.tenantId, id),
     listSupplierOptions(session.tenantId),
     listCurrencyOptions(),
+    listRequisitionSteps(session.tenantId, id),
   ]);
   if (!data) notFound();
   const { requisition: r, items, convertedPoNumber } = data;
@@ -40,7 +42,8 @@ export default async function RequisitionDetailPage({
     (a, it) => a + Number(it.quantity) * Number(it.estimatedUnitPrice),
     0,
   );
-  const alcada = requisitionAlcada(estTotal);
+  const alcadaLabel = await alcadaFor(session.tenantId, estTotal);
+  const currentStep = steps.find((s) => s.status === "pendente") ?? null;
 
   return (
     <div>
@@ -60,7 +63,7 @@ export default async function RequisitionDetailPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge tone="neutral">Alçada: {alcada.label}</Badge>
+          <Badge tone="neutral">Alçada: {alcadaLabel}</Badge>
           <Badge tone={statusTone[r.status]}>{reqStatusLabel[r.status]}</Badge>
         </div>
       </div>
@@ -78,12 +81,92 @@ export default async function RequisitionDetailPage({
         </Card>
       )}
 
-      {r.status === "enviada" && (
+      {steps.length > 0 && (
+        <Card className="mb-4 p-5">
+          <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+            <GitBranch size={16} className="text-blue-500" /> Fluxo de aprovação por alçada
+          </h2>
+          <p className="mb-4 text-xs text-neutral-500">
+            Estimativa de {fmtBRL(estTotal)} — exige aprovação em {steps.length} nível(is), em
+            sequência.
+          </p>
+          <ol className="space-y-2">
+            {steps.map((s) => {
+              const isCurrent = currentStep?.id === s.id;
+              const tone =
+                s.status === "aprovada" ? "good" : s.status === "reprovada" ? "danger" : "neutral";
+              return (
+                <li
+                  key={s.id}
+                  className={`flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 ${
+                    isCurrent
+                      ? "border-blue-300 bg-blue-50/60 dark:border-blue-900 dark:bg-blue-950/20"
+                      : "border-neutral-200 dark:border-neutral-800"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 text-sm">
+                    <span className="grid h-6 w-6 place-items-center rounded-full bg-neutral-100 text-xs font-semibold dark:bg-neutral-800">
+                      {s.sequence}
+                    </span>
+                    <span className="font-medium">{s.tierLabel}</span>
+                    {isCurrent && s.status === "pendente" && (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-blue-600">
+                        <Clock size={12} /> aguardando
+                      </span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {s.status !== "pendente" && (
+                      <span className="text-[11px] text-neutral-400">
+                        {s.decidedByName ? `${s.decidedByName} · ` : ""}
+                        {fmtDate(s.decidedAt)}
+                        {s.comment ? ` · ${s.comment}` : ""}
+                      </span>
+                    )}
+                    <Badge tone={tone}>
+                      {s.status === "aprovada"
+                        ? "Aprovado"
+                        : s.status === "reprovada"
+                          ? "Reprovado"
+                          : "Pendente"}
+                    </Badge>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {r.status === "enviada" && currentStep && (
+            <form action={decideRequisitionAction.bind(null, r.id)} className="mt-4 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+              <p className="mb-2 text-xs text-neutral-500">
+                Parecer do nível <strong>{currentStep.tierLabel}</strong> (nível {currentStep.sequence}{" "}
+                de {steps.length}):
+              </p>
+              <textarea
+                name="comment"
+                rows={2}
+                placeholder="Comentário / parecer (opcional)"
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="submit" name="decision" value="aprovada">
+                  <CheckCircle2 size={15} /> Aprovar nível
+                </Button>
+                <Button type="submit" variant="danger" name="decision" value="reprovada">
+                  <XCircle size={15} /> Reprovar
+                </Button>
+              </div>
+            </form>
+          )}
+        </Card>
+      )}
+
+      {r.status === "enviada" && steps.length === 0 && (
         <Card className="mb-4 p-5">
           <h2 className="text-sm font-semibold">Aprovação da requisição</h2>
           <p className="mb-3 text-xs text-neutral-500">
-            Estimativa de {fmtBRL(estTotal)} · alçada exigida:{" "}
-            <strong>{alcada.label}</strong> ({alcada.note}). Registre o parecer.
+            Estimativa de {fmtBRL(estTotal)} · alçada exigida: <strong>{alcadaLabel}</strong>.
+            Registre o parecer.
           </p>
           <form action={decideRequisitionAction.bind(null, r.id)}>
             <textarea

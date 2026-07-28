@@ -972,6 +972,54 @@ export const purchaseRequisitionItem = pgTable("purchase_requisition_item", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/* ---- Aprovação por alçada (matriz configurável + etapas por requisição) ---- */
+export const approvalStepStatus = pgEnum("approval_step_status", [
+  "pendente",
+  "aprovada",
+  "reprovada",
+]);
+export type ApprovalStepStatus = (typeof approvalStepStatus.enumValues)[number];
+
+/** Matriz de alçadas: cada nível passa a ser exigido a partir de `threshold` (cumulativo). */
+export const approvalTier = pgTable("approval_tier", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  sequence: integer("sequence").notNull(),
+  label: text("label").notNull(),
+  threshold: numeric("threshold", { precision: 18, scale: 2 }).notNull().default("0"),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const requisitionApprovalStep = pgTable("requisition_approval_step", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  purchaseRequisitionId: uuid("purchase_requisition_id").notNull(),
+  sequence: integer("sequence").notNull(),
+  tierLabel: text("tier_label").notNull(),
+  status: approvalStepStatus("status").notNull().default("pendente"),
+  decidedBy: uuid("decided_by"),
+  decidedAt: timestamp("decided_at", { withTimezone: true }),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ---- Budget de compras (orçamento por categoria por ano fiscal) ---- */
+export const purchaseBudget = pgTable(
+  "purchase_budget",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    purchaseCategoryId: uuid("purchase_category_id").notNull(),
+    fiscalYear: integer("fiscal_year").notNull(),
+    amount: numeric("amount", { precision: 18, scale: 2 }).notNull().default("0"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_purchase_budget").on(t.tenantId, t.purchaseCategoryId, t.fiscalYear)],
+);
+
 /* ---- Aditivos de contrato ---- */
 export const contractAmendmentType = pgEnum("contract_amendment_type", [
   "aditivo",

@@ -6,10 +6,10 @@ import { requireSession } from "@/lib/auth";
 import {
   createRequisition,
   submitRequisition,
-  decideRequisition,
   convertRequisitionToPo,
   type RequisitionInput,
 } from "@/lib/data/requisitions";
+import { generateApprovalSteps, decideCurrentStep } from "@/lib/data/approvals";
 import { logAudit } from "@/lib/data/audit";
 import { requisitionSchema } from "./schema";
 
@@ -47,7 +47,9 @@ export async function createRequisitionAction(input: unknown): Promise<CreateReq
 export async function submitRequisitionAction(id: string): Promise<void> {
   const session = await requireSession();
   await submitRequisition(session.tenantId, id);
+  await generateApprovalSteps(session.tenantId, id);
   revalidatePath(`/requisicoes/${id}`);
+  revalidatePath(`/aprovacoes`);
 }
 
 export async function decideRequisitionAction(id: string, formData: FormData): Promise<void> {
@@ -55,16 +57,17 @@ export async function decideRequisitionAction(id: string, formData: FormData): P
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim() || null;
   if (decision !== "aprovada" && decision !== "reprovada") return;
-  await decideRequisition(session.tenantId, id, decision, comment, session.userId);
+  const res = await decideCurrentStep(session.tenantId, id, decision, comment, session.userId);
   await logAudit(
     session.tenantId,
     session.userId,
-    "requisition.decide",
+    "requisition.approval.step",
     "purchase_requisition",
     id,
-    `Requisição ${decision}${comment ? `: ${comment}` : ""}`,
+    `${res.tierLabel}: ${decision}${res.final ? ` (requisição ${res.final})` : " (avança nível)"}${comment ? ` — ${comment}` : ""}`,
   );
   revalidatePath(`/requisicoes/${id}`);
+  revalidatePath(`/aprovacoes`);
 }
 
 export async function convertRequisitionAction(
