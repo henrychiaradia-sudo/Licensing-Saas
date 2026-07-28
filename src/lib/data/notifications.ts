@@ -233,7 +233,7 @@ export async function generateNotifications(tenantId: string): Promise<number> {
     if (danger.length > 0) {
       await sendEmail({
         to: "operacoes@novasport.example",
-        subject: `Aurora Licensing — ${danger.length} alerta(s) que exigem atenção`,
+        subject: `ALIANZA — ${danger.length} alerta(s) que exigem atenção`,
         body: `Há ${danger.length} novo(s) alerta(s) de severidade alta. Acesse o sistema para detalhes.`,
       });
       const ids = danger.map((d) => d.id);

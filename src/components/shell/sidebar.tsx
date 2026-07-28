@@ -33,6 +33,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AlianzaLogo } from "@/components/logo";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 type NavGroup = { title: string; items: NavItem[] };
@@ -91,11 +92,8 @@ export function Sidebar() {
   const path = usePathname();
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-neutral-200 bg-white md:flex dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="flex items-center gap-2.5 px-5 py-4 text-[15px] font-bold">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 text-white">
-          A
-        </span>
-        Aurora <span className="font-medium text-neutral-400">Licensing</span>
+      <div className="px-5 py-4">
+        <AlianzaLogo tileSize={32} wordClassName="text-[15px]" />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 pb-4">
@@ -129,7 +127,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v1.0 — Suíte completa
+        ALIANZA · Brand Licensing Platform
       </div>
     </aside>
   );

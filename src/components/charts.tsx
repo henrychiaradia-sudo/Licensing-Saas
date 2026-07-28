@@ -2,14 +2,14 @@ import { cn } from "@/lib/utils";
 
 /* Paleta consistente para os gráficos (CSS puro, sem libs). */
 export const CHART_COLORS = [
-  "#2563eb", // blue-600
-  "#10b981", // emerald-500
-  "#f59e0b", // amber-500
-  "#8b5cf6", // violet-500
-  "#ef4444", // red-500
-  "#06b6d4", // cyan-500
-  "#ec4899", // pink-500
-  "#84cc16", // lime-500
+  "#2563eb", // ALIANZA blue (primary)
+  "#06b6d4", // ALIANZA cyan
+  "#7c3aed", // ALIANZA purple accent
+  "#10b981", // emerald (success)
+  "#f59e0b", // amber (warning)
+  "#ef4444", // red (error)
+  "#0ea5e9", // sky
+  "#8b5cf6", // violet
 ];
 
 type Item = { key?: string; label: string; value: number };
@@ -255,7 +255,7 @@ export function ProgressBar({
       <div
         className={cn(
           "h-2 rounded-full",
-          !positive && pct > 100 ? "bg-red-500" : "bg-gradient-to-r from-blue-500 to-emerald-500",
+          !positive && pct > 100 ? "bg-red-500" : "bg-gradient-to-r from-blue-600 to-cyan-500",
         )}
         style={{ width: `${clamped}%` }}
       />

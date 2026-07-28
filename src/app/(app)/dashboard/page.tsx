@@ -19,12 +19,12 @@ import {
 } from "lucide-react";
 
 const shortcuts = [
-  { href: "/pipeline", label: "Pipeline (CRM)", icon: Target, tone: "text-blue-600" },
-  { href: "/contratos", label: "Contratos", icon: FileText, tone: "text-emerald-600" },
-  { href: "/royalties", label: "Royalties", icon: Coins, tone: "text-amber-600" },
-  { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart, tone: "text-violet-600" },
-  { href: "/qualidade", label: "Qualidade", icon: Microscope, tone: "text-red-600" },
-  { href: "/bi", label: "BI & Analytics", icon: BarChart3, tone: "text-neutral-500" },
+  { href: "/pipeline", label: "Pipeline (CRM)", icon: Target },
+  { href: "/contratos", label: "Contratos", icon: FileText },
+  { href: "/royalties", label: "Royalties", icon: Coins },
+  { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
+  { href: "/qualidade", label: "Qualidade", icon: Microscope },
+  { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
 ];
 
 export default async function DashboardPage() {
@@ -72,15 +72,15 @@ export default async function DashboardPage() {
 
       <h2 className="mb-3 mt-8 text-sm font-semibold text-neutral-500">Acesso rápido</h2>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {shortcuts.map(({ href, label, icon: Icon, tone }) => (
+        {shortcuts.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             className="group flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
           >
             <span className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-neutral-50 dark:bg-neutral-800">
-                <Icon size={18} className={tone} />
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400">
+                <Icon size={18} />
               </span>
               <span className="text-sm font-medium">{label}</span>
             </span>

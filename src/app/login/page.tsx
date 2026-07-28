@@ -4,6 +4,7 @@ import { loginAction } from "./actions";
 import { Button, Input, Label } from "@/components/ui";
 import { SUPPORT, whatsappLink } from "@/lib/support";
 import { WhatsappIcon } from "@/components/whatsapp-button";
+import { AlianzaLogo, AlianzaMark } from "@/components/logo";
 
 export default async function LoginPage({
   searchParams,
@@ -26,11 +27,8 @@ export default async function LoginPage({
             <ArrowLeft size={15} /> Voltar ao site
           </Link>
 
-          <div className="mb-6 flex items-center gap-2.5 text-lg font-bold">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white">
-              A
-            </span>
-            Aurora <span className="font-medium text-neutral-400">Licensing</span>
+          <div className="mb-6">
+            <AlianzaLogo tileSize={38} wordClassName="text-lg" subtitle />
           </div>
 
           <h1 className="text-2xl font-bold">Entrar na plataforma</h1>
@@ -70,7 +68,7 @@ export default async function LoginPage({
           </form>
 
           <a
-            href={whatsappLink("Olá! Preciso de ajuda para acessar a Aurora Licensing.")}
+            href={whatsappLink("Olá! Preciso de ajuda para acessar a ALIANZA.")}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600 hover:underline"
@@ -88,15 +86,17 @@ export default async function LoginPage({
       </div>
 
       {/* DIREITA — painel de marca (Salesforce-style) */}
-      <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-emerald-600 lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-white">
+      <div className="relative hidden overflow-hidden alz-gradient lg:flex lg:flex-col lg:justify-between lg:p-12 lg:text-white">
         {/* formas decorativas */}
         <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-10 h-80 w-80 rounded-full bg-emerald-300/20 blur-3xl" />
 
         <div className="relative">
-          <div className="flex items-center gap-2.5 text-lg font-bold">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur">A</span>
-            Aurora Licensing
+          <div className="flex items-center gap-2.5 text-lg font-bold tracking-[0.12em]">
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 backdrop-blur">
+              <AlianzaMark size={22} tone="white" />
+            </span>
+            ALIANZA
           </div>
         </div>
 

@@ -30,7 +30,7 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
         <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
           {supName}
           <br />
-          Aurora Licensing · Portal
+          ALIANZA · Portal
         </div>
       </aside>
 

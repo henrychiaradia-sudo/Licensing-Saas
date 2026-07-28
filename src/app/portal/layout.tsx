@@ -30,7 +30,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
           {licName}
           <br />
-          Aurora Licensing · Portal
+          ALIANZA · Portal
         </div>
       </aside>
 

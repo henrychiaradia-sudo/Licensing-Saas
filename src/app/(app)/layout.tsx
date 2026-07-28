@@ -55,7 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               title="Segurança da conta"
               className="flex items-center gap-2 rounded-lg px-1 py-0.5 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
-              <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-blue-500 text-xs font-bold text-white">
+              <div className="grid h-8 w-8 place-items-center rounded-full alz-gradient text-xs font-bold text-white">
                 {initials(session.name)}
               </div>
               <div className="hidden text-right sm:block">

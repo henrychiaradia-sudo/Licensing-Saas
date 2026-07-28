@@ -3,8 +3,21 @@
 /* Habilita dark mode por classe (.dark no <html>) além do prefers-color-scheme */
 @custom-variant dark (&:is(.dark *));
 
+/* ===== ALIANZA — tokens de marca ===== */
 :root {
   color-scheme: light;
+  /* Paleta oficial */
+  --alz-navy: #081221;
+  --alz-blue: #2563eb;
+  --alz-cyan: #06b6d4;
+  --alz-purple: #7c3aed;
+  --alz-bg: #f8fafc;
+  --alz-ink: #1e293b;
+  --alz-success: #10b981;
+  --alz-warning: #f59e0b;
+  --alz-error: #ef4444;
+  /* Gradiente oficial */
+  --alz-gradient: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
 }
 html.dark {
   color-scheme: dark;
@@ -17,5 +30,17 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Gradiente oficial da marca (fundo) */
+.alz-gradient {
+  background-image: var(--alz-gradient);
+}
+/* Texto com gradiente da marca */
+.alz-gradient-text {
+  background-image: var(--alz-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

@@ -37,7 +37,7 @@ export function passwordStrength(pw: string): number {
 }
 
 /* ============ TOTP / 2FA (compatível com Google Authenticator, Authy…) ============ */
-const ISSUER = "Aurora Licensing";
+const ISSUER = "ALIANZA";
 
 function totpFor(email: string, base32Secret: string): OTPAuth.TOTP {
   return new OTPAuth.TOTP({

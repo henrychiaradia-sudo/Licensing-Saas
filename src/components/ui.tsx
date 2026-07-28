@@ -3,12 +3,13 @@ import { cn } from "@/lib/utils";
 
 /* ---------------- Button ---------------- */
 type ButtonProps = React.ComponentProps<"button"> & {
-  variant?: "primary" | "outline" | "ghost" | "danger";
+  variant?: "primary" | "gradient" | "outline" | "ghost" | "danger";
   size?: "sm" | "md";
 };
 export function Button({ className, variant = "primary", size = "md", ...props }: ButtonProps) {
   const variants = {
     primary: "bg-blue-600 text-white hover:bg-blue-700 border border-blue-600",
+    gradient: "alz-gradient text-white border border-transparent hover:opacity-90 shadow-sm",
     outline:
       "bg-white text-neutral-800 border border-neutral-200 hover:border-blue-500 dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-700",
     ghost: "bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-200",
@@ -64,7 +65,7 @@ export function Card({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900",
+        "rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900",
         className,
       )}
       {...props}

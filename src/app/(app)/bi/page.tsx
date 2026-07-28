@@ -125,7 +125,7 @@ function BarList({ data, format }: { data: Slice[]; format: (n: number) => strin
           </div>
           <div className="h-2 rounded-full bg-neutral-100 dark:bg-neutral-800">
             <div
-              className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500"
+              className="h-2 rounded-full bg-gradient-to-r from-blue-600 to-cyan-500"
               style={{ width: `${Math.max(2, (d.value / max) * 100)}%` }}
             />
           </div>

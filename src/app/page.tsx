@@ -14,6 +14,7 @@ import {
 import { getSession } from "@/lib/auth";
 import { SUPPORT, whatsappLink } from "@/lib/support";
 import { WhatsappButton, WhatsappIcon } from "@/components/whatsapp-button";
+import { AlianzaLogo } from "@/components/logo";
 
 export default async function LandingPage() {
   const session = await getSession();
@@ -22,17 +23,12 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
       {/* halo de gradiente no topo */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-gradient-to-b from-blue-50 via-emerald-50/40 to-transparent dark:from-blue-950/30 dark:via-emerald-950/10" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[520px] bg-gradient-to-b from-blue-50 via-cyan-50/40 to-transparent dark:from-blue-950/30 dark:via-cyan-950/10" />
 
       <div className="relative">
         {/* NAV */}
         <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div className="flex items-center gap-2.5 text-lg font-bold">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-emerald-500 text-white shadow-sm">
-              A
-            </span>
-            Aurora <span className="font-medium text-neutral-400">Licensing</span>
-          </div>
+          <AlianzaLogo tileSize={36} wordClassName="text-lg" />
           <div className="flex items-center gap-3">
             <a href="#atendimento" className="hidden text-sm font-medium text-neutral-500 hover:text-blue-600 sm:block">
               Atendimento
@@ -50,22 +46,20 @@ export default async function LandingPage() {
         <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-16 pt-8 lg:grid-cols-2 lg:pt-14">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/50 dark:text-blue-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Plataforma de Brand Licensing
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" /> The Operating System for Brand Licensing
             </span>
             <h1 className="mt-5 text-4xl font-extrabold leading-[1.1] tracking-tight sm:text-5xl">
-              Licenciamento, royalties e suprimentos{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
-                em um só lugar
-              </span>
+              Inteligência que conecta marcas.{" "}
+              <span className="alz-gradient-text">Parcerias que geram valor.</span>
             </h1>
             <p className="mt-5 max-w-lg text-lg text-neutral-500">
-              Gerencie contratos, apure royalties, aprove produtos e acompanhe fornecedores de ponta a
-              ponta — com portais externos, auditoria e BI integrados.
+              A plataforma completa para gerenciar todo o ciclo de licenciamento de marcas — com
+              controle, dados e performance em tempo real.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href={loggedIn ? "/dashboard" : "/login"}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-xl alz-gradient px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/20 transition-opacity hover:opacity-90"
               >
                 <LogIn size={16} /> {loggedIn ? "Acessar o painel" : "Acessar o sistema"}
               </Link>
@@ -88,7 +82,7 @@ export default async function LandingPage() {
 
           {/* Mockup de dashboard (ilustração) */}
           <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-blue-400/20 to-emerald-400/20 blur-2xl" />
+            <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gradient-to-br from-blue-400/20 to-cyan-400/20 blur-2xl" />
             <DashboardArt />
           </div>
         </section>
@@ -96,10 +90,10 @@ export default async function LandingPage() {
         {/* FEATURES */}
         <section className="mx-auto max-w-6xl px-6 py-10">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Feature icon={<FileText size={20} />} tone="blue" title="Contratos & Royalties" desc="Cadastro, aditivos, motor de royalties escalonado e faturamento." />
-            <Feature icon={<ShoppingCart size={20} />} tone="emerald" title="Suprimentos & Sourcing" desc="Requisição, RFQ com equalização por pesos, pedidos e logística." />
-            <Feature icon={<ShieldCheck size={20} />} tone="violet" title="Qualidade & Compliance" desc="Inspeções, não-conformidades, jurídico e trilha de auditoria." />
-            <Feature icon={<BarChart3 size={20} />} tone="amber" title="BI & Governança" desc="Dashboards, notificações inteligentes e perfis de acesso (RBAC)." />
+            <Feature icon={<FileText size={20} />} title="Contratos & Royalties" desc="Cadastro, aditivos, motor de royalties escalonado e faturamento." />
+            <Feature icon={<ShoppingCart size={20} />} title="Suprimentos & Sourcing" desc="Requisição, RFQ com equalização por pesos, pedidos e logística." />
+            <Feature icon={<ShieldCheck size={20} />} title="Qualidade & Compliance" desc="Inspeções, não-conformidades, jurídico e trilha de auditoria." />
+            <Feature icon={<BarChart3 size={20} />} title="BI & Governança" desc="Dashboards, notificações inteligentes e perfis de acesso (RBAC)." />
           </div>
         </section>
 
@@ -137,9 +131,9 @@ export default async function LandingPage() {
               </a>
               <a
                 href={`tel:${SUPPORT.phone.replace(/\s/g, "")}`}
-                className="group flex flex-col items-center rounded-2xl border border-neutral-200 bg-white p-6 text-center transition-all hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+                className="group flex flex-col items-center rounded-2xl border border-neutral-200 bg-white p-6 text-center transition-all hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
               >
-                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-950/60">
+                <span className="grid h-12 w-12 place-items-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/60">
                   <Phone size={22} />
                 </span>
                 <span className="mt-3 text-sm font-semibold">Telefone</span>
@@ -155,12 +149,7 @@ export default async function LandingPage() {
         {/* FOOTER */}
         <footer className="mx-auto max-w-6xl px-6 py-10">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-200 pt-8 text-sm text-neutral-400 dark:border-neutral-800 sm:flex-row">
-            <div className="flex items-center gap-2 font-semibold text-neutral-600 dark:text-neutral-300">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-emerald-500 text-xs text-white">
-                A
-              </span>
-              Aurora Licensing
-            </div>
+            <AlianzaLogo tileSize={28} wordClassName="text-sm" />
             <span>NovaSport Global · Demo · © 2026</span>
           </div>
         </footer>
@@ -175,22 +164,16 @@ function Feature({
   icon,
   title,
   desc,
-  tone,
 }: {
   icon: React.ReactNode;
   title: string;
   desc: string;
-  tone: "blue" | "emerald" | "violet" | "amber";
 }) {
-  const tones = {
-    blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400",
-    emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
-    violet: "bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400",
-    amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
-  };
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <span className={`grid h-11 w-11 place-items-center rounded-xl ${tones[tone]}`}>{icon}</span>
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900">
+      <span className="grid h-11 w-11 place-items-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400">
+        {icon}
+      </span>
       <h3 className="mt-4 text-sm font-bold">{title}</h3>
       <p className="mt-1 text-xs leading-relaxed text-neutral-500">{desc}</p>
     </div>
@@ -214,8 +197,8 @@ function DashboardArt() {
         <div className="grid grid-cols-3 gap-3">
           {[
             { v: "128", l: "Contratos", c: "from-blue-500 to-blue-600" },
-            { v: "R$ 4,2M", l: "Royalties", c: "from-emerald-500 to-emerald-600" },
-            { v: "96%", l: "Aprovação", c: "from-violet-500 to-violet-600" },
+            { v: "R$ 4,2M", l: "Royalties", c: "from-blue-500 to-cyan-500" },
+            { v: "96%", l: "Aprovação", c: "from-cyan-500 to-cyan-600" },
           ].map((k) => (
             <div key={k.l} className="rounded-xl border border-neutral-100 p-3 dark:border-neutral-800">
               <div className={`h-7 w-7 rounded-lg bg-gradient-to-br ${k.c}`} />
@@ -232,7 +215,7 @@ function DashboardArt() {
               {bars.map((h, i) => (
                 <div
                   key={i}
-                  className="flex-1 rounded-t bg-gradient-to-t from-blue-500 to-emerald-400"
+                  className="flex-1 rounded-t bg-gradient-to-t from-blue-600 to-cyan-400"
                   style={{ height: `${h}%` }}
                 />
               ))}
@@ -242,7 +225,7 @@ function DashboardArt() {
             <div
               className="h-20 w-20 rounded-full"
               style={{
-                background: "conic-gradient(#3b82f6 0 62%, #10b981 62% 84%, #e5e7eb 84% 100%)",
+                background: "conic-gradient(#2563eb 0 62%, #06b6d4 62% 84%, #e5e7eb 84% 100%)",
               }}
             >
               <div className="grid h-full w-full place-items-center">
