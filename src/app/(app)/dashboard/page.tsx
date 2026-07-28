@@ -1,11 +1,31 @@
+import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import { countLicensees } from "@/lib/data/licensees";
 import { countActiveContracts } from "@/lib/data/contracts";
 import { royaltiesCompetencia } from "@/lib/data/royalties";
 import { mgRealizedPercent } from "@/lib/data/finance";
-import { Card } from "@/components/ui";
+import { Card, StatCard } from "@/components/ui";
 import { fmtCompactBRL, fmtPct } from "@/lib/utils";
-import { Users, FileText, Coins, TrendingUp, type LucideIcon } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Coins,
+  TrendingUp,
+  Target,
+  ShoppingCart,
+  Microscope,
+  BarChart3,
+  ArrowRight,
+} from "lucide-react";
+
+const shortcuts = [
+  { href: "/pipeline", label: "Pipeline (CRM)", icon: Target, tone: "text-blue-600" },
+  { href: "/contratos", label: "Contratos", icon: FileText, tone: "text-emerald-600" },
+  { href: "/royalties", label: "Royalties", icon: Coins, tone: "text-amber-600" },
+  { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart, tone: "text-violet-600" },
+  { href: "/qualidade", label: "Qualidade", icon: Microscope, tone: "text-red-600" },
+  { href: "/bi", label: "BI & Analytics", icon: BarChart3, tone: "text-neutral-500" },
+];
 
 export default async function DashboardPage() {
   const session = await requireSession();
@@ -16,13 +36,6 @@ export default async function DashboardPage() {
     mgRealizedPercent(session.tenantId),
   ]);
 
-  const kpis: { label: string; value: string; icon: LucideIcon; tone: string }[] = [
-    { label: "Licenciados ativos", value: String(licensees), icon: Users, tone: "text-blue-600" },
-    { label: "Contratos vigentes", value: String(activeContracts), icon: FileText, tone: "text-emerald-600" },
-    { label: "Royalties (competência)", value: fmtCompactBRL(royalties), icon: Coins, tone: "text-amber-600" },
-    { label: "MG realizado", value: fmtPct(mgPct), icon: TrendingUp, tone: "text-violet-600" },
-  ];
-
   return (
     <div>
       <h1 className="text-xl font-bold">Dashboard Executivo</h1>
@@ -31,28 +44,59 @@ export default async function DashboardPage() {
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => {
-          const Icon = k.icon;
-          return (
-            <Card key={k.label} className="p-5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-neutral-500">{k.label}</span>
-                <Icon size={18} className={k.tone} />
-              </div>
-              <div className="mt-3 text-2xl font-bold tabular-nums">{k.value}</div>
-            </Card>
-          );
-        })}
+        <StatCard
+          label="Licenciados ativos"
+          value={String(licensees)}
+          icon={<Users size={20} />}
+          tone="blue"
+        />
+        <StatCard
+          label="Contratos vigentes"
+          value={String(activeContracts)}
+          icon={<FileText size={20} />}
+          tone="emerald"
+        />
+        <StatCard
+          label="Royalties (competência)"
+          value={fmtCompactBRL(royalties)}
+          icon={<Coins size={20} />}
+          tone="amber"
+        />
+        <StatCard
+          label="MG realizado"
+          value={fmtPct(mgPct)}
+          icon={<TrendingUp size={20} />}
+          tone="violet"
+        />
       </div>
 
-      <Card className="mt-6 p-5">
-        <h2 className="text-sm font-semibold">Fases 1–5 no ar</h2>
+      <h2 className="mb-3 mt-8 text-sm font-semibold text-neutral-500">Acesso rápido</h2>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {shortcuts.map(({ href, label, icon: Icon, tone }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <span className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-neutral-50 dark:bg-neutral-800">
+                <Icon size={18} className={tone} />
+              </span>
+              <span className="text-sm font-medium">{label}</span>
+            </span>
+            <ArrowRight size={16} className="text-neutral-300 transition-colors group-hover:text-blue-500" />
+          </Link>
+        ))}
+      </div>
+
+      <Card className="mt-8 p-5">
+        <h2 className="text-sm font-semibold">Plataforma completa no ar</h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Núcleo (auth, multi-tenant, RBAC/ABAC), Marcas, Produtos e Biblioteca, Contratos, Royalties e
-          Financeiro, Suprimentos (Fornecedores, Pedidos de Compra e Sourcing) e Governança (Compliance,
-          Auditoria e BI) — tudo ligado ao Supabase. Os quatro indicadores acima são leituras reais do banco:
-          licenciados ativos, contratos vigentes, royalties da competência mais recente e o percentual da
-          garantia mínima já coberto pelos royalties.
+          Núcleo (auth, multi-tenant, RBAC), licenciamento (pipeline, contratos, royalties), produtos e
+          catálogo, financeiro, suprimentos (fornecedores, compras, sourcing, logística), qualidade,
+          jurídico, tarefas, marketing, dois portais externos (licenciado e fornecedor), notificações,
+          segurança (2FA) e auditoria forense — tudo ligado ao Supabase. Os quatro indicadores acima são
+          leituras reais do banco.
         </p>
       </Card>
     </div>

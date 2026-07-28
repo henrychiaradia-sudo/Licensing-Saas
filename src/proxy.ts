@@ -9,7 +9,10 @@ const PUBLIC_PATHS = ["/login"];
 
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) return NextResponse.next();
+  // Capa de entrada (raiz) e rotas públicas não exigem sessão.
+  if (pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
 
   const token = req.cookies.get("alc_session")?.value;
   const loginUrl = req.nextUrl.clone();

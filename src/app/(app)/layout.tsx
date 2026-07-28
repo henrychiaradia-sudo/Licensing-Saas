@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { unreadCount } from "@/lib/data/notifications";
+import { WhatsappButton } from "@/components/whatsapp-button";
 import { initials } from "@/lib/utils";
 import { LogOut, Search, Bell } from "lucide-react";
 
@@ -76,6 +77,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </header>
         <main className="mx-auto w-full max-w-[1400px] flex-1 p-6">{children}</main>
       </div>
+      <WhatsappButton />
     </div>
   );
 }

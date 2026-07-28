@@ -105,3 +105,43 @@ export function Badge({
     />
   );
 }
+
+/* ---------------- StatCard (KPI refinado: tile de ícone + fundo suave) ---------------- */
+const statTones = {
+  blue: "bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400",
+  emerald: "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400",
+  amber: "bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400",
+  violet: "bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400",
+  red: "bg-red-50 text-red-600 dark:bg-red-950/60 dark:text-red-400",
+  neutral: "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400",
+};
+
+export function StatCard({
+  label,
+  value,
+  hint,
+  icon,
+  tone = "blue",
+  className,
+}: {
+  label: string;
+  value: React.ReactNode;
+  hint?: React.ReactNode;
+  icon: React.ReactNode;
+  tone?: keyof typeof statTones;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900",
+        className,
+      )}
+    >
+      <div className={cn("grid h-11 w-11 place-items-center rounded-xl", statTones[tone])}>{icon}</div>
+      <div className="mt-4 text-[26px] font-bold leading-none tabular-nums">{value}</div>
+      <div className="mt-1.5 text-xs font-medium text-neutral-500">{label}</div>
+      {hint && <div className="mt-0.5 text-[11px] text-neutral-400">{hint}</div>}
+    </div>
+  );
+}
