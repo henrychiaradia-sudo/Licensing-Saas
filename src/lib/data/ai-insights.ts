@@ -380,7 +380,7 @@ export async function executiveSummary(tenantId: string): Promise<{
     `Em suprimentos, ${brl(purch.open)} em pedidos em aberto e ${brl(purch.received)} já recebidos; o orçamento anual está ${bKpis.utilizationPct}% consumido (${brl(bKpis.totalAvailable)} disponíveis)${bKpis.overCount > 0 ? `, com ${bKpis.overCount} categoria(s) estourada(s)` : ""}. Contratos de compra somam ${brl(pcSummary.committed)} comprometidos, ${pcSummary.utilizationPct}% consumidos.`,
   );
   text.push(
-    `A exposição cambial líquida é de ${brl(fx.totals.netBase)} (${fx.totals.coveragePct}% coberta por hedge). Sourcing gerou ${brl(savings.totalSavings)} de savings (${savings.avgPct}%). Marketing está com ROI de ${mkt.roi}% sobre ${brl(mkt.spent)} investidos.`,
+    `A exposição cambial líquida é de ${brl(fx.totals.netBase)} (${fx.totals.coveragePct}% coberta por hedge). Sourcing gerou ${brl(savings.totalSavings)} de savings (${savings.avgPct}%). Marketing está com ROI de ${Math.round(mkt.roi ?? 0)}% sobre ${brl(mkt.spent)} investidos.`,
   );
 
   const metrics = [
