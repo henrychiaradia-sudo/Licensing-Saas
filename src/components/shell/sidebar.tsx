@@ -32,6 +32,7 @@ import {
   Lock,
   Boxes,
   Calculator,
+  Banknote,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,7 @@ const groups: NavGroup[] = [
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
       { href: "/custos", label: "Gestão de Custos", icon: Calculator },
+      { href: "/cambio", label: "Gestão Cambial", icon: Banknote },
       { href: "/logistica", label: "Logística", icon: Truck },
       { href: "/contratos-fornecimento", label: "Contratos de Forn.", icon: FileSignature },
     ],

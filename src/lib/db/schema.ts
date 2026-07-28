@@ -418,6 +418,45 @@ export const currency = pgTable("currency", {
   isoCode: char("iso_code", { length: 3 }).notNull().unique(),
   name: text("name").notNull(),
   symbol: text("symbol"),
+  active: boolean("active").notNull().default(true),
+});
+
+/* ---- Gestão Cambial (câmbio, exposição e hedge) ----
+ * Base do sistema = BRL. rateToBase = quantos BRL por 1 unidade da moeda. */
+export const fxRate = pgTable("fx_rate", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  rateToBase: numeric("rate_to_base", { precision: 18, scale: 6 }).notNull(),
+  rateDate: date("rate_date").notNull(),
+  source: text("source"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+export const hedgeInstrument = pgEnum("hedge_instrument", ["ndf", "forward", "swap", "opcao"]);
+export type HedgeInstrument = (typeof hedgeInstrument.enumValues)[number];
+export const hedgeSide = pgEnum("hedge_side", ["compra", "venda"]);
+export type HedgeSide = (typeof hedgeSide.enumValues)[number];
+export const hedgeStatus = pgEnum("hedge_status", ["ativo", "liquidado", "cancelado"]);
+export type HedgeStatus = (typeof hedgeStatus.enumValues)[number];
+
+export const hedgeContract = pgTable("hedge_contract", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  contractNumber: text("contract_number").notNull(),
+  currencyId: uuid("currency_id").notNull(),
+  instrument: hedgeInstrument("instrument").notNull().default("ndf"),
+  side: hedgeSide("side").notNull().default("compra"),
+  notional: numeric("notional", { precision: 18, scale: 2 }).notNull(),
+  strikeRate: numeric("strike_rate", { precision: 18, scale: 6 }).notNull(),
+  tradeDate: date("trade_date").notNull(),
+  maturityDate: date("maturity_date").notNull(),
+  counterparty: text("counterparty"),
+  status: hedgeStatus("status").notNull().default("ativo"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
 export const territory = pgTable("territory", {
