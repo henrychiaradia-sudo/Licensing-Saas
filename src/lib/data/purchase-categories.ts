@@ -1,21 +1,33 @@
 import "server-only";
-import { and, eq, desc, asc, sql, or, ilike } from "drizzle-orm";
+import { and, eq, asc, desc, sql, or, ilike, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { purchaseCategory, purchaseOrder, supplier } from "@/lib/db/schema";
 import type { SpendNature, PurchaseCategoryStatus } from "@/lib/db/schema";
 
-/** Gasto realizado por categoria = soma dos pedidos (exceto cancelados). */
-const spentExpr = (catId = purchaseCategory.id) => sql<string>`(
-  select coalesce(sum(po.total_amount), 0) from purchase_order po
-  where po.purchase_category_id = ${catId} and po.status <> 'cancelado'
-)`;
-const poCountExpr = sql<string>`(
-  select count(*) from purchase_order po where po.purchase_category_id = ${purchaseCategory.id}
-)`;
-const supplierCountExpr = sql<string>`(
-  select count(distinct po.supplier_id) from purchase_order po
-  where po.purchase_category_id = ${purchaseCategory.id}
-)`;
+/** Agregado de pedidos por categoria: gasto (exceto cancelados), nº de pedidos e fornecedores. */
+type PoAgg = { spent: number; poCount: number; supplierCount: number };
+async function poAggByCategory(tenantId: string): Promise<Map<string, PoAgg>> {
+  const rows = await db
+    .select({
+      catId: purchaseOrder.purchaseCategoryId,
+      spent: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}) filter (where ${purchaseOrder.status} <> 'cancelado'), 0)`,
+      poCount: sql<string>`count(*)`,
+      supplierCount: sql<string>`count(distinct ${purchaseOrder.supplierId})`,
+    })
+    .from(purchaseOrder)
+    .where(and(eq(purchaseOrder.tenantId, tenantId), isNotNull(purchaseOrder.purchaseCategoryId)))
+    .groupBy(purchaseOrder.purchaseCategoryId);
+  const map = new Map<string, PoAgg>();
+  for (const r of rows) {
+    if (r.catId)
+      map.set(r.catId, {
+        spent: Number(r.spent),
+        poCount: Number(r.poCount),
+        supplierCount: Number(r.supplierCount),
+      });
+  }
+  return map;
+}
 
 export async function listPurchaseCategories(
   tenantId: string,
@@ -29,23 +41,34 @@ export async function listPurchaseCategories(
     const m = or(ilike(purchaseCategory.name, term), ilike(purchaseCategory.code, term));
     if (m) conds.push(m);
   }
-  return db
-    .select({
-      id: purchaseCategory.id,
-      code: purchaseCategory.code,
-      name: purchaseCategory.name,
-      nature: purchaseCategory.nature,
-      ownerName: purchaseCategory.ownerName,
-      annualBudget: purchaseCategory.annualBudget,
-      status: purchaseCategory.status,
-      spent: spentExpr(),
-      poCount: poCountExpr,
-      supplierCount: supplierCountExpr,
+  const [cats, agg] = await Promise.all([
+    db
+      .select({
+        id: purchaseCategory.id,
+        code: purchaseCategory.code,
+        name: purchaseCategory.name,
+        nature: purchaseCategory.nature,
+        ownerName: purchaseCategory.ownerName,
+        annualBudget: purchaseCategory.annualBudget,
+        status: purchaseCategory.status,
+      })
+      .from(purchaseCategory)
+      .where(and(...conds))
+      .orderBy(asc(purchaseCategory.name))
+      .limit(200),
+    poAggByCategory(tenantId),
+  ]);
+  return cats
+    .map((c) => {
+      const a = agg.get(c.id);
+      return {
+        ...c,
+        spent: String(a?.spent ?? 0),
+        poCount: String(a?.poCount ?? 0),
+        supplierCount: String(a?.supplierCount ?? 0),
+      };
     })
-    .from(purchaseCategory)
-    .where(and(...conds))
-    .orderBy(desc(sql`(${spentExpr()})`), asc(purchaseCategory.name))
-    .limit(200);
+    .sort((x, y) => Number(y.spent) - Number(x.spent));
 }
 
 export async function categoriesSummary(tenantId: string) {
@@ -77,12 +100,15 @@ export async function categoriesSummary(tenantId: string) {
 export type Slice = { key: string; label: string; value: number };
 
 export async function spendByCategory(tenantId: string): Promise<Slice[]> {
-  const rows = await db
-    .select({ id: purchaseCategory.id, name: purchaseCategory.name, spent: spentExpr() })
-    .from(purchaseCategory)
-    .where(eq(purchaseCategory.tenantId, tenantId));
-  return rows
-    .map((r) => ({ key: r.id, label: r.name, value: Number(r.spent) }))
+  const [cats, agg] = await Promise.all([
+    db
+      .select({ id: purchaseCategory.id, name: purchaseCategory.name })
+      .from(purchaseCategory)
+      .where(eq(purchaseCategory.tenantId, tenantId)),
+    poAggByCategory(tenantId),
+  ]);
+  return cats
+    .map((c) => ({ key: c.id, label: c.name, value: agg.get(c.id)?.spent ?? 0 }))
     .filter((r) => r.value > 0)
     .sort((a, b) => b.value - a.value)
     .slice(0, 10);
@@ -91,12 +117,15 @@ export async function spendByCategory(tenantId: string): Promise<Slice[]> {
 const NATURE_LABEL: Record<SpendNature, string> = { capex: "Capex", opex: "Opex", mro: "MRO" };
 
 export async function spendByNature(tenantId: string): Promise<Slice[]> {
-  const rows = await db
-    .select({ nature: purchaseCategory.nature, spent: spentExpr() })
-    .from(purchaseCategory)
-    .where(eq(purchaseCategory.tenantId, tenantId));
+  const [cats, agg] = await Promise.all([
+    db
+      .select({ id: purchaseCategory.id, nature: purchaseCategory.nature })
+      .from(purchaseCategory)
+      .where(eq(purchaseCategory.tenantId, tenantId)),
+    poAggByCategory(tenantId),
+  ]);
   const acc: Record<string, number> = { capex: 0, opex: 0, mro: 0 };
-  for (const r of rows) acc[r.nature] = (acc[r.nature] ?? 0) + Number(r.spent);
+  for (const c of cats) acc[c.nature] = (acc[c.nature] ?? 0) + (agg.get(c.id)?.spent ?? 0);
   return (["capex", "opex", "mro"] as SpendNature[])
     .map((k) => ({ key: k, label: NATURE_LABEL[k], value: acc[k] ?? 0 }))
     .filter((r) => r.value > 0);
