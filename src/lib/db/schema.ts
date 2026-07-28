@@ -1121,3 +1121,223 @@ export const opportunityActivity = pgTable("opportunity_activity", {
   createdBy: uuid("created_by"),
 });
 
+/* ============ FASE 8 — MARKETING & TRADE MARKETING ============ */
+export const campaignType = pgEnum("campaign_type", [
+  "lancamento",
+  "sazonal",
+  "promocional",
+  "institucional",
+  "cobranding",
+]);
+export const campaignStatus = pgEnum("campaign_status", [
+  "planejamento",
+  "ativa",
+  "pausada",
+  "concluida",
+  "cancelada",
+]);
+export const activationType = pgEnum("activation_type", [
+  "pdv",
+  "digital",
+  "evento",
+  "influencer",
+  "outro",
+]);
+export type CampaignType = (typeof campaignType.enumValues)[number];
+export type CampaignStatus = (typeof campaignStatus.enumValues)[number];
+export type ActivationType = (typeof activationType.enumValues)[number];
+
+export const marketingCampaign = pgTable(
+  "marketing_campaign",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    campaignNumber: text("campaign_number").notNull(),
+    name: text("name").notNull(),
+    brandId: uuid("brand_id"),
+    licenseeId: uuid("licensee_id"),
+    campaignType: campaignType("campaign_type").notNull().default("promocional"),
+    status: campaignStatus("status").notNull().default("planejamento"),
+    budget: numeric("budget", { precision: 18, scale: 2 }).notNull().default("0"),
+    spent: numeric("spent", { precision: 18, scale: 2 }).notNull().default("0"),
+    channel: text("channel"),
+    goal: text("goal"),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_campaign_number").on(t.tenantId, t.campaignNumber)],
+);
+
+export const campaignActivation = pgTable("campaign_activation", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  campaignId: uuid("campaign_id").notNull(),
+  name: text("name").notNull(),
+  activationType: activationType("activation_type").notNull().default("pdv"),
+  location: text("location"),
+  cost: numeric("cost", { precision: 18, scale: 2 }).notNull().default("0"),
+  status: text("status").notNull().default("planejada"),
+  scheduledAt: date("scheduled_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+/* ============ FASE 8 — CATÁLOGO DE ITENS (SKU) ============ */
+export const catalogItemStatus = pgEnum("catalog_item_status", ["ativo", "inativo", "descontinuado"]);
+export type CatalogItemStatus = (typeof catalogItemStatus.enumValues)[number];
+
+export const catalogItem = pgTable(
+  "catalog_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    sku: text("sku").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    categoryId: uuid("category_id"),
+    brandId: uuid("brand_id"),
+    ncm: text("ncm"),
+    cest: text("cest"),
+    unit: text("unit").notNull().default("un"),
+    listPrice: numeric("list_price", { precision: 18, scale: 2 }).notNull().default("0"),
+    status: catalogItemStatus("status").notNull().default("ativo"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_catalog_sku").on(t.tenantId, t.sku)],
+);
+
+
+/* ============ FASE 9 — JURÍDICO ============ */
+export const legalCaseType = pgEnum("legal_case_type", [
+  "contencioso",
+  "consultivo",
+  "contratual",
+  "propriedade_intelectual",
+  "trabalhista",
+  "tributario",
+]);
+export const legalCaseStatus = pgEnum("legal_case_status", [
+  "aberto",
+  "em_andamento",
+  "suspenso",
+  "encerrado",
+  "arquivado",
+]);
+export const legalCasePriority = pgEnum("legal_case_priority", ["baixa", "media", "alta", "critica"]);
+export const legalEventType = pgEnum("legal_event_type", [
+  "andamento",
+  "audiencia",
+  "peticao",
+  "decisao",
+  "acordo",
+  "prazo",
+]);
+export type LegalCaseType = (typeof legalCaseType.enumValues)[number];
+export type LegalCaseStatus = (typeof legalCaseStatus.enumValues)[number];
+export type LegalCasePriority = (typeof legalCasePriority.enumValues)[number];
+export type LegalEventType = (typeof legalEventType.enumValues)[number];
+
+export const legalCase = pgTable(
+  "legal_case",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    caseNumber: text("case_number").notNull(),
+    title: text("title").notNull(),
+    caseType: legalCaseType("case_type").notNull().default("contencioso"),
+    status: legalCaseStatus("status").notNull().default("aberto"),
+    priority: legalCasePriority("priority").notNull().default("media"),
+    counterparty: text("counterparty"),
+    licenseeId: uuid("licensee_id"),
+    brandId: uuid("brand_id"),
+    amountAtRisk: numeric("amount_at_risk", { precision: 18, scale: 2 }).notNull().default("0"),
+    responsible: text("responsible"),
+    forum: text("forum"),
+    openedAt: date("opened_at"),
+    dueDate: date("due_date"),
+    closedAt: date("closed_at"),
+    description: text("description"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_legal_case_number").on(t.tenantId, t.caseNumber)],
+);
+
+export const legalCaseEvent = pgTable("legal_case_event", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  caseId: uuid("case_id").notNull(),
+  eventType: legalEventType("event_type").notNull().default("andamento"),
+  description: text("description").notNull(),
+  occurredAt: date("occurred_at"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+/* ============ FASE 9 — CRONOGRAMAS & TAREFAS ============ */
+export const taskStatus = pgEnum("task_status", ["a_fazer", "em_andamento", "concluida", "cancelada"]);
+export const taskPriority = pgEnum("task_priority", ["baixa", "media", "alta", "urgente"]);
+export type TaskStatus = (typeof taskStatus.enumValues)[number];
+export type TaskPriority = (typeof taskPriority.enumValues)[number];
+
+export const task = pgTable("task", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: taskStatus("status").notNull().default("a_fazer"),
+  priority: taskPriority("priority").notNull().default("media"),
+  assignee: text("assignee"),
+  dueDate: date("due_date"),
+  completedAt: date("completed_at"),
+  entityType: text("entity_type"),
+  entityId: uuid("entity_id"),
+  entityLabel: text("entity_label"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+/* ============ FASE 9 — CONTRATOS DE FORNECIMENTO ============ */
+export const supplyContractStatus = pgEnum("supply_contract_status", [
+  "rascunho",
+  "vigente",
+  "suspenso",
+  "encerrado",
+  "renovado",
+]);
+export type SupplyContractStatus = (typeof supplyContractStatus.enumValues)[number];
+
+export const supplyContract = pgTable(
+  "supply_contract",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    contractNumber: text("contract_number").notNull(),
+    title: text("title").notNull(),
+    supplierId: uuid("supplier_id").notNull(),
+    status: supplyContractStatus("status").notNull().default("rascunho"),
+    categoryId: uuid("category_id"),
+    currency: text("currency").notNull().default("BRL"),
+    totalValue: numeric("total_value", { precision: 18, scale: 2 }).notNull().default("0"),
+    sla: text("sla"),
+    paymentTerms: text("payment_terms"),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    autoRenew: boolean("auto_renew").notNull().default(false),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_supply_contract_number").on(t.tenantId, t.contractNumber)],
+);

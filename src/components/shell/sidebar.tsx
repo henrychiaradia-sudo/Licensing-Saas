@@ -22,6 +22,12 @@ import {
   Microscope,
   Truck,
   Target,
+  Megaphone,
+  Package,
+  FolderTree,
+  ListTodo,
+  Gavel,
+  FileSignature,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +41,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
       { href: "/pendencias", label: "Pendências", icon: Bell },
+      { href: "/tarefas", label: "Cronogramas & Tarefas", icon: ListTodo },
       { href: "/pipeline", label: "Pipeline (CRM)", icon: Target },
       { href: "/licenciados", label: "Licenciados", icon: Users },
       { href: "/contratos", label: "Contratos", icon: FileText },
@@ -46,6 +53,14 @@ const groups: NavGroup[] = [
     ],
   },
   {
+    title: "Comercial & Catálogo",
+    items: [
+      { href: "/marketing", label: "Marketing & Trade", icon: Megaphone },
+      { href: "/catalogo", label: "Catálogo (SKU)", icon: Package },
+      { href: "/categorias", label: "Categorias", icon: FolderTree },
+    ],
+  },
+  {
     title: "Suprimentos",
     items: [
       { href: "/fornecedores", label: "Fornecedores", icon: Factory },
@@ -53,12 +68,14 @@ const groups: NavGroup[] = [
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
       { href: "/logistica", label: "Logística", icon: Truck },
+      { href: "/contratos-fornecimento", label: "Contratos de Forn.", icon: FileSignature },
     ],
   },
   {
     title: "Governança & BI",
     items: [
       { href: "/compliance", label: "Compliance & Riscos", icon: ShieldCheck },
+      { href: "/juridico", label: "Jurídico", icon: Gavel },
       { href: "/qualidade", label: "Qualidade", icon: Microscope },
       { href: "/auditoria", label: "Auditoria", icon: ScrollText },
       { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
@@ -108,7 +125,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.7 — Fases 1–8
+        v0.9 — Fases 1–12
       </div>
     </aside>
   );

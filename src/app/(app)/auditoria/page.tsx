@@ -33,6 +33,18 @@ const actionLabel: Record<string, string> = {
   "opportunity.create": "Criou oportunidade",
   "opportunity.stage": "Moveu oportunidade de estágio",
   "opportunity.convert": "Converteu oportunidade em licenciado",
+  "campaign.create": "Criou campanha de marketing",
+  "campaign.status": "Alterou status de campanha",
+  "campaign.activation": "Registrou ativação de trade",
+  "catalog.item.create": "Cadastrou item no catálogo",
+  "category.create": "Criou categoria",
+  "legal.case.create": "Abriu caso jurídico",
+  "legal.case.status": "Alterou status de caso jurídico",
+  "legal.case.event": "Registrou andamento jurídico",
+  "task.create": "Criou tarefa",
+  "task.status": "Alterou status de tarefa",
+  "supply_contract.create": "Criou contrato de fornecimento",
+  "supply_contract.status": "Alterou status de contrato de fornecimento",
 };
 
 const entityLabel: Record<string, string> = {
@@ -50,6 +62,12 @@ const entityLabel: Record<string, string> = {
   non_conformity: "Não-conformidade",
   shipment: "Embarque",
   licensing_opportunity: "Oportunidade",
+  marketing_campaign: "Campanha",
+  catalog_item: "Item de catálogo",
+  category: "Categoria",
+  legal_case: "Caso jurídico",
+  task: "Tarefa",
+  supply_contract: "Contrato de fornecimento",
 };
 
 const ENTITY_FILTERS = [
@@ -62,6 +80,11 @@ const ENTITY_FILTERS = [
   "non_conformity",
   "shipment",
   "licensing_opportunity",
+  "marketing_campaign",
+  "catalog_item",
+  "legal_case",
+  "task",
+  "supply_contract",
   "royalty_report",
   "receivable",
 ] as const;
