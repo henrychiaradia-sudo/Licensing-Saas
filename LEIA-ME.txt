@@ -1,0 +1,18 @@
+FASE — SOURCING 2.0 (RFI + RFP + RFQ + Comparador Inteligente)
+================================================================
+
+Como subir no GitHub (arraste a PASTA src, nao esta pasta):
+1. Extraia este .zip.
+2. ABRA a pasta extraida. Voce vera: a pasta "src" e este LEIA-ME.txt.
+3. No GitHub, na raiz do repositorio, clique em "Add file" > "Upload files".
+4. Arraste APENAS a pasta "src" para a area de upload.
+   (NAO arraste a pasta de fora / o LEIA-ME — so o "src".)
+5. Mensagem de commit: "Sourcing 2.0 (RFI+RFP+RFQ + comparador + timeline)"
+6. Commit changes. O Vercel faz o deploy automatico.
+
+Arquivos incluidos (12):
+- src/lib/db/schema.ts            (colunas Sourcing 2.0 + tabela de atividades)
+- src/lib/data/sourcing.ts        (comparador, timeline, aprovacao)
+- src/app/(app)/sourcing/*        (telas, formularios, acoes)
+
+Nenhum segredo/.env incluido.

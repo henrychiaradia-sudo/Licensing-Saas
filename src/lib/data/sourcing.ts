@@ -5,19 +5,48 @@ import {
   sourcingEvent,
   sourcingQuote,
   negotiationRound,
+  sourcingActivity,
   supplier,
   currency,
   category,
   purchaseOrder,
 } from "@/lib/db/schema";
-import type { SourcingStatus } from "@/lib/db/schema";
+import type { SourcingStatus, SourcingProcessType, SourcingActivityType } from "@/lib/db/schema";
 import { createPurchaseOrder } from "./purchase-orders";
+
+/** Registra uma atividade na timeline do processo de sourcing. */
+export async function logSourcingActivity(
+  tenantId: string,
+  eventId: string,
+  type: SourcingActivityType,
+  description: string,
+  actorName: string | null,
+  userId: string | null,
+): Promise<void> {
+  await db.insert(sourcingActivity).values({
+    tenantId,
+    sourcingEventId: eventId,
+    type,
+    description,
+    actorName,
+    createdBy: userId,
+  });
+}
+
+export async function listSourcingActivities(tenantId: string, eventId: string) {
+  return db
+    .select()
+    .from(sourcingActivity)
+    .where(and(eq(sourcingActivity.tenantId, tenantId), eq(sourcingActivity.sourcingEventId, eventId)))
+    .orderBy(desc(sourcingActivity.createdAt));
+}
 
 export async function listSourcing(tenantId: string) {
   const events = await db
     .select({
       id: sourcingEvent.id,
       title: sourcingEvent.title,
+      processType: sourcingEvent.processType,
       status: sourcingEvent.status,
       dueDate: sourcingEvent.dueDate,
     })
@@ -70,13 +99,20 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
     .select({
       id: sourcingEvent.id,
       title: sourcingEvent.title,
+      processType: sourcingEvent.processType,
       status: sourcingEvent.status,
       dueDate: sourcingEvent.dueDate,
       baselineAmount: sourcingEvent.baselineAmount,
+      objective: sourcingEvent.objective,
+      scope: sourcingEvent.scope,
       weightPrice: sourcingEvent.weightPrice,
       weightLead: sourcingEvent.weightLead,
       weightQuality: sourcingEvent.weightQuality,
       weightPayment: sourcingEvent.weightPayment,
+      weightCapacity: sourcingEvent.weightCapacity,
+      weightCompliance: sourcingEvent.weightCompliance,
+      weightPerformance: sourcingEvent.weightPerformance,
+      approvedAt: sourcingEvent.approvedAt,
       categoryName: category.name,
     })
     .from(sourcingEvent)
@@ -93,10 +129,15 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
       amount: sourcingQuote.amount,
       leadTimeDays: sourcingQuote.leadTimeDays,
       score: sourcingQuote.score,
+      capacityScore: sourcingQuote.capacityScore,
+      complianceScore: sourcingQuote.complianceScore,
+      performanceScore: sourcingQuote.performanceScore,
+      moq: sourcingQuote.moq,
       freightCost: sourcingQuote.freightCost,
       taxCost: sourcingQuote.taxCost,
       otherCost: sourcingQuote.otherCost,
       paymentTermsDays: sourcingQuote.paymentTermsDays,
+      attachmentUrl: sourcingQuote.attachmentUrl,
       isAwarded: sourcingQuote.isAwarded,
       notes: sourcingQuote.notes,
       currencyIso: currency.isoCode,
@@ -113,15 +154,20 @@ export async function getSourcingEventDetail(tenantId: string, id: string) {
 
 export type SourcingEventInput = {
   title: string;
+  processType: SourcingProcessType;
   categoryId: string | null;
   dueDate: string | null;
   status: SourcingStatus;
   baselineAmount: number | null;
+  objective: string | null;
+  scope: string | null;
 };
 
 export async function createSourcingEvent(
   tenantId: string,
   input: SourcingEventInput,
+  userId?: string,
+  actorName?: string,
 ): Promise<{ id: string }> {
   if (input.categoryId) {
     const cat = await db
@@ -136,12 +182,23 @@ export async function createSourcingEvent(
     .values({
       tenantId,
       title: input.title,
+      processType: input.processType,
       categoryId: input.categoryId,
       status: input.status,
       dueDate: input.dueDate,
       baselineAmount: input.baselineAmount != null ? String(input.baselineAmount) : null,
+      objective: input.objective,
+      scope: input.scope,
     })
     .returning({ id: sourcingEvent.id });
+  await logSourcingActivity(
+    tenantId,
+    inserted[0].id,
+    "created",
+    `Processo ${input.processType.toUpperCase()} "${input.title}" criado`,
+    actorName ?? null,
+    userId ?? null,
+  );
   return { id: inserted[0].id };
 }
 
@@ -201,6 +258,9 @@ export type EqualizationWeights = {
   lead: number;
   quality: number;
   payment: number;
+  capacity: number;
+  compliance: number;
+  performance: number;
 };
 
 type EqInputQuote = {
@@ -210,10 +270,15 @@ type EqInputQuote = {
   amount: string | number;
   leadTimeDays: number | null;
   score: string | number | null;
+  capacityScore: string | number | null;
+  complianceScore: string | number | null;
+  performanceScore: string | number | null;
+  moq: number | null;
   freightCost: string | number;
   taxCost: string | number;
   otherCost: string | number;
   paymentTermsDays: number | null;
+  attachmentUrl: string | null;
   isAwarded: boolean;
 };
 
@@ -223,15 +288,20 @@ export type EqualizedRow = EqInputQuote & {
   leadScore: number;
   qualityScore: number;
   paymentScore: number;
+  capacityScoreN: number;
+  complianceScoreN: number;
+  performanceScoreN: number;
+  technicalScore: number;
   weightedTotal: number;
   rank: number;
 };
 
 /**
- * Calcula o mapa de equalização: custo total (landed = valor + frete + imposto +
- * outros), notas normalizadas por critério (melhor da rodada = 100) e a nota
- * ponderada pelos pesos do evento. Ordena pela nota ponderada (a melhor pode
- * NÃO ser a de menor preço).
+ * Comparador inteligente: custo total (landed = valor + frete + imposto + outros),
+ * notas por critério e nota ponderada pelos pesos do evento.
+ * Preço/lead/pagamento são normalizados por rodada (melhor = 100); qualidade,
+ * capacidade, compliance e performance usam a nota absoluta (0–100). Ordena pela
+ * nota ponderada — a melhor pode NÃO ser a de menor preço.
  */
 export function equalizeQuotes(
   weights: EqualizationWeights,
@@ -246,30 +316,47 @@ export function equalizeQuotes(
     const v = vals.filter((x): x is number => x != null);
     return v.length ? [Math.min(...v), Math.max(...v)] : [0, 0];
   };
-  // menor é melhor → melhor (min) recebe 100
   const normLow = (val: number | null, min: number, max: number) =>
     val == null ? 0 : max === min ? 100 : ((max - val) / (max - min)) * 100;
-  // maior é melhor → melhor (max) recebe 100
   const normHigh = (val: number | null, min: number, max: number) =>
     val == null ? 0 : max === min ? 100 : ((val - min) / (max - min)) * 100;
+  const abs = (v: string | number | null) => (v == null ? 0 : Math.max(0, Math.min(100, Number(v))));
+  // qualidade é registrada em 0–5 (estrelas); escala para 0–100 para pesar junto dos demais critérios.
+  const qual = (v: string | number | null) =>
+    v == null ? 0 : Math.max(0, Math.min(100, Number(v) * 20));
 
   const [lMin, lMax] = [Math.min(...landeds), Math.max(...landeds)];
   const [ldMin, ldMax] = range(quotes.map((q) => q.leadTimeDays));
-  const [qMin, qMax] = range(quotes.map((q) => (q.score != null ? Number(q.score) : null)));
   const [pMin, pMax] = range(quotes.map((q) => q.paymentTermsDays));
 
-  const sumW = weights.price + weights.lead + weights.quality + weights.payment || 1;
+  const sumW =
+    weights.price +
+      weights.lead +
+      weights.quality +
+      weights.payment +
+      weights.capacity +
+      weights.compliance +
+      weights.performance || 1;
 
   const rows: EqualizedRow[] = quotes.map((q, i) => {
     const priceScore = normLow(landeds[i], lMin, lMax);
     const leadScore = normLow(q.leadTimeDays, ldMin, ldMax);
-    const qualityScore = normHigh(q.score != null ? Number(q.score) : null, qMin, qMax);
     const paymentScore = normHigh(q.paymentTermsDays, pMin, pMax);
+    const qualityScore = qual(q.score);
+    const capacityScoreN = abs(q.capacityScore);
+    const complianceScoreN = abs(q.complianceScore);
+    const performanceScoreN = abs(q.performanceScore);
+    const technicalScore = Math.round(
+      (qualityScore + capacityScoreN + complianceScoreN + performanceScoreN) / 4,
+    );
     const weightedTotal =
       (priceScore * weights.price +
         leadScore * weights.lead +
         qualityScore * weights.quality +
-        paymentScore * weights.payment) /
+        paymentScore * weights.payment +
+        capacityScoreN * weights.capacity +
+        complianceScoreN * weights.compliance +
+        performanceScoreN * weights.performance) /
       sumW;
     return {
       ...q,
@@ -278,6 +365,10 @@ export function equalizeQuotes(
       leadScore: Math.round(leadScore),
       qualityScore: Math.round(qualityScore),
       paymentScore: Math.round(paymentScore),
+      capacityScoreN: Math.round(capacityScoreN),
+      complianceScoreN: Math.round(complianceScoreN),
+      performanceScoreN: Math.round(performanceScoreN),
+      technicalScore,
       weightedTotal: Math.round(weightedTotal * 10) / 10,
       rank: 0,
     };
@@ -308,8 +399,38 @@ export async function setEventWeights(
       weightLead: weights.lead,
       weightQuality: weights.quality,
       weightPayment: weights.payment,
+      weightCapacity: weights.capacity,
+      weightCompliance: weights.compliance,
+      weightPerformance: weights.performance,
     })
     .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)));
+}
+
+/** Aprova a seleção do processo (etapa de aprovação antes de adjudicar/gerar pedido). */
+export async function approveSourcingEvent(
+  tenantId: string,
+  eventId: string,
+  userId: string,
+  actorName: string | null,
+): Promise<void> {
+  const ev = await db
+    .select({ id: sourcingEvent.id })
+    .from(sourcingEvent)
+    .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)))
+    .limit(1);
+  if (!ev[0]) throw new Error("Evento não encontrado.");
+  await db
+    .update(sourcingEvent)
+    .set({ approvedBy: userId, approvedAt: new Date() })
+    .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)));
+  await logSourcingActivity(
+    tenantId,
+    eventId,
+    "approval",
+    "Seleção aprovada",
+    actorName,
+    userId,
+  );
 }
 
 export async function listNegotiationRounds(tenantId: string, quoteId: string) {
@@ -347,10 +468,17 @@ export async function addNegotiationRound(
   amount: number,
   notes: string | null,
   userId: string,
+  actorName?: string,
 ): Promise<void> {
   const q = await db
-    .select({ id: sourcingQuote.id, amount: sourcingQuote.amount })
+    .select({
+      id: sourcingQuote.id,
+      amount: sourcingQuote.amount,
+      sourcingEventId: sourcingQuote.sourcingEventId,
+      supplierName: supplier.legalName,
+    })
     .from(sourcingQuote)
+    .leftJoin(supplier, eq(supplier.id, sourcingQuote.supplierId))
     .where(and(eq(sourcingQuote.id, quoteId), eq(sourcingQuote.tenantId, tenantId)))
     .limit(1);
   if (!q[0]) throw new Error("Proposta não encontrada.");
@@ -388,6 +516,15 @@ export async function addNegotiationRound(
     .update(sourcingQuote)
     .set({ amount: amount.toFixed(2) })
     .where(and(eq(sourcingQuote.id, quoteId), eq(sourcingQuote.tenantId, tenantId)));
+
+  await logSourcingActivity(
+    tenantId,
+    q[0].sourcingEventId,
+    "negotiation",
+    `Rodada ${nextRound} com ${q[0].supplierName ?? "fornecedor"}: novo valor R$ ${amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    actorName ?? null,
+    userId,
+  );
 }
 
 export type SourcingQuoteInput = {
@@ -397,16 +534,23 @@ export type SourcingQuoteInput = {
   currencyId: string | null;
   leadTimeDays: number | null;
   score: number | null;
+  capacityScore: number | null;
+  complianceScore: number | null;
+  performanceScore: number | null;
+  moq: number | null;
   freightCost: number;
   taxCost: number;
   otherCost: number;
   paymentTermsDays: number | null;
+  attachmentUrl: string | null;
   notes: string | null;
 };
 
 export async function addSourcingQuote(
   tenantId: string,
   input: SourcingQuoteInput,
+  userId?: string,
+  actorName?: string,
 ): Promise<void> {
   const ev = await db
     .select({ id: sourcingEvent.id, status: sourcingEvent.status })
@@ -415,7 +559,7 @@ export async function addSourcingQuote(
     .limit(1);
   if (!ev[0]) throw new Error("Evento não encontrado.");
   const sup = await db
-    .select({ id: supplier.id })
+    .select({ id: supplier.id, name: supplier.legalName })
     .from(supplier)
     .where(and(eq(supplier.id, input.supplierId), eq(supplier.tenantId, tenantId)))
     .limit(1);
@@ -439,12 +583,26 @@ export async function addSourcingQuote(
     currencyId,
     leadTimeDays: input.leadTimeDays,
     score: input.score != null ? String(input.score) : null,
+    capacityScore: input.capacityScore != null ? String(input.capacityScore) : null,
+    complianceScore: input.complianceScore != null ? String(input.complianceScore) : null,
+    performanceScore: input.performanceScore != null ? String(input.performanceScore) : null,
+    moq: input.moq,
     freightCost: input.freightCost.toFixed(2),
     taxCost: input.taxCost.toFixed(2),
     otherCost: input.otherCost.toFixed(2),
     paymentTermsDays: input.paymentTermsDays,
+    attachmentUrl: input.attachmentUrl,
     notes: input.notes,
   });
+
+  await logSourcingActivity(
+    tenantId,
+    input.sourcingEventId,
+    "quote",
+    `Proposta recebida de ${sup[0].name}`,
+    actorName ?? null,
+    userId ?? null,
+  );
 
   // Ao receber a primeira proposta, o evento entra em análise.
   if (ev[0].status === "aberto") {
@@ -459,6 +617,8 @@ export async function awardSourcingQuote(
   tenantId: string,
   eventId: string,
   quoteId: string,
+  userId?: string,
+  actorName?: string,
 ): Promise<void> {
   const ev = await db
     .select({ id: sourcingEvent.id })
@@ -467,8 +627,9 @@ export async function awardSourcingQuote(
     .limit(1);
   if (!ev[0]) throw new Error("Evento não encontrado.");
   const qz = await db
-    .select({ id: sourcingQuote.id })
+    .select({ id: sourcingQuote.id, amount: sourcingQuote.amount, supplierName: supplier.legalName })
     .from(sourcingQuote)
+    .leftJoin(supplier, eq(supplier.id, sourcingQuote.supplierId))
     .where(
       and(
         eq(sourcingQuote.id, quoteId),
@@ -488,6 +649,14 @@ export async function awardSourcingQuote(
     .update(sourcingEvent)
     .set({ status: "adjudicado" })
     .where(and(eq(sourcingEvent.id, eventId), eq(sourcingEvent.tenantId, tenantId)));
+  await logSourcingActivity(
+    tenantId,
+    eventId,
+    "award",
+    `Proposta de ${qz[0].supplierName ?? "fornecedor"} adjudicada`,
+    actorName ?? null,
+    userId ?? null,
+  );
 }
 
 /** Gera um pedido de compra (1 item) a partir da cotação vencedora do evento. */

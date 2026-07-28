@@ -10,9 +10,11 @@ import {
   generatePoFromQuote,
   setEventWeights,
   addNegotiationRound,
+  approveSourcingEvent,
+  logSourcingActivity,
 } from "@/lib/data/sourcing";
 import { logAudit } from "@/lib/data/audit";
-import { sourcingEventSchema, sourcingQuoteSchema, weightsSchema } from "./schema";
+import { sourcingEventSchema, sourcingQuoteSchema, weightsSchema, commentSchema } from "./schema";
 
 export type FormState = { error: string | null };
 
@@ -43,10 +45,13 @@ export async function createSourcingEventAction(
   const session = await requireSession();
   const candidate = {
     title: String(formData.get("title") ?? "").trim(),
+    processType: String(formData.get("processType") ?? "rfq"),
     categoryId: emptyToNull(formData.get("categoryId")),
     dueDate: emptyToNull(formData.get("dueDate")),
     status: String(formData.get("status") ?? "aberto"),
     baselineAmount: numOrNull(formData.get("baselineAmount")),
+    objective: emptyToNull(formData.get("objective")),
+    scope: emptyToNull(formData.get("scope")),
   };
   const parsed = sourcingEventSchema.safeParse(candidate);
   if (!parsed.success) {
@@ -54,9 +59,9 @@ export async function createSourcingEventAction(
   }
   let id: string;
   try {
-    id = (await createSourcingEvent(session.tenantId, parsed.data)).id;
+    id = (await createSourcingEvent(session.tenantId, parsed.data, session.userId, session.name)).id;
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "Não foi possível criar o RFQ." };
+    return { error: e instanceof Error ? e.message : "Não foi possível criar o processo." };
   }
   revalidatePath("/sourcing");
   redirect(`/sourcing/${id}`);
@@ -73,10 +78,15 @@ export async function addQuoteAction(
     amount: numOrNull(formData.get("amount")) ?? 0,
     leadTimeDays: intOrNull(formData.get("leadTimeDays")),
     score: numOrNull(formData.get("score")),
+    capacityScore: numOrNull(formData.get("capacityScore")),
+    complianceScore: numOrNull(formData.get("complianceScore")),
+    performanceScore: numOrNull(formData.get("performanceScore")),
+    moq: intOrNull(formData.get("moq")),
     freightCost: numOrNull(formData.get("freightCost")) ?? 0,
     taxCost: numOrNull(formData.get("taxCost")) ?? 0,
     otherCost: numOrNull(formData.get("otherCost")) ?? 0,
     paymentTermsDays: intOrNull(formData.get("paymentTermsDays")),
+    attachmentUrl: emptyToNull(formData.get("attachmentUrl")),
     notes: emptyToNull(formData.get("notes")),
   };
   const parsed = sourcingQuoteSchema.safeParse(candidate);
@@ -84,11 +94,12 @@ export async function addQuoteAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
   try {
-    await addSourcingQuote(session.tenantId, {
-      sourcingEventId: eventId,
-      currencyId: null,
-      ...parsed.data,
-    });
+    await addSourcingQuote(
+      session.tenantId,
+      { sourcingEventId: eventId, currencyId: null, ...parsed.data },
+      session.userId,
+      session.name,
+    );
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível registrar a proposta." };
   }
@@ -107,6 +118,9 @@ export async function setWeightsAction(
     lead: intOrNull(formData.get("lead")) ?? 0,
     quality: intOrNull(formData.get("quality")) ?? 0,
     payment: intOrNull(formData.get("payment")) ?? 0,
+    capacity: intOrNull(formData.get("capacity")) ?? 0,
+    compliance: intOrNull(formData.get("compliance")) ?? 0,
+    performance: intOrNull(formData.get("performance")) ?? 0,
   };
   const parsed = weightsSchema.safeParse(candidate);
   if (!parsed.success) {
@@ -117,13 +131,14 @@ export async function setWeightsAction(
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível salvar os pesos." };
   }
+  const w = parsed.data;
   await logAudit(
     session.tenantId,
     session.userId,
     "sourcing.weights",
     "sourcing_event",
     eventId,
-    `Pesos: preço ${parsed.data.price} / prazo ${parsed.data.lead} / qualidade ${parsed.data.quality} / pagamento ${parsed.data.payment}`,
+    `Pesos — preço ${w.price} / prazo ${w.lead} / qual ${w.quality} / pagto ${w.payment} / capac ${w.capacity} / compl ${w.compliance} / perf ${w.performance}`,
   );
   revalidatePath(`/sourcing/${eventId}`);
   return { error: null };
@@ -142,7 +157,7 @@ export async function addNegotiationAction(
     return { error: "Informe o valor negociado." };
   }
   try {
-    await addNegotiationRound(session.tenantId, quoteId, amount, notes, session.userId);
+    await addNegotiationRound(session.tenantId, quoteId, amount, notes, session.userId, session.name);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Não foi possível registrar a rodada." };
   }
@@ -158,9 +173,49 @@ export async function addNegotiationAction(
   return { error: null };
 }
 
+export async function addCommentAction(
+  eventId: string,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const session = await requireSession();
+  const parsed = commentSchema.safeParse({ message: String(formData.get("message") ?? "").trim() });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Comentário inválido." };
+  }
+  try {
+    await logSourcingActivity(
+      session.tenantId,
+      eventId,
+      "comment",
+      parsed.data.message,
+      session.name,
+      session.userId,
+    );
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível publicar o comentário." };
+  }
+  revalidatePath(`/sourcing/${eventId}`);
+  return { error: null };
+}
+
+export async function approveEventAction(eventId: string): Promise<void> {
+  const session = await requireSession();
+  await approveSourcingEvent(session.tenantId, eventId, session.userId, session.name);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "sourcing.approve",
+    "sourcing_event",
+    eventId,
+    "Seleção do processo aprovada",
+  );
+  revalidatePath(`/sourcing/${eventId}`);
+}
+
 export async function awardQuoteAction(eventId: string, quoteId: string): Promise<void> {
   const session = await requireSession();
-  await awardSourcingQuote(session.tenantId, eventId, quoteId);
+  await awardSourcingQuote(session.tenantId, eventId, quoteId, session.userId, session.name);
   await logAudit(
     session.tenantId,
     session.userId,

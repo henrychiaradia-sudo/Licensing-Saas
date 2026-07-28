@@ -16,9 +16,10 @@ export default async function NewSourcingPage() {
       >
         <ArrowLeft size={15} /> Sourcing &amp; Cotações
       </Link>
-      <h1 className="mb-1 text-xl font-bold">Novo RFQ</h1>
+      <h1 className="mb-1 text-xl font-bold">Novo processo de sourcing</h1>
       <p className="mb-6 text-sm text-neutral-500">
-        Abra um evento de cotação e registre as propostas dos fornecedores
+        Escolha o tipo (RFI, RFP ou RFQ), defina objetivo e escopo, e registre as propostas dos
+        fornecedores
       </p>
       <EventForm categories={categories.map((c) => ({ id: c.id, label: c.name }))} />
     </div>

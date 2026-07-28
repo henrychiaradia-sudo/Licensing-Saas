@@ -3,8 +3,9 @@ import { Award, Plus, PiggyBank } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listSourcing, sourcingSavings } from "@/lib/data/sourcing";
 import { Card, Badge, Button } from "@/components/ui";
-import { fmtMoney, fmtBRL, fmtDate } from "@/lib/utils";
-import type { SourcingStatus } from "@/lib/db/schema";
+import { fmtMoney, fmtBRL, fmtDate, cn } from "@/lib/utils";
+import type { SourcingStatus, SourcingProcessType } from "@/lib/db/schema";
+import { PROCESS_LABEL, PROCESS_TONE } from "./process-meta";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
 
@@ -21,12 +22,33 @@ const statusLabel: Record<SourcingStatus, string> = {
   cancelado: "Cancelado",
 };
 
-export default async function SourcingPage() {
+const FILTERS: { key: string; label: string }[] = [
+  { key: "todos", label: "Todos" },
+  { key: "rfi", label: "RFI" },
+  { key: "rfp", label: "RFP" },
+  { key: "rfq", label: "RFQ" },
+];
+
+export default async function SourcingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
   const session = await requireSession();
-  const [events, savings] = await Promise.all([
+  const { tipo } = await searchParams;
+  const active = FILTERS.some((f) => f.key === tipo) ? (tipo as string) : "todos";
+
+  const [allEvents, savings] = await Promise.all([
     listSourcing(session.tenantId),
     sourcingSavings(session.tenantId),
   ]);
+  const events =
+    active === "todos" ? allEvents : allEvents.filter((e) => e.processType === active);
+
+  const counts = allEvents.reduce<Record<string, number>>(
+    (acc, e) => ({ ...acc, [e.processType]: (acc[e.processType] ?? 0) + 1 }),
+    {},
+  );
 
   return (
     <div>
@@ -34,14 +56,38 @@ export default async function SourcingPage() {
         <div>
           <h1 className="text-xl font-bold">Sourcing &amp; Cotações</h1>
           <p className="text-sm text-neutral-500">
-            Eventos de cotação e comparação de propostas de fornecedores
+            RFI, RFP e RFQ — qualificação, propostas e comparação inteligente de fornecedores
           </p>
         </div>
         <Link href="/sourcing/new">
           <Button>
-            <Plus size={16} /> Novo RFQ
+            <Plus size={16} /> Novo processo
           </Button>
         </Link>
+      </div>
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {FILTERS.map((f) => {
+          const isActive = active === f.key;
+          const count = f.key === "todos" ? allEvents.length : counts[f.key] ?? 0;
+          return (
+            <Link
+              key={f.key}
+              href={f.key === "todos" ? "/sourcing" : `/sourcing?tipo=${f.key}`}
+              className={cn(
+                "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+                isActive
+                  ? "border-blue-600 bg-blue-600 text-white"
+                  : "border-neutral-200 text-neutral-600 hover:border-blue-400 dark:border-neutral-700 dark:text-neutral-300",
+              )}
+            >
+              {f.label}
+              <span className={cn("ml-1.5 tabular-nums", isActive ? "text-blue-100" : "text-neutral-400")}>
+                {count}
+              </span>
+            </Link>
+          );
+        })}
       </div>
 
       {savings.events.length > 0 && (
@@ -85,18 +131,22 @@ export default async function SourcingPage() {
             (min, q) => (min === null ? Number(q.amount) : Math.min(min, Number(q.amount))),
             null,
           );
+          const pt = e.processType as SourcingProcessType;
           return (
             <Card key={e.id} className="overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-100 p-5 dark:border-neutral-800">
                 <div>
-                  <Link
-                    href={`/sourcing/${e.id}`}
-                    className="text-sm font-semibold text-blue-600 hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                  <p className="text-xs text-neutral-400">
-                    Prazo: {fmtDate(e.dueDate)} · {e.quotes.length} cotação(ões)
+                  <div className="flex items-center gap-2">
+                    <Badge tone={PROCESS_TONE[pt]}>{PROCESS_LABEL[pt]}</Badge>
+                    <Link
+                      href={`/sourcing/${e.id}`}
+                      className="text-sm font-semibold text-blue-600 hover:underline"
+                    >
+                      {e.title}
+                    </Link>
+                  </div>
+                  <p className="mt-0.5 text-xs text-neutral-400">
+                    Prazo: {fmtDate(e.dueDate)} · {e.quotes.length} proposta(s)
                   </p>
                 </div>
                 <Badge tone={statusTone[e.status]}>{statusLabel[e.status]}</Badge>
@@ -108,7 +158,7 @@ export default async function SourcingPage() {
                       <th className="px-5 py-2 font-medium">Fornecedor</th>
                       <th className="px-5 py-2 text-right font-medium">Proposta</th>
                       <th className="px-5 py-2 text-right font-medium">Lead time</th>
-                      <th className="px-5 py-2 text-right font-medium">Score</th>
+                      <th className="px-5 py-2 text-right font-medium">Qualidade</th>
                       <th className="px-5 py-2 font-medium"></th>
                     </tr>
                   </thead>
@@ -147,7 +197,7 @@ export default async function SourcingPage() {
                     {e.quotes.length === 0 && (
                       <tr>
                         <td colSpan={5} className="px-5 py-6 text-center text-sm text-neutral-400">
-                          Sem cotações recebidas.
+                          Sem propostas recebidas.
                         </td>
                       </tr>
                     )}
@@ -159,7 +209,7 @@ export default async function SourcingPage() {
         })}
         {events.length === 0 && (
           <Card className="p-10 text-center text-sm text-neutral-400">
-            Nenhum evento de sourcing.
+            Nenhum processo de sourcing{active !== "todos" ? ` do tipo ${active.toUpperCase()}` : ""}.
           </Card>
         )}
       </div>

@@ -738,6 +738,8 @@ export const sourcingStatus = pgEnum("sourcing_status", [
   "adjudicado",
   "cancelado",
 ]);
+export const sourcingProcessType = pgEnum("sourcing_process_type", ["rfi", "rfp", "rfq"]);
+export type SourcingProcessType = (typeof sourcingProcessType.enumValues)[number];
 
 export type SupplierStatus = (typeof supplierStatus.enumValues)[number];
 export type SupplierCategory = (typeof supplierCategory.enumValues)[number];
@@ -809,14 +811,22 @@ export const sourcingEvent = pgTable("sourcing_event", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id").notNull(),
   title: text("title").notNull(),
+  processType: sourcingProcessType("process_type").notNull().default("rfq"),
   categoryId: uuid("category_id"),
   status: sourcingStatus("status").notNull().default("aberto"),
   dueDate: date("due_date"),
   baselineAmount: numeric("baseline_amount", { precision: 18, scale: 2 }),
-  weightPrice: integer("weight_price").notNull().default(50),
-  weightLead: integer("weight_lead").notNull().default(20),
-  weightQuality: integer("weight_quality").notNull().default(20),
+  objective: text("objective"),
+  scope: text("scope"),
+  weightPrice: integer("weight_price").notNull().default(40),
+  weightLead: integer("weight_lead").notNull().default(15),
+  weightQuality: integer("weight_quality").notNull().default(15),
   weightPayment: integer("weight_payment").notNull().default(10),
+  weightCapacity: integer("weight_capacity").notNull().default(8),
+  weightCompliance: integer("weight_compliance").notNull().default(6),
+  weightPerformance: integer("weight_performance").notNull().default(6),
+  approvedBy: uuid("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -829,13 +839,42 @@ export const sourcingQuote = pgTable("sourcing_quote", {
   currencyId: uuid("currency_id"),
   leadTimeDays: integer("lead_time_days"),
   score: numeric("score", { precision: 4, scale: 1 }),
+  capacityScore: numeric("capacity_score", { precision: 4, scale: 1 }),
+  complianceScore: numeric("compliance_score", { precision: 4, scale: 1 }),
+  performanceScore: numeric("performance_score", { precision: 4, scale: 1 }),
+  moq: integer("moq"),
   freightCost: numeric("freight_cost", { precision: 18, scale: 2 }).notNull().default("0"),
   taxCost: numeric("tax_cost", { precision: 18, scale: 2 }).notNull().default("0"),
   otherCost: numeric("other_cost", { precision: 18, scale: 2 }).notNull().default("0"),
   paymentTermsDays: integer("payment_terms_days"),
+  attachmentUrl: text("attachment_url"),
   isAwarded: boolean("is_awarded").notNull().default(false),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Timeline/histórico do processo de sourcing (criação, cotações, negociação, comentários, aprovação). */
+export const sourcingActivityType = pgEnum("sourcing_activity_type", [
+  "created",
+  "quote",
+  "negotiation",
+  "award",
+  "approval",
+  "comment",
+  "attachment",
+  "status",
+]);
+export type SourcingActivityType = (typeof sourcingActivityType.enumValues)[number];
+
+export const sourcingActivity = pgTable("sourcing_activity", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  sourcingEventId: uuid("sourcing_event_id").notNull(),
+  type: sourcingActivityType("type").notNull().default("comment"),
+  description: text("description").notNull(),
+  actorName: text("actor_name"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
 export const negotiationRound = pgTable("negotiation_round", {
