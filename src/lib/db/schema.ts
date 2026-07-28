@@ -1165,10 +1165,15 @@ export const marketingCampaign = pgTable(
     licenseeId: uuid("licensee_id"),
     campaignType: campaignType("campaign_type").notNull().default("promocional"),
     status: campaignStatus("status").notNull().default("planejamento"),
+    planId: uuid("plan_id"),
     budget: numeric("budget", { precision: 18, scale: 2 }).notNull().default("0"),
     spent: numeric("spent", { precision: 18, scale: 2 }).notNull().default("0"),
+    revenue: numeric("revenue", { precision: 18, scale: 2 }).notNull().default("0"),
     channel: text("channel"),
     goal: text("goal"),
+    publico: text("publico"),
+    territorio: text("territorio"),
+    coop: boolean("coop").notNull().default(false),
     startDate: date("start_date"),
     endDate: date("end_date"),
     notes: text("notes"),
@@ -1375,4 +1380,141 @@ export const notification = pgTable("notification", {
   emailedAt: timestamp("emailed_at", { withTimezone: true }),
   readAt: timestamp("read_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/* ============ FASE 12 — MARKETING 2.0 (suíte completa) ============ */
+export const marketingPlanStatus = pgEnum("marketing_plan_status", [
+  "rascunho",
+  "aprovado",
+  "em_execucao",
+  "concluido",
+  "cancelado",
+]);
+export const agencyType = pgEnum("agency_type", [
+  "criacao",
+  "midia",
+  "digital",
+  "pr",
+  "eventos",
+  "producao",
+  "outro",
+]);
+export const marketingActionType = pgEnum("marketing_action_type", [
+  "ativacao",
+  "evento",
+  "influenciador",
+  "patrocinio",
+  "conteudo",
+  "midia_paga",
+  "midia_espontanea",
+  "redes_sociais",
+  "promocao",
+  "producao",
+  "pdv",
+  "outro",
+]);
+export const marketingActionStatus = pgEnum("marketing_action_status", [
+  "planejada",
+  "em_andamento",
+  "concluida",
+  "cancelada",
+]);
+export const budgetSource = pgEnum("budget_source", ["propria", "cooperada"]);
+export type MarketingPlanStatus = (typeof marketingPlanStatus.enumValues)[number];
+export type AgencyType = (typeof agencyType.enumValues)[number];
+export type MarketingActionType = (typeof marketingActionType.enumValues)[number];
+export type MarketingActionStatus = (typeof marketingActionStatus.enumValues)[number];
+export type BudgetSource = (typeof budgetSource.enumValues)[number];
+
+export const marketingPlan = pgTable(
+  "marketing_plan",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    planNumber: text("plan_number").notNull(),
+    name: text("name").notNull(),
+    year: integer("year"),
+    brandId: uuid("brand_id"),
+    licenseeId: uuid("licensee_id"),
+    objetivo: text("objetivo"),
+    publico: text("publico"),
+    territorio: text("territorio"),
+    budget: numeric("budget", { precision: 18, scale: 2 }).notNull().default("0"),
+    status: marketingPlanStatus("status").notNull().default("rascunho"),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_marketing_plan_number").on(t.tenantId, t.planNumber)],
+);
+
+export const marketingAgency = pgTable("marketing_agency", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  name: text("name").notNull(),
+  agencyType: agencyType("agency_type").notNull().default("outro"),
+  contactName: text("contact_name"),
+  email: text("email"),
+  phone: text("phone"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+export const marketingInfluencer = pgTable("marketing_influencer", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  name: text("name").notNull(),
+  handle: text("handle"),
+  platform: text("platform"),
+  followers: bigint("followers", { mode: "number" }),
+  fee: numeric("fee", { precision: 18, scale: 2 }),
+  segment: text("segment"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+export const marketingAction = pgTable("marketing_action", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  campaignId: uuid("campaign_id"),
+  planId: uuid("plan_id"),
+  name: text("name").notNull(),
+  actionType: marketingActionType("action_type").notNull().default("ativacao"),
+  status: marketingActionStatus("status").notNull().default("planejada"),
+  channel: text("channel"),
+  territorio: text("territorio"),
+  agencyId: uuid("agency_id"),
+  influencerId: uuid("influencer_id"),
+  budget: numeric("budget", { precision: 18, scale: 2 }).notNull().default("0"),
+  spent: numeric("spent", { precision: 18, scale: 2 }).notNull().default("0"),
+  revenue: numeric("revenue", { precision: 18, scale: 2 }).notNull().default("0"),
+  reachTarget: bigint("reach_target", { mode: "number" }),
+  reachActual: bigint("reach_actual", { mode: "number" }),
+  coop: boolean("coop").notNull().default(false),
+  location: text("location"),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  evidenceUrl: text("evidence_url"),
+  resultNotes: text("result_notes"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+export const marketingKpi = pgTable("marketing_kpi", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  campaignId: uuid("campaign_id").notNull(),
+  name: text("name").notNull(),
+  target: numeric("target", { precision: 18, scale: 2 }),
+  realized: numeric("realized", { precision: 18, scale: 2 }).notNull().default("0"),
+  unit: text("unit"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });

@@ -57,7 +57,7 @@ const groups: NavGroup[] = [
   {
     title: "Comercial & Catálogo",
     items: [
-      { href: "/marketing", label: "Marketing & Trade", icon: Megaphone },
+      { href: "/marketing", label: "Marketing", icon: Megaphone },
       { href: "/catalogo", label: "Catálogo (SKU)", icon: Package },
       { href: "/categorias", label: "Categorias", icon: FolderTree },
     ],
@@ -129,7 +129,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v1.0 — Fases 1–14
+        v1.0 — Suíte completa
       </div>
     </aside>
   );
