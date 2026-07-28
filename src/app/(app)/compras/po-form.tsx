@@ -21,6 +21,8 @@ type FormValues = {
   expectedDate: string;
   incoterm: string;
   notes: string;
+  purchaseContractId: string;
+  purchaseCategoryId: string;
   items: ItemRow[];
 };
 
@@ -34,10 +36,16 @@ export function PurchaseOrderForm({
   suppliers,
   currencies,
   licensees,
+  contracts = [],
+  categories = [],
+  defaultContractId = "",
 }: {
   suppliers: Option[];
   currencies: Option[];
   licensees: Option[];
+  contracts?: Option[];
+  categories?: Option[];
+  defaultContractId?: string;
 }) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -59,6 +67,8 @@ export function PurchaseOrderForm({
       expectedDate: "",
       incoterm: "",
       notes: "",
+      purchaseContractId: defaultContractId,
+      purchaseCategoryId: "",
       items: [{ description: "", sku: "", quantity: 1, unitPrice: 0 }],
     },
   });
@@ -83,6 +93,8 @@ export function PurchaseOrderForm({
       expectedDate: data.expectedDate,
       incoterm: data.incoterm,
       notes: data.notes,
+      purchaseContractId: data.purchaseContractId,
+      purchaseCategoryId: data.purchaseCategoryId,
       items: data.items.map((it) => ({
         description: it.description,
         sku: it.sku,
@@ -157,6 +169,28 @@ export function PurchaseOrderForm({
           <div>
             <Label>Previsão de entrega</Label>
             <Input type="date" {...register("expectedDate")} />
+          </div>
+          <div>
+            <Label>Contrato de compra (opcional)</Label>
+            <Select {...register("purchaseContractId")}>
+              <option value="">— nenhum</option>
+              {contracts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label>Categoria de compra (opcional)</Label>
+            <Select {...register("purchaseCategoryId")}>
+              <option value="">— nenhuma</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
       </Card>

@@ -35,6 +35,7 @@ import {
   Banknote,
   Wallet,
   BadgeCheck,
+  FileCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ const groups: NavGroup[] = [
       { href: "/requisicoes", label: "Requisições", icon: ClipboardList },
       { href: "/aprovacoes", label: "Aprovações", icon: BadgeCheck },
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
+      { href: "/contratos-compra", label: "Contratos de Compra", icon: FileCheck },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
       { href: "/custos", label: "Gestão de Custos", icon: Calculator },
       { href: "/cambio", label: "Gestão Cambial", icon: Banknote },

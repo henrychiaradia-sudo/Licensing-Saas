@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, XCircle, CheckCircle2, PackageCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, XCircle, CheckCircle2, PackageCheck, ShieldCheck, FileSignature } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getPurchaseOrderDetail, nextPoStatus } from "@/lib/data/purchase-orders";
+import { alcadaFor } from "@/lib/data/approvals";
 import { listShipmentsForPo } from "@/lib/data/shipments";
-import { setPoStatusAction, receivePoAction } from "../actions";
+import { setPoStatusAction, receivePoAction, approvePoAction } from "../actions";
 import { shipmentTone, shipmentLabel } from "../../logistica/page";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
@@ -41,12 +42,17 @@ export default async function CompraDetailPage({
   const session = await requireSession();
   const data = await getPurchaseOrderDetail(session.tenantId, id);
   if (!data) notFound();
-  const { order: o, items } = data;
+  const { order: o, items, contractDrawdown } = data;
   const shipments = await listShipmentsForPo(session.tenantId, id);
   const iso = o.currencyIso ?? "BRL";
   const next = nextPoStatus(o.status);
   const isFinal = o.status === "recebido" || o.status === "cancelado";
   const canReceive = ["confirmado", "em_producao", "embarcado"].includes(o.status);
+  const alcadaLabel = await alcadaFor(session.tenantId, Number(o.totalAmount));
+  const approved = !!o.approvedAt;
+  const needsApproval = !approved && !isFinal;
+  // exige aprovação antes de sair de rascunho
+  const canAdvance = next && (o.status !== "rascunho" || approved);
 
   return (
     <div>
@@ -65,16 +71,76 @@ export default async function CompraDetailPage({
             {o.licenseeName ? ` · para ${o.licenseeName}` : ""}
           </p>
         </div>
-        <Badge tone={poTone[o.status]}>{poLabel[o.status]}</Badge>
+        <div className="flex items-center gap-2">
+          {approved && (
+            <Badge tone="good">
+              <ShieldCheck size={12} /> Aprovado
+            </Badge>
+          )}
+          <Badge tone={poTone[o.status]}>{poLabel[o.status]}</Badge>
+        </div>
       </div>
+
+      {/* Contrato de compra vinculado + saldo */}
+      {o.purchaseContractId && contractDrawdown && (
+        <Card className="mb-4 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <FileSignature size={16} className="text-blue-500" />
+              <span>
+                Vinculado ao contrato{" "}
+                <Link
+                  href={`/contratos-compra/${o.purchaseContractId}`}
+                  className="font-medium text-blue-600 hover:underline"
+                >
+                  {o.contractNumber}
+                </Link>
+                {o.contractTitle ? ` · ${o.contractTitle}` : ""}
+              </span>
+            </div>
+            <div className="text-right text-xs text-neutral-500">
+              Saldo do contrato:{" "}
+              <strong className={contractDrawdown.available < 0 ? "text-red-600" : "text-emerald-600"}>
+                {fmtMoney(contractDrawdown.available, iso)}
+              </strong>{" "}
+              de {fmtMoney(contractDrawdown.committed, iso)}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Aprovação por alçada */}
+      {needsApproval && (
+        <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/30">
+          <p className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+            <ShieldCheck size={16} className="shrink-0 text-amber-600" />
+            Pedido de <strong>{fmtMoney(o.totalAmount, iso)}</strong> — aprovação exigida:{" "}
+            <strong>{alcadaLabel}</strong>.
+          </p>
+          <form action={approvePoAction.bind(null, o.id)}>
+            <Button type="submit" size="sm">
+              <CheckCircle2 size={14} /> Aprovar pedido
+            </Button>
+          </form>
+        </Card>
+      )}
+      {approved && !isFinal && (
+        <Card className="mb-4 flex items-center gap-2 border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          <ShieldCheck size={16} className="shrink-0 text-emerald-600" />
+          Aprovado{o.approvedByName ? ` por ${o.approvedByName}` : ""}
+          {o.approvedAt ? ` em ${fmtDate(o.approvedAt)}` : ""}.
+        </Card>
+      )}
 
       {!isFinal && (
         <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-sm text-neutral-600 dark:text-neutral-300">
-            Avance o pedido pelo fluxo de suprimentos ou cancele-o.
+            {o.status === "rascunho" && !approved
+              ? "Aprove o pedido para enviá-lo ao fornecedor, ou cancele-o."
+              : "Avance o pedido pelo fluxo de suprimentos ou cancele-o."}
           </p>
           <div className="flex flex-wrap gap-2">
-            {next && (
+            {canAdvance && next && (
               <form action={setPoStatusAction.bind(null, o.id, next)}>
                 <Button type="submit">
                   {next === "recebido" ? <CheckCircle2 size={15} /> : <ArrowRight size={15} />}

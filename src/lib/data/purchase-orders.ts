@@ -1,7 +1,15 @@
 import "server-only";
 import { and, eq, desc, sql, asc, isNull, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { purchaseOrder, purchaseOrderItem, supplier, licensee, currency } from "@/lib/db/schema";
+import {
+  purchaseOrder,
+  purchaseOrderItem,
+  supplier,
+  licensee,
+  currency,
+  purchaseContract,
+  appUser,
+} from "@/lib/db/schema";
 import type { PoStatus } from "@/lib/db/schema";
 
 export async function listPurchaseOrders(tenantId: string) {
@@ -42,15 +50,43 @@ export async function getPurchaseOrderDetail(tenantId: string, id: string) {
       supplierId: purchaseOrder.supplierId,
       supplierName: supplier.legalName,
       licenseeName: licensee.legalName,
+      approvedAt: purchaseOrder.approvedAt,
+      approvedByName: appUser.name,
+      purchaseContractId: purchaseOrder.purchaseContractId,
+      contractNumber: purchaseContract.contractNumber,
+      contractTitle: purchaseContract.title,
+      contractCommitted: purchaseContract.committedValue,
+      contractCurrency: purchaseContract.currency,
     })
     .from(purchaseOrder)
     .leftJoin(supplier, eq(supplier.id, purchaseOrder.supplierId))
     .leftJoin(licensee, eq(licensee.id, purchaseOrder.licenseeId))
     .leftJoin(currency, eq(currency.id, purchaseOrder.currencyId))
+    .leftJoin(purchaseContract, eq(purchaseContract.id, purchaseOrder.purchaseContractId))
+    .leftJoin(appUser, eq(appUser.id, purchaseOrder.approvedBy))
     .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)))
     .limit(1);
   const head = rows[0];
   if (!head) return null;
+
+  // saldo do contrato vinculado (comprometido − consumido por pedidos, exceto cancelados)
+  let contractDrawdown: { committed: number; consumed: number; available: number } | null = null;
+  if (head.purchaseContractId) {
+    const agg = await db
+      .select({
+        consumed: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}) filter (where ${purchaseOrder.status} <> 'cancelado'), 0)`,
+      })
+      .from(purchaseOrder)
+      .where(
+        and(
+          eq(purchaseOrder.tenantId, tenantId),
+          eq(purchaseOrder.purchaseContractId, head.purchaseContractId),
+        ),
+      );
+    const committed = Number(head.contractCommitted ?? 0);
+    const consumed = Number(agg[0]?.consumed ?? 0);
+    contractDrawdown = { committed, consumed, available: committed - consumed };
+  }
 
   const items = await db
     .select()
@@ -58,7 +94,7 @@ export async function getPurchaseOrderDetail(tenantId: string, id: string) {
     .where(eq(purchaseOrderItem.purchaseOrderId, id))
     .orderBy(desc(purchaseOrderItem.amount));
 
-  return { order: head, items };
+  return { order: head, items, contractDrawdown };
 }
 
 /* ---------------------------------------------------------------------------
@@ -95,6 +131,8 @@ export type PurchaseOrderInput = {
   expectedDate: string | null;
   incoterm: string | null;
   notes: string | null;
+  purchaseContractId?: string | null;
+  purchaseCategoryId?: string | null;
   items: PurchaseOrderItemInput[];
 };
 
@@ -122,6 +160,20 @@ export async function createPurchaseOrder(
       .where(and(eq(licensee.id, input.licenseeId), eq(licensee.tenantId, tenantId)))
       .limit(1);
     if (!lic[0]) throw new Error("Licenciado inválido.");
+  }
+
+  if (input.purchaseContractId) {
+    const pc = await db
+      .select({ id: purchaseContract.id })
+      .from(purchaseContract)
+      .where(
+        and(
+          eq(purchaseContract.id, input.purchaseContractId),
+          eq(purchaseContract.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
+    if (!pc[0]) throw new Error("Contrato de compra inválido.");
   }
 
   const dup = await db
@@ -157,6 +209,8 @@ export async function createPurchaseOrder(
       expectedDate: input.expectedDate,
       incoterm: input.incoterm,
       notes: input.notes,
+      purchaseContractId: input.purchaseContractId ?? null,
+      purchaseCategoryId: input.purchaseCategoryId ?? null,
     })
     .returning({ id: purchaseOrder.id });
   const poId = inserted[0].id;
@@ -174,6 +228,33 @@ export async function createPurchaseOrder(
   );
 
   return { id: poId };
+}
+
+/** Aprova o pedido por alçada e, se estiver em rascunho, o envia. */
+export async function approvePurchaseOrder(
+  tenantId: string,
+  id: string,
+  userId: string,
+): Promise<void> {
+  const rows = await db
+    .select({ id: purchaseOrder.id, status: purchaseOrder.status })
+    .from(purchaseOrder)
+    .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)))
+    .limit(1);
+  const po = rows[0];
+  if (!po) throw new Error("Pedido não encontrado.");
+  if (po.status === "cancelado" || po.status === "recebido")
+    throw new Error("Este pedido já está finalizado.");
+  const patch: { approvedBy: string; approvedAt: Date; updatedAt: Date; status?: PoStatus } = {
+    approvedBy: userId,
+    approvedAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (po.status === "rascunho") patch.status = "enviado";
+  await db
+    .update(purchaseOrder)
+    .set(patch)
+    .where(and(eq(purchaseOrder.id, id), eq(purchaseOrder.tenantId, tenantId)));
 }
 
 /** Fluxo de status do pedido de compra (ordem de avanço). */

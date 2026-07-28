@@ -27,6 +27,8 @@ export const purchaseOrderSchema = z.object({
   expectedDate: z.string().optional().default(""),
   incoterm: z.string().trim().max(20).optional().default(""),
   notes: z.string().trim().max(2000).optional().default(""),
+  purchaseContractId: z.string().uuid().optional().or(z.literal("")).default(""),
+  purchaseCategoryId: z.string().uuid().optional().or(z.literal("")).default(""),
   items: z.array(poItemSchema).min(1, "Inclua ao menos um item."),
 });
 

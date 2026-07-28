@@ -7,6 +7,7 @@ import {
   createPurchaseOrder,
   setPurchaseOrderStatus,
   receivePurchaseOrder,
+  approvePurchaseOrder,
   type PurchaseOrderInput,
 } from "@/lib/data/purchase-orders";
 import { logAudit } from "@/lib/data/audit";
@@ -34,6 +35,8 @@ export async function createPurchaseOrderAction(input: unknown): Promise<CreateP
     expectedDate: d.expectedDate || null,
     incoterm: d.incoterm || null,
     notes: d.notes || null,
+    purchaseContractId: d.purchaseContractId ? d.purchaseContractId : null,
+    purchaseCategoryId: d.purchaseCategoryId ? d.purchaseCategoryId : null,
     items: d.items.map((it) => ({
       description: it.description,
       sku: it.sku || null,
@@ -72,6 +75,21 @@ export async function setPoStatusAction(id: string, target: PoStatus): Promise<v
     "purchase_order",
     id,
     `Status do pedido → ${target}`,
+  );
+  revalidatePath(`/compras/${id}`);
+  revalidatePath("/compras");
+}
+
+export async function approvePoAction(id: string): Promise<void> {
+  const session = await requireSession();
+  await approvePurchaseOrder(session.tenantId, id, session.userId);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "purchase_order.approve",
+    "purchase_order",
+    id,
+    "Pedido aprovado por alçada",
   );
   revalidatePath(`/compras/${id}`);
   revalidatePath("/compras");

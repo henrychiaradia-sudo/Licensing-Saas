@@ -826,6 +826,9 @@ export const purchaseOrder = pgTable(
     receivedDate: date("received_date"),
     incoterm: text("incoterm"),
     notes: text("notes"),
+    purchaseContractId: uuid("purchase_contract_id"),
+    approvedBy: uuid("approved_by"),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -1479,6 +1482,39 @@ export const supplyContract = pgTable(
     createdBy: uuid("created_by"),
   },
   (t) => [unique("uq_supply_contract_number").on(t.tenantId, t.contractNumber)],
+);
+
+/* ---- Contrato de Compra (blanket/commitment que os pedidos consomem) ---- */
+export const purchaseContractStatus = pgEnum("purchase_contract_status", [
+  "rascunho",
+  "vigente",
+  "suspenso",
+  "encerrado",
+]);
+export type PurchaseContractStatus = (typeof purchaseContractStatus.enumValues)[number];
+
+export const purchaseContract = pgTable(
+  "purchase_contract",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    contractNumber: text("contract_number").notNull(),
+    title: text("title").notNull(),
+    supplierId: uuid("supplier_id").notNull(),
+    supplyContractId: uuid("supply_contract_id"),
+    purchaseCategoryId: uuid("purchase_category_id"),
+    status: purchaseContractStatus("status").notNull().default("rascunho"),
+    currency: text("currency").notNull().default("BRL"),
+    committedValue: numeric("committed_value", { precision: 18, scale: 2 }).notNull().default("0"),
+    startDate: date("start_date"),
+    endDate: date("end_date"),
+    paymentTerms: text("payment_terms"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_purchase_contract_number").on(t.tenantId, t.contractNumber)],
 );
 
 /* ============ FASE 10 — NOTIFICAÇÕES ============ */
