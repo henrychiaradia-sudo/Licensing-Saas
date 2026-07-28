@@ -36,6 +36,7 @@ import {
   Wallet,
   BadgeCheck,
   FileCheck,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ const groups: NavGroup[] = [
     title: "Operação",
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
+      { href: "/ia", label: "Assistente IA", icon: Sparkles },
       { href: "/pendencias", label: "Pendências", icon: Bell },
       { href: "/tarefas", label: "Cronogramas & Tarefas", icon: ListTodo },
       { href: "/pipeline", label: "Pipeline (CRM)", icon: Target },
