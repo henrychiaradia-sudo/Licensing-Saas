@@ -776,6 +776,7 @@ export const purchaseOrder = pgTable(
     poNumber: text("po_number").notNull(),
     supplierId: uuid("supplier_id").notNull(),
     licenseeId: uuid("licensee_id"),
+    purchaseCategoryId: uuid("purchase_category_id"),
     status: poStatus("status").notNull().default("rascunho"),
     currencyId: uuid("currency_id").notNull(),
     totalAmount: numeric("total_amount", { precision: 18, scale: 2 }).notNull().default("0"),
@@ -1518,3 +1519,76 @@ export const marketingKpi = pgTable("marketing_kpi", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: uuid("created_by"),
 });
+
+/* ============ FASE 13 — COMPRAS: CATEGORIAS + CUSTOS ============ */
+
+/** Natureza do gasto (classificação contábil de compras). */
+export const spendNature = pgEnum("spend_nature", ["capex", "opex", "mro"]);
+export type SpendNature = (typeof spendNature.enumValues)[number];
+
+export const purchaseCategoryStatus = pgEnum("purchase_category_status", ["ativa", "inativa"]);
+export type PurchaseCategoryStatus = (typeof purchaseCategoryStatus.enumValues)[number];
+
+/** Categoria de compras (spend taxonomy / category management). */
+export const purchaseCategory = pgTable(
+  "purchase_category",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    nature: spendNature("nature").notNull().default("opex"),
+    ownerName: text("owner_name"),
+    annualBudget: numeric("annual_budget", { precision: 18, scale: 2 }).notNull().default("0"),
+    strategy: text("strategy"),
+    status: purchaseCategoryStatus("status").notNull().default("ativa"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_purchase_category_code").on(t.tenantId, t.code)],
+);
+
+/** Ficha de custo (formação de preço / cost breakdown) — valores por unidade. */
+export const costSheet = pgTable(
+  "cost_sheet",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    code: text("code").notNull(),
+    name: text("name").notNull(),
+    productId: uuid("product_id"),
+    supplierId: uuid("supplier_id"),
+    sku: text("sku"),
+    currency: text("currency").notNull().default("BRL"),
+    // Origem (importação/compra)
+    fob: numeric("fob", { precision: 18, scale: 4 }).notNull().default("0"),
+    freightIntl: numeric("freight_intl", { precision: 18, scale: 4 }).notNull().default("0"),
+    insurance: numeric("insurance", { precision: 18, scale: 4 }).notNull().default("0"),
+    // Impostos
+    ii: numeric("ii", { precision: 18, scale: 4 }).notNull().default("0"),
+    ipiImport: numeric("ipi_import", { precision: 18, scale: 4 }).notNull().default("0"),
+    icms: numeric("icms", { precision: 18, scale: 4 }).notNull().default("0"),
+    pis: numeric("pis", { precision: 18, scale: 4 }).notNull().default("0"),
+    cofins: numeric("cofins", { precision: 18, scale: 4 }).notNull().default("0"),
+    iss: numeric("iss", { precision: 18, scale: 4 }).notNull().default("0"),
+    ipi: numeric("ipi", { precision: 18, scale: 4 }).notNull().default("0"),
+    // Custos de importação/operação
+    armazenagem: numeric("armazenagem", { precision: 18, scale: 4 }).notNull().default("0"),
+    desembaraco: numeric("desembaraco", { precision: 18, scale: 4 }).notNull().default("0"),
+    comissao: numeric("comissao", { precision: 18, scale: 4 }).notNull().default("0"),
+    royalties: numeric("royalties", { precision: 18, scale: 4 }).notNull().default("0"),
+    marketing: numeric("marketing", { precision: 18, scale: 4 }).notNull().default("0"),
+    trade: numeric("trade", { precision: 18, scale: 4 }).notNull().default("0"),
+    logistica: numeric("logistica", { precision: 18, scale: 4 }).notNull().default("0"),
+    custoIndustrial: numeric("custo_industrial", { precision: 18, scale: 4 }).notNull().default("0"),
+    // Precificação
+    markupPct: numeric("markup_pct", { precision: 9, scale: 4 }).notNull().default("0"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdBy: uuid("created_by"),
+  },
+  (t) => [unique("uq_cost_sheet_code").on(t.tenantId, t.code)],
+);

@@ -30,6 +30,8 @@ import {
   FileSignature,
   KeyRound,
   Lock,
+  Boxes,
+  Calculator,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -67,9 +69,11 @@ const groups: NavGroup[] = [
     title: "Suprimentos",
     items: [
       { href: "/fornecedores", label: "Fornecedores", icon: Factory },
+      { href: "/categorias-compras", label: "Categorias de Compras", icon: Boxes },
       { href: "/requisicoes", label: "Requisições", icon: ClipboardList },
       { href: "/compras", label: "Pedidos de Compra", icon: ShoppingCart },
       { href: "/sourcing", label: "Sourcing & Cotações", icon: Scale },
+      { href: "/custos", label: "Gestão de Custos", icon: Calculator },
       { href: "/logistica", label: "Logística", icon: Truck },
       { href: "/contratos-fornecimento", label: "Contratos de Forn.", icon: FileSignature },
     ],
