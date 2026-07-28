@@ -1,0 +1,2 @@
+ALIANZA — Fase Compras (categorias + custos).
+Arraste a pasta 'src' (ao lado deste arquivo) para o GitHub.
