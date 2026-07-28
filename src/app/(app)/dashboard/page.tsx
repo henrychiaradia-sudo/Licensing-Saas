@@ -54,19 +54,19 @@ export default async function DashboardPage() {
           label="Contratos vigentes"
           value={String(activeContracts)}
           icon={<FileText size={20} />}
-          tone="emerald"
+          tone="blue"
         />
         <StatCard
           label="Royalties (competência)"
           value={fmtCompactBRL(royalties)}
           icon={<Coins size={20} />}
-          tone="amber"
+          tone="blue"
         />
         <StatCard
           label="MG realizado"
           value={fmtPct(mgPct)}
           icon={<TrendingUp size={20} />}
-          tone="violet"
+          tone="blue"
         />
       </div>
 

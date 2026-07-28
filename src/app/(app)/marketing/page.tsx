@@ -91,21 +91,21 @@ export default async function MarketingDashboardPage() {
           value={fmtCompactBRL(summary.spent)}
           hint={`${summary.usage}% do orçamento`}
           icon={<TrendingUp size={20} />}
-          tone="emerald"
+          tone="blue"
         />
         <StatCard
           label="Receita atribuída"
           value={fmtCompactBRL(summary.revenue)}
           hint={`${summary.active} campanha(s) ativa(s)`}
           icon={<Coins size={20} />}
-          tone="amber"
+          tone="blue"
         />
         <StatCard
           label="ROI global"
           value={summary.roi != null ? fmtPct(summary.roi) : "—"}
           hint="(receita − gasto) / gasto"
           icon={<Megaphone size={20} />}
-          tone="violet"
+          tone="blue"
         />
       </div>
 

@@ -53,21 +53,21 @@ export default async function VerbasPage() {
           value={fmtCompactBRL(summary.spent)}
           hint={`${summary.usage}% do orçamento`}
           icon={<TrendingUp size={20} />}
-          tone="emerald"
+          tone="blue"
         />
         <StatCard
           label="Saldo disponível"
           value={fmtCompactBRL(remaining)}
           hint={remaining < 0 ? "Estouro de orçamento" : "Dentro do orçamento"}
           icon={<PiggyBank size={20} />}
-          tone={remaining < 0 ? "red" : "violet"}
+          tone="blue"
         />
         <StatCard
           label="Verba cooperada"
           value={totalCoop > 0 ? fmtPct(Math.round((coop.coop / totalCoop) * 100)) : "—"}
           hint={fmtCompactBRL(coop.coop)}
           icon={<Handshake size={20} />}
-          tone="amber"
+          tone="blue"
         />
       </div>
 
