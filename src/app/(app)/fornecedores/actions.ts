@@ -8,16 +8,24 @@ import {
   createSupplier,
   updateSupplier,
   setSupplierStatus,
+  addContact,
+  addBankAccount,
+  addPlant,
+  addCertification,
+  addAudit,
+  setServedCategories,
+  deleteSubEntity,
   type SupplierInput,
 } from "@/lib/data/suppliers";
 import { logAudit } from "@/lib/data/audit";
 import { createEvaluation, type EvaluationInput } from "@/lib/data/evaluations";
-import { supplierSchema, evaluationSchema } from "./schema";
+import { supplierSchema, evaluationSchema, SUPPLIER_STATUS } from "./schema";
 import type { SupplierStatus } from "@/lib/db/schema";
 
-const SUPPLIER_STATUS_VALUES = ["em_homologacao", "ativo", "inativo", "bloqueado"] as const;
+const SUPPLIER_STATUS_VALUES = SUPPLIER_STATUS;
 
 export type FormState = { error: string | null };
+export type SubState = { error: string | null; ok?: boolean };
 
 function emptyToNull(v: FormDataEntryValue | null): string | null {
   const s = v == null ? "" : String(v).trim();
@@ -65,9 +73,20 @@ export async function saveSupplier(
     code: String(formData.get("code") ?? "").trim(),
     legalName: String(formData.get("legalName") ?? "").trim(),
     tradeName: emptyToNull(formData.get("tradeName")),
+    supplierType: emptyToNull(formData.get("supplierType")),
+    economicGroup: emptyToNull(formData.get("economicGroup")),
+    cnpj: emptyToNull(formData.get("cnpj")),
+    stateRegistration: emptyToNull(formData.get("stateRegistration")),
     category: String(formData.get("category") ?? "manufatura"),
     countryId: emptyToNull(formData.get("countryId")),
+    stateProvince: emptyToNull(formData.get("stateProvince")),
     city: emptyToNull(formData.get("city")),
+    address: emptyToNull(formData.get("address")),
+    website: emptyToNull(formData.get("website")),
+    capacity: emptyToNull(formData.get("capacity")),
+    moq: intOrNull(formData.get("moq")),
+    incoterms: emptyToNull(formData.get("incoterms")),
+    currencies: emptyToNull(formData.get("currencies")),
     status: String(formData.get("status") ?? "em_homologacao"),
     rating: numOrNull(formData.get("rating")),
     leadTimeDays: intOrNull(formData.get("leadTimeDays")),
@@ -129,6 +148,17 @@ export async function setSupplierStatusAction(id: string, status: string): Promi
   revalidatePath("/fornecedores");
 }
 
+export async function changeStatusAction(id: string, formData: FormData): Promise<void> {
+  const session = await requireSession();
+  if (!canWriteSupplier(session)) return;
+  const status = String(formData.get("status") ?? "");
+  if (!(SUPPLIER_STATUS_VALUES as readonly string[]).includes(status)) return;
+  await setSupplierStatus(session.tenantId, id, status as SupplierStatus);
+  await logAudit(session.tenantId, session.userId, "supplier.status", "supplier", id, `Status → ${status}`);
+  revalidatePath(`/fornecedores/${id}`);
+  revalidatePath("/fornecedores");
+}
+
 export async function createEvaluationAction(
   supplierId: string,
   _prev: FormState,
@@ -177,4 +207,125 @@ export async function createEvaluationAction(
 
   revalidatePath(`/fornecedores/${supplierId}`);
   return { error: null };
+}
+
+/* ------------------------- Sub-entidades (360) ------------------------- */
+
+async function guard() {
+  const session = await requireSession();
+  if (!canWriteSupplier(session)) throw new Error("Sem permissão.");
+  return session;
+}
+const rev = (id: string) => revalidatePath(`/fornecedores/${id}`);
+
+export async function addContactAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  const name = String(fd.get("name") ?? "").trim();
+  if (!name) return { error: "Informe o nome." };
+  try {
+    await addContact(s.tenantId, id, {
+      name,
+      role: emptyToNull(fd.get("role")),
+      email: emptyToNull(fd.get("email")),
+      phone: emptyToNull(fd.get("phone")),
+      isPrimary: fd.get("isPrimary") === "1",
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function addBankAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  const bankName = String(fd.get("bankName") ?? "").trim();
+  if (!bankName) return { error: "Informe o banco." };
+  try {
+    await addBankAccount(s.tenantId, id, {
+      bankName,
+      agency: emptyToNull(fd.get("agency")),
+      accountNumber: emptyToNull(fd.get("accountNumber")),
+      accountType: null,
+      pixKey: emptyToNull(fd.get("pixKey")),
+      swift: null,
+      currency: String(fd.get("currency") ?? "BRL"),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function addPlantAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  const name = String(fd.get("name") ?? "").trim();
+  if (!name) return { error: "Informe a planta." };
+  try {
+    await addPlant(s.tenantId, id, {
+      name,
+      country: emptyToNull(fd.get("country")),
+      city: emptyToNull(fd.get("city")),
+      capacity: emptyToNull(fd.get("capacity")),
+      certifications: emptyToNull(fd.get("certifications")),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function addCertAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  const name = String(fd.get("name") ?? "").trim();
+  if (!name) return { error: "Informe a certificação." };
+  try {
+    await addCertification(s.tenantId, id, {
+      name,
+      number: emptyToNull(fd.get("number")),
+      issuer: emptyToNull(fd.get("issuer")),
+      issueDate: emptyToNull(fd.get("issueDate")),
+      validUntil: emptyToNull(fd.get("validUntil")),
+      status: "valido",
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function addAuditAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  try {
+    await addAudit(s.tenantId, id, {
+      auditDate: emptyToNull(fd.get("auditDate")),
+      auditType: emptyToNull(fd.get("auditType")),
+      result: String(fd.get("result") ?? "aprovado"),
+      score: intOrNull(fd.get("score")),
+      auditor: emptyToNull(fd.get("auditor")),
+      findings: emptyToNull(fd.get("findings")),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function setServedCategoriesAction(id: string, formData: FormData): Promise<void> {
+  const s = await guard();
+  const ids = formData.getAll("categoryIds").map((v) => String(v)).filter(Boolean);
+  await setServedCategories(s.tenantId, id, ids);
+  rev(id);
+}
+
+export async function deleteSubAction(id: string, table: string, subId: string): Promise<void> {
+  const s = await guard();
+  const valid = ["contact", "bank", "plant", "cert", "audit", "served"] as const;
+  if (!(valid as readonly string[]).includes(table)) return;
+  await deleteSubEntity(s.tenantId, table as (typeof valid)[number], subId);
+  rev(id);
 }

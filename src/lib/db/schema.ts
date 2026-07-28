@@ -752,7 +752,30 @@ export const supplierStatus = pgEnum("supplier_status", [
   "ativo",
   "inativo",
   "bloqueado",
+  "prospect",
+  "em_avaliacao",
+  "homologado",
+  "condicional",
+  "suspenso",
+  "descontinuado",
 ]);
+export const supplierType = pgEnum("supplier_type", [
+  "fabricante",
+  "distribuidor",
+  "importador",
+  "prestador_servico",
+  "agencia",
+  "transportadora",
+  "materia_prima",
+  "embalagem",
+  "grafico",
+  "textil",
+  "tecnologia",
+  "consultoria",
+  "laboratorio",
+  "operador_logistico",
+]);
+export type SupplierType = (typeof supplierType.enumValues)[number];
 export const supplierCategory = pgEnum("supplier_category", [
   "materia_prima",
   "manufatura",
@@ -794,8 +817,19 @@ export const supplier = pgTable(
     legalName: text("legal_name").notNull(),
     tradeName: text("trade_name"),
     category: supplierCategory("category").notNull().default("manufatura"),
+    supplierType: supplierType("supplier_type"),
+    economicGroup: text("economic_group"),
+    cnpj: text("cnpj"),
+    stateRegistration: text("state_registration"),
     countryId: uuid("country_id"),
+    stateProvince: text("state_province"),
     city: text("city"),
+    address: text("address"),
+    website: text("website"),
+    capacity: text("capacity"),
+    moq: integer("moq"),
+    incoterms: text("incoterms"),
+    currencies: text("currencies"),
     status: supplierStatus("status").notNull().default("em_homologacao"),
     rating: numeric("rating", { precision: 3, scale: 1 }),
     leadTimeDays: integer("lead_time_days"),
@@ -807,6 +841,83 @@ export const supplier = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [unique("uq_supplier_code").on(t.tenantId, t.code)],
+);
+
+/* ---- Fornecedor 360: sub-entidades ---- */
+export const supplierContact = pgTable("supplier_contact", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  name: text("name").notNull(),
+  role: text("role"),
+  email: text("email"),
+  phone: text("phone"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierBankAccount = pgTable("supplier_bank_account", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  bankName: text("bank_name").notNull(),
+  agency: text("agency"),
+  accountNumber: text("account_number"),
+  accountType: text("account_type"),
+  pixKey: text("pix_key"),
+  swift: text("swift"),
+  currency: text("currency").notNull().default("BRL"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierPlant = pgTable("supplier_plant", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  name: text("name").notNull(),
+  country: text("country"),
+  city: text("city"),
+  capacity: text("capacity"),
+  certifications: text("certifications"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierCertification = pgTable("supplier_certification", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  name: text("name").notNull(),
+  number: text("number"),
+  issuer: text("issuer"),
+  issueDate: date("issue_date"),
+  validUntil: date("valid_until"),
+  status: text("status").notNull().default("valido"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierAudit = pgTable("supplier_audit", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  auditDate: date("audit_date"),
+  auditType: text("audit_type"),
+  result: text("result").notNull().default("aprovado"),
+  score: integer("score"),
+  auditor: text("auditor"),
+  findings: text("findings"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierServedCategory = pgTable(
+  "supplier_served_category",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    supplierId: uuid("supplier_id").notNull(),
+    purchaseCategoryId: uuid("purchase_category_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_supplier_served").on(t.supplierId, t.purchaseCategoryId)],
 );
 
 export const purchaseOrder = pgTable(

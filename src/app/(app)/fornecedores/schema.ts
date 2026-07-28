@@ -10,15 +10,54 @@ export const SUPPLIER_CATEGORY = [
   "tecnologia",
 ] as const;
 
-export const SUPPLIER_STATUS = ["em_homologacao", "ativo", "inativo", "bloqueado"] as const;
+export const SUPPLIER_STATUS = [
+  "prospect",
+  "em_avaliacao",
+  "em_homologacao",
+  "homologado",
+  "condicional",
+  "suspenso",
+  "bloqueado",
+  "inativo",
+  "descontinuado",
+  "ativo",
+] as const;
+
+export const SUPPLIER_TYPE = [
+  "fabricante",
+  "distribuidor",
+  "importador",
+  "prestador_servico",
+  "agencia",
+  "transportadora",
+  "materia_prima",
+  "embalagem",
+  "grafico",
+  "textil",
+  "tecnologia",
+  "consultoria",
+  "laboratorio",
+  "operador_logistico",
+] as const;
 
 export const supplierSchema = z.object({
   code: z.string().trim().min(2, "Informe o código.").max(40),
   legalName: z.string().trim().min(2, "Informe a razão social.").max(200),
   tradeName: z.string().trim().max(200).nullable(),
+  supplierType: z.enum(SUPPLIER_TYPE).nullable(),
+  economicGroup: z.string().trim().max(160).nullable(),
+  cnpj: z.string().trim().max(30).nullable(),
+  stateRegistration: z.string().trim().max(40).nullable(),
   category: z.enum(SUPPLIER_CATEGORY),
   countryId: z.string().uuid().nullable(),
+  stateProvince: z.string().trim().max(80).nullable(),
   city: z.string().trim().max(120).nullable(),
+  address: z.string().trim().max(240).nullable(),
+  website: z.string().trim().max(200).nullable(),
+  capacity: z.string().trim().max(160).nullable(),
+  moq: z.number().int().min(0).max(1_000_000_000).nullable(),
+  incoterms: z.string().trim().max(120).nullable(),
+  currencies: z.string().trim().max(120).nullable(),
   status: z.enum(SUPPLIER_STATUS),
   rating: z.number().min(0).max(5).nullable(),
   leadTimeDays: z.number().int().min(0).max(3650).nullable(),

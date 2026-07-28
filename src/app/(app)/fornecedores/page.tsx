@@ -4,22 +4,9 @@ import { requireSession } from "@/lib/auth";
 import { listSuppliers } from "@/lib/data/suppliers";
 import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
-import type { SupplierStatus, SupplierCategory } from "@/lib/db/schema";
+import type { SupplierCategory } from "@/lib/db/schema";
+import { STATUS_LABEL, STATUS_TONE, TYPE_LABEL } from "./supplier-meta";
 
-type Tone = "good" | "info" | "neutral" | "warn" | "danger";
-
-const statusTone: Record<SupplierStatus, Tone> = {
-  em_homologacao: "warn",
-  ativo: "good",
-  inativo: "neutral",
-  bloqueado: "danger",
-};
-const statusLabel: Record<SupplierStatus, string> = {
-  em_homologacao: "Em homologação",
-  ativo: "Ativo",
-  inativo: "Inativo",
-  bloqueado: "Bloqueado",
-};
 export const categoryLabel: Record<SupplierCategory, string> = {
   materia_prima: "Matéria-prima",
   manufatura: "Manufatura",
@@ -37,6 +24,7 @@ export default async function FornecedoresPage() {
   const csvColumns = [
     { key: "codigo", label: "Código" },
     { key: "fornecedor", label: "Fornecedor" },
+    { key: "tipo", label: "Tipo" },
     { key: "categoria", label: "Categoria" },
     { key: "local", label: "Local" },
     { key: "lead_time", label: "Lead time (dias)" },
@@ -46,11 +34,12 @@ export default async function FornecedoresPage() {
   const csvRows = suppliers.map((s) => ({
     codigo: s.code,
     fornecedor: s.tradeName ?? s.legalName,
+    tipo: s.supplierType ? TYPE_LABEL[s.supplierType] : "",
     categoria: categoryLabel[s.category],
     local: [s.city, s.countryName].filter(Boolean).join(" · "),
     lead_time: s.leadTimeDays ?? "",
     rating: s.rating ?? "",
-    status: statusLabel[s.status],
+    status: STATUS_LABEL[s.status],
   }));
 
   return (
@@ -74,10 +63,11 @@ export default async function FornecedoresPage() {
       </div>
 
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-sm">
+        <table className="w-full min-w-[880px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
               <th className="px-5 py-3 font-medium">Fornecedor</th>
+              <th className="px-5 py-3 font-medium">Tipo</th>
               <th className="px-5 py-3 font-medium">Categoria</th>
               <th className="px-5 py-3 font-medium">Local</th>
               <th className="px-5 py-3 text-right font-medium">Lead time</th>
@@ -100,6 +90,9 @@ export default async function FornecedoresPage() {
                   </Link>
                   <div className="text-xs text-neutral-400">{s.code}</div>
                 </td>
+                <td className="px-5 py-3 text-neutral-600 dark:text-neutral-300">
+                  {s.supplierType ? TYPE_LABEL[s.supplierType] : "—"}
+                </td>
                 <td className="px-5 py-3">{categoryLabel[s.category]}</td>
                 <td className="px-5 py-3">
                   {[s.city, s.countryName].filter(Boolean).join(" · ") || "—"}
@@ -118,13 +111,13 @@ export default async function FornecedoresPage() {
                   )}
                 </td>
                 <td className="px-5 py-3">
-                  <Badge tone={statusTone[s.status]}>{statusLabel[s.status]}</Badge>
+                  <Badge tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</Badge>
                 </td>
               </tr>
             ))}
             {suppliers.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-400">
+                <td colSpan={7} className="px-5 py-10 text-center text-sm text-neutral-400">
                   Nenhum fornecedor cadastrado.
                 </td>
               </tr>
