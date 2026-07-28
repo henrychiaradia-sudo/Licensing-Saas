@@ -28,6 +28,8 @@ import {
   ListTodo,
   Gavel,
   FileSignature,
+  KeyRound,
+  Lock,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -78,6 +80,8 @@ const groups: NavGroup[] = [
       { href: "/juridico", label: "Jurídico", icon: Gavel },
       { href: "/qualidade", label: "Qualidade", icon: Microscope },
       { href: "/auditoria", label: "Auditoria", icon: ScrollText },
+      { href: "/acessos", label: "Perfis & Acessos", icon: KeyRound },
+      { href: "/seguranca", label: "Segurança", icon: Lock },
       { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
     ],
   },
@@ -125,7 +129,7 @@ export function Sidebar() {
       <div className="border-t border-neutral-200 px-5 py-3 text-[11.5px] text-neutral-400 dark:border-neutral-800">
         NovaSport Global · Demo
         <br />
-        v0.9 — Fases 1–12
+        v1.0 — Fases 1–14
       </div>
     </aside>
   );

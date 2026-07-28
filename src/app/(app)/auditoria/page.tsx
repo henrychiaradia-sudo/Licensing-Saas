@@ -45,6 +45,13 @@ const actionLabel: Record<string, string> = {
   "task.status": "Alterou status de tarefa",
   "supply_contract.create": "Criou contrato de fornecimento",
   "supply_contract.status": "Alterou status de contrato de fornecimento",
+  "security.login": "Acesso realizado",
+  "security.lockout": "Conta bloqueada por tentativas",
+  "security.mfa_enabled": "Ativou 2FA",
+  "security.mfa_disabled": "Desativou 2FA",
+  "security.password_change": "Alterou a senha",
+  "access.role_permission": "Alterou permissões de perfil",
+  "access.user_role": "Alterou usuários de perfil",
 };
 
 const entityLabel: Record<string, string> = {
@@ -68,6 +75,8 @@ const entityLabel: Record<string, string> = {
   legal_case: "Caso jurídico",
   task: "Tarefa",
   supply_contract: "Contrato de fornecimento",
+  security: "Segurança",
+  role: "Perfil de acesso",
 };
 
 const ENTITY_FILTERS = [

@@ -1,12 +1,15 @@
 import { loginAction } from "./actions";
 import { Button, Input, Label } from "@/components/ui";
+import { ShieldCheck } from "lucide-react";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; e?: string; mfa?: string }>;
 }) {
   const sp = await searchParams;
+  const errorMsg = sp.e ?? (sp.error ? "Credenciais inválidas." : null);
+  const mfaPrompt = sp.mfa === "1";
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
       <div className="w-full max-w-sm">
@@ -28,7 +31,25 @@ export default async function LoginPage({
               <Label htmlFor="password">Senha</Label>
               <Input id="password" name="password" type="password" required />
             </div>
-            {sp.error && <p className="text-sm text-red-600">Credenciais inválidas.</p>}
+            <div>
+              <Label htmlFor="code" className="flex items-center gap-1.5">
+                <ShieldCheck size={13} /> Código 2FA{" "}
+                <span className="font-normal text-neutral-400">(apenas se você ativou o 2FA)</span>
+              </Label>
+              <Input
+                id="code"
+                name="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="000000"
+                className={mfaPrompt ? "border-blue-400 ring-2 ring-blue-500/30" : ""}
+              />
+            </div>
+            {errorMsg && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40">
+                {errorMsg}
+              </p>
+            )}
             <Button type="submit" className="w-full">
               Entrar
             </Button>

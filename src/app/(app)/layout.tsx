@@ -49,7 +49,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               )}
             </Link>
             <ThemeToggle />
-            <div className="flex items-center gap-2">
+            <Link
+              href="/seguranca"
+              title="Segurança da conta"
+              className="flex items-center gap-2 rounded-lg px-1 py-0.5 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            >
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-blue-500 text-xs font-bold text-white">
                 {initials(session.name)}
               </div>
@@ -57,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <div className="text-xs font-semibold leading-none">{session.name}</div>
                 <div className="text-[11px] text-neutral-400">{session.email}</div>
               </div>
-            </div>
+            </Link>
             <form action={logoutAction}>
               <button
                 type="submit"
