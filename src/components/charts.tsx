@@ -215,10 +215,10 @@ export function ColumnTrend({
           <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: CHART_COLORS[1] }} /> Receita
         </span>
       </div>
-      <div className="flex items-end gap-3" style={{ height: 160 }}>
+      <div className="flex items-end gap-3">
         {rows.map((r) => (
-          <div key={r.label} className="flex flex-1 flex-col items-center gap-1">
-            <div className="flex h-full w-full items-end justify-center gap-1">
+          <div key={r.label} className="flex flex-1 flex-col items-center">
+            <div className="flex h-40 w-full items-end justify-center gap-1">
               <div
                 className="w-1/2 rounded-t"
                 style={{ height: `${Math.max(2, (r.a / max) * 100)}%`, backgroundColor: CHART_COLORS[0] }}
@@ -230,7 +230,7 @@ export function ColumnTrend({
                 title={`Receita ${format(r.b)}`}
               />
             </div>
-            <span className="text-[10px] text-neutral-400">{r.label}</span>
+            <span className="mt-1.5 text-[10px] text-neutral-400">{r.label}</span>
           </div>
         ))}
       </div>
@@ -239,14 +239,23 @@ export function ColumnTrend({
 }
 
 /* ------------------------------ Barra de progresso ------------------------------ */
-export function ProgressBar({ pct, className }: { pct: number; className?: string }) {
+export function ProgressBar({
+  pct,
+  className,
+  positive = false,
+}: {
+  pct: number;
+  className?: string;
+  /** Quando true, ultrapassar 100% é bom (KPIs) — não pinta de vermelho. */
+  positive?: boolean;
+}) {
   const clamped = Math.min(100, Math.max(0, pct));
   return (
     <div className={cn("h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800", className)}>
       <div
         className={cn(
           "h-2 rounded-full",
-          pct > 100 ? "bg-red-500" : "bg-gradient-to-r from-blue-500 to-emerald-500",
+          !positive && pct > 100 ? "bg-red-500" : "bg-gradient-to-r from-blue-500 to-emerald-500",
         )}
         style={{ width: `${clamped}%` }}
       />

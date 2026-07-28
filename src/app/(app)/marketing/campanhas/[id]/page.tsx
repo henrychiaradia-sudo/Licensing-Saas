@@ -201,7 +201,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
                       </span>
                     )}
                   </div>
-                  {pct != null && <ProgressBar pct={pct} className="mt-2" />}
+                  {pct != null && <ProgressBar pct={pct} positive className="mt-2" />}
                   {pct != null && <div className="mt-1 text-[11px] text-neutral-400">{pct}% da meta</div>}
                 </div>
               );
