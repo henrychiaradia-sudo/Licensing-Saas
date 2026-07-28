@@ -13,6 +13,7 @@ import {
   legalPriorityLabel,
 } from "../page";
 import { Card, Badge, Button } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { LegalCaseStatus, LegalCasePriority, LegalCaseType, LegalEventType } from "@/lib/db/schema";
 
@@ -94,9 +95,19 @@ export default async function LegalCaseDetailPage({
           {nextActions.map((a) => (
             <form key={a.value} action={setLegalCaseStatusAction.bind(null, c.id)}>
               <input type="hidden" name="status" value={a.value} />
-              <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
-                {a.icon} {a.label}
-              </Button>
+              {a.value === "encerrado" || a.value === "arquivado" ? (
+                <ConfirmButton
+                  message={`Confirmar "${a.label}" do caso ${c.caseNumber}?`}
+                  size="sm"
+                  variant={a.variant ?? "primary"}
+                >
+                  {a.icon} {a.label}
+                </ConfirmButton>
+              ) : (
+                <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
+                  {a.icon} {a.label}
+                </Button>
+              )}
             </form>
           ))}
         </Card>

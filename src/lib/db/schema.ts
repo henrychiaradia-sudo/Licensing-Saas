@@ -985,6 +985,8 @@ export const auditLog = pgTable("audit_log", {
   entityType: text("entity_type").notNull(),
   entityId: uuid("entity_id"),
   changes: jsonb("changes"),
+  actorName: text("actor_name"),
+  actorIp: text("actor_ip"),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -1341,3 +1343,31 @@ export const supplyContract = pgTable(
   },
   (t) => [unique("uq_supply_contract_number").on(t.tenantId, t.contractNumber)],
 );
+
+/* ============ FASE 10 — NOTIFICAÇÕES ============ */
+export const notificationType = pgEnum("notification_type", [
+  "contract_expiring",
+  "receivable_overdue",
+  "quality_nc",
+  "task_overdue",
+  "legal_deadline",
+  "system",
+]);
+export type NotificationType = (typeof notificationType.enumValues)[number];
+
+export const notification = pgTable("notification", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  userId: uuid("user_id"),
+  type: notificationType("type").notNull().default("system"),
+  severity: text("severity").notNull().default("info"),
+  title: text("title").notNull(),
+  body: text("body"),
+  entityType: text("entity_type"),
+  entityId: uuid("entity_id"),
+  link: text("link"),
+  dedupeKey: text("dedupe_key"),
+  emailedAt: timestamp("emailed_at", { withTimezone: true }),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

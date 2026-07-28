@@ -81,7 +81,7 @@ export async function setSupplyContractStatusAction(id: string, formData: FormDa
   if (!canWriteSupply(session)) return;
   const status = String(formData.get("status") ?? "");
   if (!(SUPPLY_STATUS as readonly string[]).includes(status)) return;
-  await setSupplyContractStatus(session.tenantId, id, status as SupplyContractStatus);
+  const { previous } = await setSupplyContractStatus(session.tenantId, id, status as SupplyContractStatus);
   await logAudit(
     session.tenantId,
     session.userId,
@@ -89,6 +89,7 @@ export async function setSupplyContractStatusAction(id: string, formData: FormDa
     "supply_contract",
     id,
     `Status do contrato → ${status}`,
+    { before: { status: previous }, after: { status }, actorName: session.name },
   );
   revalidatePath(`/contratos-fornecimento/${id}`);
   revalidatePath("/contratos-fornecimento");

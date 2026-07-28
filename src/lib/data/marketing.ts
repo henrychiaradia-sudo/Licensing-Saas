@@ -150,12 +150,18 @@ export async function setCampaignStatus(
   tenantId: string,
   id: string,
   status: CampaignStatus,
-): Promise<void> {
-  if (!(CAMPAIGN_STATUS_VALUES as readonly string[]).includes(status)) return;
+): Promise<{ previous: string | null }> {
+  if (!(CAMPAIGN_STATUS_VALUES as readonly string[]).includes(status)) return { previous: null };
+  const prev = await db
+    .select({ status: marketingCampaign.status })
+    .from(marketingCampaign)
+    .where(and(eq(marketingCampaign.id, id), eq(marketingCampaign.tenantId, tenantId)))
+    .limit(1);
   await db
     .update(marketingCampaign)
     .set({ status, updatedAt: new Date() })
     .where(and(eq(marketingCampaign.id, id), eq(marketingCampaign.tenantId, tenantId)));
+  return { previous: prev[0]?.status ?? null };
 }
 
 export type ActivationInput = {

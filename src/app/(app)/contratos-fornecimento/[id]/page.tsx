@@ -6,6 +6,7 @@ import { getSupplyContractDetail } from "@/lib/data/supply-contracts";
 import { setSupplyContractStatusAction } from "../actions";
 import { supplyStatusTone, supplyStatusLabel } from "../page";
 import { Card, Badge, Button } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { SupplyContractStatus } from "@/lib/db/schema";
 
@@ -68,9 +69,19 @@ export default async function SupplyContractDetailPage({
           {nextActions.map((a) => (
             <form key={a.value} action={setSupplyContractStatusAction.bind(null, c.id)}>
               <input type="hidden" name="status" value={a.value} />
-              <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
-                {a.icon} {a.label}
-              </Button>
+              {a.variant === "danger" ? (
+                <ConfirmButton
+                  message={`Confirmar "${a.label}" do contrato ${c.contractNumber}?`}
+                  size="sm"
+                  variant="danger"
+                >
+                  {a.icon} {a.label}
+                </ConfirmButton>
+              ) : (
+                <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
+                  {a.icon} {a.label}
+                </Button>
+              )}
             </form>
           ))}
         </Card>

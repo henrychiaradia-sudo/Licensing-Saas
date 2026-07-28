@@ -85,7 +85,7 @@ export async function setLegalCaseStatusAction(id: string, formData: FormData): 
   if (!canWriteLegal(session)) return;
   const status = String(formData.get("status") ?? "");
   if (!(LEGAL_CASE_STATUS as readonly string[]).includes(status)) return;
-  await setLegalCaseStatus(session.tenantId, id, status as LegalCaseStatus);
+  const { previous } = await setLegalCaseStatus(session.tenantId, id, status as LegalCaseStatus);
   await logAudit(
     session.tenantId,
     session.userId,
@@ -93,6 +93,7 @@ export async function setLegalCaseStatusAction(id: string, formData: FormData): 
     "legal_case",
     id,
     `Status do caso → ${status}`,
+    { before: { status: previous }, after: { status }, actorName: session.name },
   );
   revalidatePath(`/juridico/${id}`);
   revalidatePath("/juridico");

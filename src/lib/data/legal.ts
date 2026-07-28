@@ -157,8 +157,13 @@ export async function setLegalCaseStatus(
   tenantId: string,
   id: string,
   status: LegalCaseStatus,
-): Promise<void> {
-  if (!(LEGAL_STATUS_VALUES as readonly string[]).includes(status)) return;
+): Promise<{ previous: string | null }> {
+  if (!(LEGAL_STATUS_VALUES as readonly string[]).includes(status)) return { previous: null };
+  const prev = await db
+    .select({ status: legalCase.status })
+    .from(legalCase)
+    .where(and(eq(legalCase.id, id), eq(legalCase.tenantId, tenantId)))
+    .limit(1);
   const closes = status === "encerrado" || status === "arquivado";
   await db
     .update(legalCase)
@@ -168,6 +173,7 @@ export async function setLegalCaseStatus(
       updatedAt: new Date(),
     })
     .where(and(eq(legalCase.id, id), eq(legalCase.tenantId, tenantId)));
+  return { previous: prev[0]?.status ?? null };
 }
 
 export type LegalEventInput = {

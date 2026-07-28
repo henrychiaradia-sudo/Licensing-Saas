@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { requireSession, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
+import { unreadCount } from "@/lib/data/notifications";
 import { initials } from "@/lib/utils";
-import { LogOut, Search } from "lucide-react";
+import { LogOut, Search, Bell } from "lucide-react";
 
 async function logoutAction() {
   "use server";
@@ -15,6 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await requireSession();
   if (session.licenseeId) redirect("/portal");
   if (session.supplierId) redirect("/fornecedor");
+  const unread = await unreadCount(session.tenantId);
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -32,6 +35,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
           </form>
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/notificacoes"
+              aria-label="Notificações"
+              title="Notificações"
+              className="relative grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700"
+            >
+              <Bell size={16} />
+              {unread > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {unread > 9 ? "9+" : unread}
+                </span>
+              )}
+            </Link>
             <ThemeToggle />
             <div className="flex items-center gap-2">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-violet-600 to-blue-500 text-xs font-bold text-white">

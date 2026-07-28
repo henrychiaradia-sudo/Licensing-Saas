@@ -7,6 +7,7 @@ import { setCampaignStatusAction } from "../actions";
 import { ActivationForm } from "../activation-form";
 import { campaignStatusTone, campaignStatusLabel, campaignTypeLabel } from "../page";
 import { Card, Badge, Button } from "@/components/ui";
+import { ConfirmButton } from "@/components/confirm-button";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { CampaignStatus, ActivationType } from "@/lib/db/schema";
 
@@ -74,9 +75,19 @@ export default async function CampaignDetailPage({
           {nextActions.map((a) => (
             <form key={a.value} action={setCampaignStatusAction.bind(null, c.id)}>
               <input type="hidden" name="status" value={a.value} />
-              <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
-                {a.icon} {a.label}
-              </Button>
+              {a.variant === "danger" ? (
+                <ConfirmButton
+                  message={`Confirmar "${a.label}" da campanha? Esta ação altera o status.`}
+                  size="sm"
+                  variant="danger"
+                >
+                  {a.icon} {a.label}
+                </ConfirmButton>
+              ) : (
+                <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
+                  {a.icon} {a.label}
+                </Button>
+              )}
             </form>
           ))}
         </Card>

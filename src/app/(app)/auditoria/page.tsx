@@ -109,6 +109,22 @@ function summaryText(changes: unknown): string {
   return "—";
 }
 
+/** Extrai um diff legível antes→depois do jsonb de mudanças, se presente. */
+function changeDiff(changes: unknown): { field: string; before: string; after: string }[] {
+  if (!changes || typeof changes !== "object") return [];
+  const c = changes as { before?: Record<string, unknown>; after?: Record<string, unknown> };
+  if (!c.before && !c.after) return [];
+  const keys = new Set([...Object.keys(c.before ?? {}), ...Object.keys(c.after ?? {})]);
+  const out: { field: string; before: string; after: string }[] = [];
+  for (const k of keys) {
+    const b = c.before?.[k];
+    const a = c.after?.[k];
+    if (JSON.stringify(b) === JSON.stringify(a)) continue;
+    out.push({ field: k, before: b == null ? "—" : String(b), after: a == null ? "—" : String(a) });
+  }
+  return out;
+}
+
 export default async function AuditoriaPage({
   searchParams,
 }: {
@@ -126,17 +142,23 @@ export default async function AuditoriaPage({
   const csvColumns = [
     { key: "data", label: "Data / hora" },
     { key: "usuario", label: "Usuário" },
+    { key: "ip", label: "IP" },
     { key: "acao", label: "Ação" },
     { key: "entidade", label: "Entidade" },
     { key: "detalhe", label: "Detalhe" },
   ];
-  const csvRows = entries.map((e) => ({
-    data: fmtDateTime(e.occurredAt),
-    usuario: e.userName ?? "Sistema",
-    acao: actionLabel[e.action] ?? e.action,
-    entidade: entityLabel[e.entityType] ?? e.entityType,
-    detalhe: summaryText(e.changes),
-  }));
+  const csvRows = entries.map((e) => {
+    const diff = changeDiff(e.changes);
+    const diffText = diff.map((d) => `${d.field}: ${d.before} → ${d.after}`).join("; ");
+    return {
+      data: fmtDateTime(e.occurredAt),
+      usuario: e.userName ?? e.actorName ?? "Sistema",
+      ip: e.actorIp ?? "",
+      acao: actionLabel[e.action] ?? e.action,
+      entidade: entityLabel[e.entityType] ?? e.entityType,
+      detalhe: diffText ? `${summaryText(e.changes)} (${diffText})` : summaryText(e.changes),
+    };
+  });
 
   return (
     <div>
@@ -208,12 +230,25 @@ export default async function AuditoriaPage({
             {entries.map((e) => (
               <tr key={e.id} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
                 <td className="px-5 py-3 tabular-nums text-neutral-500">{fmtDateTime(e.occurredAt)}</td>
-                <td className="px-5 py-3">{e.userName ?? "Sistema"}</td>
+                <td className="px-5 py-3">
+                  <div>{e.userName ?? e.actorName ?? "Sistema"}</div>
+                  {e.actorIp && <div className="text-[11px] tabular-nums text-neutral-400">IP {e.actorIp}</div>}
+                </td>
                 <td className="px-5 py-3 font-medium">{actionLabel[e.action] ?? e.action}</td>
                 <td className="px-5 py-3">
                   <Badge tone="neutral">{entityLabel[e.entityType] ?? e.entityType}</Badge>
                 </td>
-                <td className="px-5 py-3 text-neutral-500">{summaryText(e.changes)}</td>
+                <td className="px-5 py-3 text-neutral-500">
+                  <div>{summaryText(e.changes)}</div>
+                  {changeDiff(e.changes).map((d, i) => (
+                    <div key={i} className="mt-0.5 text-[11px]">
+                      <span className="text-neutral-400">{d.field}: </span>
+                      <span className="text-red-500 line-through">{d.before}</span>
+                      <span className="text-neutral-400"> → </span>
+                      <span className="font-medium text-emerald-600">{d.after}</span>
+                    </div>
+                  ))}
+                </td>
               </tr>
             ))}
             {entries.length === 0 && (

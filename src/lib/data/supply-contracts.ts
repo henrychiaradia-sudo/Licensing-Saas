@@ -138,10 +138,16 @@ export async function setSupplyContractStatus(
   tenantId: string,
   id: string,
   status: SupplyContractStatus,
-): Promise<void> {
-  if (!(SUPPLY_STATUS_VALUES as readonly string[]).includes(status)) return;
+): Promise<{ previous: string | null }> {
+  if (!(SUPPLY_STATUS_VALUES as readonly string[]).includes(status)) return { previous: null };
+  const prev = await db
+    .select({ status: supplyContract.status })
+    .from(supplyContract)
+    .where(and(eq(supplyContract.id, id), eq(supplyContract.tenantId, tenantId)))
+    .limit(1);
   await db
     .update(supplyContract)
     .set({ status, updatedAt: new Date() })
     .where(and(eq(supplyContract.id, id), eq(supplyContract.tenantId, tenantId)));
+  return { previous: prev[0]?.status ?? null };
 }

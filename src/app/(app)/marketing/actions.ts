@@ -82,7 +82,7 @@ export async function setCampaignStatusAction(id: string, formData: FormData): P
   if (!canWriteMarketing(session)) return;
   const status = String(formData.get("status") ?? "");
   if (!(CAMPAIGN_STATUS as readonly string[]).includes(status)) return;
-  await setCampaignStatus(session.tenantId, id, status as CampaignStatus);
+  const { previous } = await setCampaignStatus(session.tenantId, id, status as CampaignStatus);
   await logAudit(
     session.tenantId,
     session.userId,
@@ -90,6 +90,7 @@ export async function setCampaignStatusAction(id: string, formData: FormData): P
     "marketing_campaign",
     id,
     `Status da campanha → ${status}`,
+    { before: { status: previous }, after: { status }, actorName: session.name },
   );
   revalidatePath(`/marketing/${id}`);
   revalidatePath("/marketing");
