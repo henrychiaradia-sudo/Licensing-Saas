@@ -2,12 +2,35 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth";
-import { addFxRate, addHedge, setHedgeStatus } from "@/lib/data/fx";
+import { addFxRate, addHedge, setHedgeStatus, syncLiveRates } from "@/lib/data/fx";
 import { logAudit } from "@/lib/data/audit";
 import { fxRateSchema, hedgeSchema, hedgeStatusSchema } from "./schema";
 import type { HedgeStatus } from "@/lib/db/schema";
 
-export type FormState = { error: string | null; ok?: boolean };
+export type FormState = { error: string | null; ok?: boolean; message?: string };
+
+export async function syncLiveRatesAction(_prev: FormState, _formData: FormData): Promise<FormState> {
+  const session = await requireSession();
+  try {
+    const { updated } = await syncLiveRates(session.tenantId, session.userId);
+    await logAudit(
+      session.tenantId,
+      session.userId,
+      "fx.sync",
+      "currency",
+      session.tenantId,
+      `Cotações sincronizadas via AwesomeAPI (${updated} moeda(s))`,
+    );
+    revalidatePath("/cambio");
+    return {
+      error: null,
+      ok: true,
+      message: updated > 0 ? `${updated} moeda(s) atualizada(s) com a cotação ao vivo.` : "Nenhuma moeda correspondente para atualizar.",
+    };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Falha ao sincronizar as cotações." };
+  }
+}
 
 function emptyToNull(v: FormDataEntryValue | null): string | null {
   const s = v == null ? "" : String(v).trim();

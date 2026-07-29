@@ -3,6 +3,7 @@ import { and, eq, asc, desc, inArray, count } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { currency, fxRate, hedgeContract, purchaseOrder, supplier } from "@/lib/db/schema";
 import type { HedgeInstrument, HedgeSide, HedgeStatus } from "@/lib/db/schema";
+import { fetchLiveQuotes } from "@/lib/fx-live";
 
 /** Moeda base do sistema. Todas as taxas são expressas em BRL por 1 unidade. */
 export const BASE_ISO = "BRL";
@@ -366,4 +367,52 @@ export function currencyOptionsFrom(rates: CurrencyRate[]) {
   return rates
     .filter((c) => !c.isBase)
     .map((c) => ({ id: c.id, label: `${c.isoCode} — ${c.name}` }));
+}
+
+/* ---------------------------------------------------------------------------
+ * Sincronização automática: grava a cotação comercial ao vivo (AwesomeAPI)
+ * na tabela fx_rate das moedas ativas correspondentes (uma por dia).
+ * ------------------------------------------------------------------------- */
+export async function syncLiveRates(
+  tenantId: string,
+  userId: string,
+): Promise<{ updated: number; missing: string[] }> {
+  const quotes = await fetchLiveQuotes();
+  if (!quotes.ok) throw new Error("Não foi possível obter as cotações em tempo real agora.");
+
+  const byIso = new Map(quotes.comercial.map((q) => [q.code, q]));
+  const curs = await db
+    .select({ id: currency.id, iso: currency.isoCode })
+    .from(currency)
+    .where(eq(currency.active, true));
+
+  const today = new Date().toISOString().slice(0, 10);
+  let updated = 0;
+  const missing: string[] = [];
+
+  for (const c of curs) {
+    const iso = c.iso.trim();
+    if (iso === BASE_ISO) continue;
+    const quote = byIso.get(iso);
+    if (!quote) {
+      missing.push(iso);
+      continue;
+    }
+    const rate = quote.ask > 0 ? quote.ask : quote.bid; // venda como referência
+    if (!(rate > 0)) continue;
+    // Mantém uma cotação por dia por moeda (evita duplicar em syncs repetidos).
+    await db
+      .delete(fxRate)
+      .where(and(eq(fxRate.tenantId, tenantId), eq(fxRate.currencyId, c.id), eq(fxRate.rateDate, today)));
+    await db.insert(fxRate).values({
+      tenantId,
+      currencyId: c.id,
+      rateToBase: rate.toFixed(6),
+      rateDate: today,
+      source: "AwesomeAPI (comercial)",
+      createdBy: userId,
+    });
+    updated++;
+  }
+  return { updated, missing };
 }

@@ -17,6 +17,7 @@ import { Sparkline } from "./sparkline";
 import { Scenario } from "./scenario";
 import { RateForm } from "./rate-form";
 import { HedgeForm } from "./hedge-form";
+import { FxLivePanel } from "./fx-live";
 
 function fmtRate(n: number | null) {
   if (n == null) return "—";
@@ -65,6 +66,9 @@ export default async function CambioPage() {
           BRL
         </p>
       </div>
+
+      {/* Cotação em tempo real (AwesomeAPI) */}
+      <FxLivePanel />
 
       {/* KPIs */}
       <div className="mb-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
