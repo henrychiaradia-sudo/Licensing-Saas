@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { upsertBudget, CURRENT_FISCAL_YEAR } from "@/lib/data/purchase-budget";
 import { logAudit } from "@/lib/data/audit";
 
@@ -17,7 +18,10 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
 }
 
 export async function setBudgetAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) {
+    return { error: "Você não tem permissão para definir orçamento de compras." };
+  }
   const categoryId = String(formData.get("categoryId") ?? "");
   const amount = numOrNull(formData.get("amount"));
   const yearRaw = parseInt(String(formData.get("fiscalYear") ?? ""), 10);

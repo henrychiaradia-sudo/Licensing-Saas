@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireSession, can } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
 import { registerPayment, registerPaymentDetailed } from "@/lib/data/finance";
 
 export async function registerPaymentAction(receivableId: string) {
-  const session = await requireSession();
+  const session = await requireInternal();
   if (!can(session, PERMISSIONS.financeWrite)) return;
   await registerPayment(session.tenantId, receivableId);
   revalidatePath("/financeiro");
@@ -26,7 +26,10 @@ export async function registerPaymentDetailedAction(
   receivableId: string,
   input: unknown,
 ): Promise<PayResult> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.financeWrite)) {
+    return { ok: false, error: "Você não tem permissão para registrar pagamentos." };
+  }
 
   const parsed = paySchema.safeParse(input);
   if (!parsed.success) {

@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import {
   createRequisition,
   submitRequisition,
@@ -17,7 +18,10 @@ export type CreateReqResult = { ok: false; error: string };
 export type FormState = { error: string | null };
 
 export async function createRequisitionAction(input: unknown): Promise<CreateReqResult> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.requisitionWrite)) {
+    return { ok: false, error: "Você não tem permissão para criar requisições." };
+  }
   const parsed = requisitionSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
@@ -45,7 +49,8 @@ export async function createRequisitionAction(input: unknown): Promise<CreateReq
 }
 
 export async function submitRequisitionAction(id: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.requisitionWrite)) return;
   await submitRequisition(session.tenantId, id);
   await generateApprovalSteps(session.tenantId, id);
   revalidatePath(`/requisicoes/${id}`);
@@ -53,7 +58,8 @@ export async function submitRequisitionAction(id: string): Promise<void> {
 }
 
 export async function decideRequisitionAction(id: string, formData: FormData): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.requisitionApprove)) return;
   const decision = String(formData.get("decision") ?? "");
   const comment = String(formData.get("comment") ?? "").trim() || null;
   if (decision !== "aprovada" && decision !== "reprovada") return;
@@ -75,7 +81,10 @@ export async function convertRequisitionAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) {
+    return { error: "Você não tem permissão para gerar pedidos de compra." };
+  }
   const supplierId = String(formData.get("supplierId") ?? "");
   const currencyId = String(formData.get("currencyId") ?? "");
   if (!supplierId || !currencyId) return { error: "Selecione fornecedor e moeda." };

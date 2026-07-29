@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { addFxRate, addHedge, setHedgeStatus, syncLiveRates } from "@/lib/data/fx";
 import { logAudit } from "@/lib/data/audit";
 import { fxRateSchema, hedgeSchema, hedgeStatusSchema } from "./schema";
@@ -10,7 +11,10 @@ import type { HedgeStatus } from "@/lib/db/schema";
 export type FormState = { error: string | null; ok?: boolean; message?: string };
 
 export async function syncLiveRatesAction(_prev: FormState, _formData: FormData): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.financeWrite)) {
+    return { error: "Você não tem permissão para sincronizar cotações." };
+  }
   try {
     const { updated } = await syncLiveRates(session.tenantId, session.userId);
     await logAudit(
@@ -46,7 +50,10 @@ function numOrNull(v: FormDataEntryValue | null): number | null {
 }
 
 export async function addFxRateAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.financeWrite)) {
+    return { error: "Você não tem permissão para registrar cotações." };
+  }
   const candidate = {
     currencyId: String(formData.get("currencyId") ?? ""),
     rateToBase: numOrNull(formData.get("rateToBase")) ?? 0,
@@ -73,7 +80,10 @@ export async function addFxRateAction(_prev: FormState, formData: FormData): Pro
 }
 
 export async function addHedgeAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.financeWrite)) {
+    return { error: "Você não tem permissão para registrar hedge." };
+  }
   const candidate = {
     currencyId: String(formData.get("currencyId") ?? ""),
     instrument: String(formData.get("instrument") ?? "ndf"),
@@ -105,7 +115,8 @@ export async function addHedgeAction(_prev: FormState, formData: FormData): Prom
 }
 
 export async function setHedgeStatusAction(hedgeId: string, status: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.financeWrite)) return;
   const parsed = hedgeStatusSchema.safeParse({ status });
   if (!parsed.success) return;
   await setHedgeStatus(session.tenantId, hedgeId, parsed.data.status as HedgeStatus);

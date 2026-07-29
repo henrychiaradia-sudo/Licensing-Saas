@@ -127,6 +127,19 @@ export async function decideCurrentStep(
   userId: string,
 ): Promise<{ final: "aprovada" | "reprovada" | null; tierLabel: string }> {
   await generateApprovalSteps(tenantId, reqId); // backfill caso a requisição seja antiga
+
+  // Segregação de funções: o solicitante não pode decidir a própria requisição.
+  const reqRow = await db
+    .select({ requester: purchaseRequisition.requesterUserId })
+    .from(purchaseRequisition)
+    .where(and(eq(purchaseRequisition.id, reqId), eq(purchaseRequisition.tenantId, tenantId)))
+    .limit(1);
+  if (reqRow[0]?.requester && reqRow[0].requester === userId) {
+    throw new Error(
+      "Segregação de funções: você não pode aprovar ou reprovar a própria requisição.",
+    );
+  }
+
   const steps = await db
     .select()
     .from(requisitionApprovalStep)

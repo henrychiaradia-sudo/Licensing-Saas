@@ -132,6 +132,21 @@ export async function requireSupplierSession(): Promise<SessionData & { supplier
   return session as SessionData & { supplierId: string };
 }
 
+/**
+ * Exige um usuário INTERNO (colaborador). Bloqueia usuários de portal
+ * (licenciado/fornecedor) — camada de defesa nas server actions internas,
+ * além do redirecionamento já feito no layout de (app).
+ */
+export async function requireInternal(): Promise<SessionData> {
+  const session = await requireSession();
+  if (!session.isInternal) {
+    if (session.licenseeId) redirect("/portal");
+    if (session.supplierId) redirect("/fornecedor");
+    redirect("/login");
+  }
+  return session;
+}
+
 export function can(session: SessionData, permission: string) {
   return session.permissions.includes(permission);
 }

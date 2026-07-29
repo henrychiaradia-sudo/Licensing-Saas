@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import {
   createPurchaseContract,
   setPurchaseContractStatus,
@@ -31,7 +32,10 @@ export async function createPurchaseContractAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) {
+    return { error: "Você não tem permissão para gerir contratos de compra." };
+  }
   const candidate = {
     title: String(formData.get("title") ?? "").trim(),
     supplierId: String(formData.get("supplierId") ?? ""),
@@ -69,7 +73,8 @@ export async function createPurchaseContractAction(
 }
 
 export async function setPurchaseContractStatusAction(id: string, status: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) return;
   const valid = ["rascunho", "vigente", "suspenso", "encerrado"];
   if (!valid.includes(status)) return;
   await setPurchaseContractStatus(session.tenantId, id, status as PurchaseContractStatus);

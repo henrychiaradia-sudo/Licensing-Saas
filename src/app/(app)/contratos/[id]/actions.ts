@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { saveRoyaltyRule } from "@/lib/data/royalties";
 
 const optNum = z.union([z.coerce.number(), z.literal(""), z.null()]).optional();
@@ -31,7 +32,10 @@ export async function saveRoyaltyRuleAction(
   contractId: string,
   input: unknown,
 ): Promise<SaveRuleResult> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.contractWrite)) {
+    return { ok: false, error: "Você não tem permissão para editar a regra de royalty." };
+  }
 
   const parsed = schema.safeParse(input);
   if (!parsed.success) {

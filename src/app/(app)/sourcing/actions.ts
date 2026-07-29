@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import {
   createSourcingEvent,
   addSourcingQuote,
@@ -42,7 +43,10 @@ export async function createSourcingEventAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingWrite)) {
+    return { error: "Você não tem permissão para gerir sourcing." };
+  }
   const candidate = {
     title: String(formData.get("title") ?? "").trim(),
     processType: String(formData.get("processType") ?? "rfq"),
@@ -72,7 +76,10 @@ export async function addQuoteAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingWrite)) {
+    return { error: "Você não tem permissão para gerir sourcing." };
+  }
   const candidate = {
     supplierId: String(formData.get("supplierId") ?? ""),
     amount: numOrNull(formData.get("amount")) ?? 0,
@@ -112,7 +119,10 @@ export async function setWeightsAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingWrite)) {
+    return { error: "Você não tem permissão para gerir sourcing." };
+  }
   const candidate = {
     price: intOrNull(formData.get("price")) ?? 0,
     lead: intOrNull(formData.get("lead")) ?? 0,
@@ -150,7 +160,10 @@ export async function addNegotiationAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingWrite)) {
+    return { error: "Você não tem permissão para gerir sourcing." };
+  }
   const amount = numOrNull(formData.get("amount"));
   const notes = emptyToNull(formData.get("notes"));
   if (amount == null || amount <= 0) {
@@ -178,7 +191,10 @@ export async function addCommentAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingWrite)) {
+    return { error: "Você não tem permissão para comentar neste processo." };
+  }
   const parsed = commentSchema.safeParse({ message: String(formData.get("message") ?? "").trim() });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Comentário inválido." };
@@ -200,7 +216,8 @@ export async function addCommentAction(
 }
 
 export async function approveEventAction(eventId: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingAward)) return;
   await approveSourcingEvent(session.tenantId, eventId, session.userId, session.name);
   await logAudit(
     session.tenantId,
@@ -214,7 +231,8 @@ export async function approveEventAction(eventId: string): Promise<void> {
 }
 
 export async function awardQuoteAction(eventId: string, quoteId: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.sourcingAward)) return;
   await awardSourcingQuote(session.tenantId, eventId, quoteId, session.userId, session.name);
   await logAudit(
     session.tenantId,
@@ -228,7 +246,8 @@ export async function awardQuoteAction(eventId: string, quoteId: string): Promis
 }
 
 export async function generatePoAction(quoteId: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) return;
   const { poId } = await generatePoFromQuote(session.tenantId, quoteId);
   redirect(`/compras/${poId}`);
 }

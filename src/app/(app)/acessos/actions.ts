@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireSession, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import { setRolePermission, setUserRole } from "@/lib/data/access";
 import { logAudit } from "@/lib/data/audit";
 
@@ -12,6 +13,7 @@ export async function toggleRolePermissionAction(
 ): Promise<void> {
   const session = await requireSession();
   if (!session.isInternal) return;
+  if (!can(session, PERMISSIONS.accessWrite)) return;
   const on = String(formData.get("on") ?? "") === "true";
   await setRolePermission(session.tenantId, roleId, permissionId, on);
   await logAudit(
@@ -33,6 +35,7 @@ export async function toggleUserRoleAction(
 ): Promise<void> {
   const session = await requireSession();
   if (!session.isInternal) return;
+  if (!can(session, PERMISSIONS.accessWrite)) return;
   const on = String(formData.get("on") ?? "") === "true";
   await setUserRole(session.tenantId, roleId, userId, on);
   await logAudit(

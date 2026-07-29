@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth";
+import { requireInternal, can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
 import {
   createPurchaseOrder,
   setPurchaseOrderStatus,
@@ -17,7 +18,10 @@ import type { PoStatus } from "@/lib/db/schema";
 export type CreatePoResult = { ok: false; error: string };
 
 export async function createPurchaseOrderAction(input: unknown): Promise<CreatePoResult> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) {
+    return { ok: false, error: "Você não tem permissão para criar pedidos de compra." };
+  }
 
   const parsed = purchaseOrderSchema.safeParse(input);
   if (!parsed.success) {
@@ -66,7 +70,8 @@ export async function createPurchaseOrderAction(input: unknown): Promise<CreateP
 }
 
 export async function setPoStatusAction(id: string, target: PoStatus): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) return;
   await setPurchaseOrderStatus(session.tenantId, id, target);
   await logAudit(
     session.tenantId,
@@ -81,7 +86,8 @@ export async function setPoStatusAction(id: string, target: PoStatus): Promise<v
 }
 
 export async function approvePoAction(id: string): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseApprove)) return;
   await approvePurchaseOrder(session.tenantId, id, session.userId);
   await logAudit(
     session.tenantId,
@@ -96,7 +102,8 @@ export async function approvePoAction(id: string): Promise<void> {
 }
 
 export async function receivePoAction(id: string, formData: FormData): Promise<void> {
-  const session = await requireSession();
+  const session = await requireInternal();
+  if (!can(session, PERMISSIONS.purchaseWrite)) return;
   const receipts: { itemId: string; receivedQty: number }[] = [];
   for (const [k, v] of formData.entries()) {
     if (k.startsWith("qty_")) {
