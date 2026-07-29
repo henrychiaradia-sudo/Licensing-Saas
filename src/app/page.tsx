@@ -150,7 +150,11 @@ export default async function LandingPage() {
         <footer className="mx-auto max-w-6xl px-6 py-10">
           <div className="flex flex-col items-center justify-between gap-4 border-t border-neutral-200 pt-8 text-sm text-neutral-400 dark:border-neutral-800 sm:flex-row">
             <AlianzaLogo tileSize={28} wordClassName="text-sm" />
-            <span>NovaSport Global · Demo · © 2026</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+              <Link href="/privacidade" className="hover:text-blue-600">Privacidade</Link>
+              <Link href="/termos" className="hover:text-blue-600">Termos de uso</Link>
+              <span>NovaSport Global · Demo · © 2026</span>
+            </div>
           </div>
         </footer>
       </div>

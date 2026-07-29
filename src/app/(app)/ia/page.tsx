@@ -160,7 +160,7 @@ export default async function IaPage({
           </div>
           <div className="space-y-2.5">
             {insights.map((it) => {
-              const s = SEV[it.severity];
+              const s = SEV[it.severity] ?? SEV.info;
               const Icon = s.icon;
               const body = (
                 <div className={cn("rounded-xl border p-3.5", s.box)}>
@@ -204,7 +204,7 @@ export default async function IaPage({
             })}
             {insights.length === 0 && (
               <p className="py-6 text-center text-sm text-neutral-400">
-                Nenhum alerta no momento. Tudo sob controle. 🎉
+                Nenhum alerta no momento. Tudo sob controle.
               </p>
             )}
           </div>

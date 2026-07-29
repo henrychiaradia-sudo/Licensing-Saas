@@ -15,3 +15,15 @@ export const SUPPORT = {
 export function whatsappLink(message: string = SUPPORT.whatsappMessage): string {
   return `https://wa.me/${SUPPORT.whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * Encarregado pelo Tratamento de Dados Pessoais (DPO) — LGPD, art. 41.
+ * ⚠️ Valores de DEMONSTRAÇÃO — troque pelos dados reais do encarregado da ALIANZA.
+ */
+export const DPO = {
+  name: "Encarregado de Proteção de Dados (DPO)",
+  email: "dpo@alianza.com",
+};
+
+/** Última atualização dos documentos legais (exibida nas páginas). */
+export const LEGAL_UPDATED = "julho de 2026";

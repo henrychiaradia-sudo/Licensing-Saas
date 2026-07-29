@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
+import { CookieConsent } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
   title: "ALIANZA — Brand Licensing Platform",
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-slate-50 text-slate-900 antialiased dark:bg-[#081221] dark:text-slate-100">
         {children}
+        <CookieConsent />
       </body>
     </html>
   );

@@ -17,8 +17,11 @@ export type EmailResult = { sent: boolean; provider: string; reason?: string };
 export async function sendEmail(input: EmailInput): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    // Sem provedor configurado: não envia, apenas registra a intenção.
-    console.log(`[email:stub] Para <${input.to}> · ${input.subject}`);
+    // Sem provedor configurado: não envia. Log só em desenvolvimento e sem
+    // expor o destinatário (minimização de dados pessoais — LGPD).
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[email:stub] envio simulado · ${input.subject}`);
+    }
     return { sent: false, provider: "stub", reason: "no-provider" };
   }
   try {

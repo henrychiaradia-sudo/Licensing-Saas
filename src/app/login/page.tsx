@@ -82,6 +82,12 @@ export default async function LoginPage({
             <p>Portal licenciado: <span className="font-medium">portal@vestebem.com</span> / <span className="font-medium">portal123</span></p>
             <p>Portal fornecedor: <span className="font-medium">portal@pacificmfg.com</span> / <span className="font-medium">portal123</span></p>
           </div>
+
+          <p className="mt-5 text-center text-[11.5px] text-neutral-400">
+            Ao entrar, você concorda com os{" "}
+            <Link href="/termos" className="text-blue-600 hover:underline">Termos de Uso</Link> e a{" "}
+            <Link href="/privacidade" className="text-blue-600 hover:underline">Política de Privacidade</Link>.
+          </p>
         </div>
       </div>
 

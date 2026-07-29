@@ -20,7 +20,7 @@ export default async function proxy(req: NextRequest) {
 
   if (!token) return NextResponse.redirect(loginUrl);
   try {
-    await jwtVerify(token, SECRET);
+    await jwtVerify(token, SECRET, { algorithms: ["HS256"] });
     return NextResponse.next();
   } catch {
     return NextResponse.redirect(loginUrl);

@@ -31,7 +31,7 @@ export default async function SupplierQualityPage() {
 
       {ncs.length === 0 ? (
         <Card className="p-8 text-center text-sm text-neutral-400">
-          Nenhuma não-conformidade registrada. 👏
+          Nenhuma não-conformidade registrada.
         </Card>
       ) : (
         <div className="grid gap-3">

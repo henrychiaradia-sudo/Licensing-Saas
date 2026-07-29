@@ -39,6 +39,7 @@ import {
   Sparkles,
   ListChecks,
   Files,
+  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ const groups: NavGroup[] = [
       { href: "/auditoria", label: "Auditoria", icon: ScrollText },
       { href: "/acessos", label: "Perfis & Acessos", icon: KeyRound },
       { href: "/seguranca", label: "Segurança", icon: Lock },
+      { href: "/meus-dados", label: "Meus Dados (LGPD)", icon: UserCheck },
     ],
   },
 ];

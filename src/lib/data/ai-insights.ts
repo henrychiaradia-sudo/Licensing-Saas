@@ -454,7 +454,10 @@ export async function smartSearch(tenantId: string, rawQuery: string): Promise<S
       if (d !== null && d >= 0 && d <= 120)
         rows.push({ label: `${c.contractNumber} · ${c.supplierName ?? ""}`, value: `vence em ${d} dias`, href: `/contratos-fornecimento/${c.id}` });
     }
-    rows.sort((a, b) => parseInt(a.value) - parseInt(b.value));
+    // Ordena por urgência (menor prazo primeiro). O prazo está no texto
+    // "vence em N dias" — extrai os dígitos (parseInt do texto retornaria NaN).
+    const daysOf = (v: string) => Number(v.replace(/\D/g, "")) || 0;
+    rows.sort((a, b) => daysOf(a.value) - daysOf(b.value));
     return {
       matched: true,
       intent: "contratos vencendo",

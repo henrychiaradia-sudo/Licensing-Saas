@@ -40,7 +40,8 @@ export async function getSession(): Promise<SessionData | null> {
   const token = store.get(COOKIE)?.value;
   if (!token) return null;
   try {
-    const { payload } = await jwtVerify(token, SECRET);
+    // Algoritmo fixado (HS256) para evitar ataques de confusão de algoritmo.
+    const { payload } = await jwtVerify(token, SECRET, { algorithms: ["HS256"] });
     return payload as unknown as SessionData;
   } catch {
     return null;

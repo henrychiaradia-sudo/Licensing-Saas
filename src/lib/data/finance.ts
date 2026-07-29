@@ -102,7 +102,7 @@ export async function financeSummary(tenantId: string) {
     .select({
       outstanding: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} not in ('pago', 'cancelado')), 0)`,
       received: sql<string>`coalesce(sum(${receivable.paidAmount}), 0)`,
-      overdue: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} = 'vencido'), 0)`,
+      overdue: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} not in ('pago','cancelado') and ${receivable.dueDate} < current_date), 0)`,
     })
     .from(receivable)
     .where(eq(receivable.tenantId, tenantId));

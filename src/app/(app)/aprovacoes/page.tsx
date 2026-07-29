@@ -130,7 +130,7 @@ export default async function AprovacoesPage() {
               {pending.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-400">
-                    Nenhuma requisição aguardando aprovação. 🎉
+                    Nenhuma requisição aguardando aprovação.
                   </td>
                 </tr>
               )}
