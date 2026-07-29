@@ -52,6 +52,7 @@ const groups: NavGroup[] = [
     title: "Operação",
     items: [
       { href: "/dashboard", label: "Dashboard Executivo", icon: LayoutGrid },
+      { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
       { href: "/ia", label: "Assistente IA", icon: Sparkles },
       { href: "/pendencias", label: "Pendências", icon: Bell },
       { href: "/tarefas", label: "Cronogramas & Tarefas", icon: ListTodo },
@@ -101,7 +102,6 @@ const groups: NavGroup[] = [
       { href: "/auditoria", label: "Auditoria", icon: ScrollText },
       { href: "/acessos", label: "Perfis & Acessos", icon: KeyRound },
       { href: "/seguranca", label: "Segurança", icon: Lock },
-      { href: "/bi", label: "BI & Analytics", icon: BarChart3 },
     ],
   },
 ];
