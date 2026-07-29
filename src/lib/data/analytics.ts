@@ -11,6 +11,7 @@ import {
   nonConformity,
   contract,
   licensee,
+  supplierDocument,
 } from "@/lib/db/schema";
 import type { OpportunityStage, SupplierRiskLevel } from "@/lib/db/schema";
 import { listLatestEvaluations } from "@/lib/data/evaluations";
@@ -213,16 +214,16 @@ export async function qualityBreakdown(tenantId: string) {
   ]);
 
   const resultLabel: Record<string, { label: string; color: string }> = {
-    aprovado: { label: "Aprovado", color: "#34d399" },
-    aprovado_condicional: { label: "Aprov. condicional", color: "#fbbf24" },
-    reprovado: { label: "Reprovado", color: "#f87171" },
-    pendente: { label: "Pendente", color: "#94a3b8" },
+    aprovado: { label: "Aprovado", color: "#059669" },
+    aprovado_condicional: { label: "Aprov. condicional", color: "#d97706" },
+    reprovado: { label: "Reprovado", color: "#dc2626" },
+    pendente: { label: "Pendente", color: "#64748b" },
   };
   const sevLabel: Record<string, { label: string; color: string }> = {
-    baixa: { label: "Baixa", color: "#34d399" },
-    media: { label: "Média", color: "#fbbf24" },
-    alta: { label: "Alta", color: "#fb923c" },
-    critica: { label: "Crítica", color: "#f87171" },
+    baixa: { label: "Baixa", color: "#059669" },
+    media: { label: "Média", color: "#d97706" },
+    alta: { label: "Alta", color: "#ea580c" },
+    critica: { label: "Crítica", color: "#dc2626" },
   };
 
   const inspections = insp.map((r) => ({
@@ -280,10 +281,10 @@ export async function supplierRiskMix(tenantId: string) {
     critico: "Crítico",
   };
   const color: Record<SupplierRiskLevel, string> = {
-    baixo: "#34d399",
-    medio: "#fbbf24",
-    alto: "#fb923c",
-    critico: "#f87171",
+    baixo: "#059669",
+    medio: "#d97706",
+    alto: "#ea580c",
+    critico: "#dc2626",
   };
   const items = order
     .map((r) => ({
@@ -314,10 +315,10 @@ export async function receivablesAging(tenantId: string) {
     .where(and(eq(receivable.tenantId, tenantId), sql`${receivable.status} not in ('pago','cancelado')`))
     .groupBy(sql`1`);
   const label: Record<string, { label: string; color: string }> = {
-    vencido: { label: "Vencido", color: "#f87171" },
-    d30: { label: "Até 30 dias", color: "#fbbf24" },
-    d60: { label: "31–60 dias", color: "#38bdf8" },
-    d60plus: { label: "60+ dias", color: "#818cf8" },
+    vencido: { label: "Vencido", color: "#dc2626" },
+    d30: { label: "Até 30 dias", color: "#d97706" },
+    d60: { label: "31–60 dias", color: "#0284c7" },
+    d60plus: { label: "60+ dias", color: "#4f46e5" },
   };
   const order = ["vencido", "d30", "d60", "d60plus"];
   const map = new Map(rows.map((r) => [r.bucket, Number(r.value)]));
@@ -355,12 +356,12 @@ export async function salesRoyaltyScatter(tenantId: string) {
  * Royalties por status
  * ------------------------------------------------------------------ */
 const ROYALTY_STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  rascunho: { label: "Rascunho", color: "#94a3b8" },
-  enviado: { label: "Enviado", color: "#38bdf8" },
-  em_validacao: { label: "Em validação", color: "#818cf8" },
-  com_divergencia: { label: "Com divergência", color: "#fb923c" },
-  aprovado: { label: "Aprovado", color: "#34d399" },
-  rejeitado: { label: "Rejeitado", color: "#f87171" },
+  rascunho: { label: "Rascunho", color: "#64748b" },
+  enviado: { label: "Enviado", color: "#0284c7" },
+  em_validacao: { label: "Em validação", color: "#4f46e5" },
+  com_divergencia: { label: "Com divergência", color: "#ea580c" },
+  aprovado: { label: "Aprovado", color: "#059669" },
+  rejeitado: { label: "Rejeitado", color: "#dc2626" },
 };
 
 export async function royaltyStatusMix(tenantId: string) {
@@ -374,4 +375,42 @@ export async function royaltyStatusMix(tenantId: string) {
     value: Number(r.count),
     color: ROYALTY_STATUS_LABEL[r.status]?.color,
   }));
+}
+
+/* ------------------------------------------------------------------ *
+ * Pontos de atenção (cockpit executivo — ações)
+ * ------------------------------------------------------------------ */
+export async function attentionSignals(tenantId: string) {
+  const [docs, ncs, ctr, roy] = await Promise.all([
+    db
+      .select({
+        vencidos: sql<string>`count(*) filter (where ${supplierDocument.validUntil} < current_date)`,
+        aVencer: sql<string>`count(*) filter (where ${supplierDocument.validUntil} >= current_date and ${supplierDocument.validUntil} <= current_date + 30)`,
+      })
+      .from(supplierDocument)
+      .where(eq(supplierDocument.tenantId, tenantId)),
+    db
+      .select({ abertas: sql<string>`count(*) filter (where ${nonConformity.status} in ('aberta','em_tratamento'))` })
+      .from(nonConformity)
+      .where(eq(nonConformity.tenantId, tenantId)),
+    db
+      .select({
+        vencendo: sql<string>`count(*) filter (where ${contract.status} = 'vigente' and ${contract.endDate} is not null and ${contract.endDate} <= current_date + 60)`,
+      })
+      .from(contract)
+      .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt))),
+    db
+      .select({
+        pendentes: sql<string>`count(*) filter (where ${royaltyReport.status} in ('enviado','em_validacao','com_divergencia'))`,
+      })
+      .from(royaltyReport)
+      .where(eq(royaltyReport.tenantId, tenantId)),
+  ]);
+  return {
+    docsVencidos: Number(docs[0]?.vencidos ?? 0),
+    docsAVencer: Number(docs[0]?.aVencer ?? 0),
+    ncsAbertas: Number(ncs[0]?.abertas ?? 0),
+    contratosVencendo: Number(ctr[0]?.vencendo ?? 0),
+    royaltiesPendentes: Number(roy[0]?.pendentes ?? 0),
+  };
 }

@@ -1,46 +1,49 @@
 import { cn } from "@/lib/utils";
 
 /* ============================================================================
- * charts-pro — biblioteca de visualização estilo Power BI / central de controle
- * SVG + CSS puro (sem libs, sem client JS). Pensada para fundo escuro.
+ * charts-pro — visualização estilo Power BI, visual claro/clean.
+ * SVG + CSS puro (sem libs, sem client JS). Adaptável ao tema (light + dark).
  * ==========================================================================*/
 
 export const PAL = {
-  blue: "#3b82f6",
-  cyan: "#22d3ee",
-  violet: "#a855f7",
-  emerald: "#34d399",
-  amber: "#fbbf24",
-  pink: "#f472b6",
-  red: "#f87171",
-  indigo: "#818cf8",
-  teal: "#2dd4bf",
-  orange: "#fb923c",
-  lime: "#a3e635",
-  sky: "#38bdf8",
+  blue: "#2563eb",
+  cyan: "#0891b2",
+  violet: "#7c3aed",
+  emerald: "#059669",
+  amber: "#d97706",
+  pink: "#db2777",
+  red: "#dc2626",
+  indigo: "#4f46e5",
+  teal: "#0d9488",
+  orange: "#ea580c",
+  lime: "#65a30d",
+  sky: "#0284c7",
 };
 export const SERIES = [
+  PAL.blue,
   PAL.cyan,
   PAL.violet,
+  PAL.teal,
   PAL.amber,
-  PAL.emerald,
   PAL.pink,
-  PAL.blue,
-  PAL.orange,
-  PAL.lime,
+  PAL.emerald,
   PAL.indigo,
-  PAL.red,
+  PAL.orange,
+  PAL.sky,
 ];
+
+const GRID = "rgba(100,116,139,0.18)"; // slate-500 @ ~18% — legível em claro e escuro
+const TRACK = "rgba(100,116,139,0.16)";
 
 type Item = { label: string; value: number; color?: string };
 
-/* ------------------------------ Painel (glass) ------------------------------ */
+/* ------------------------------- Painel ------------------------------- */
 export function Panel({
   title,
   subtitle,
   icon,
   right,
-  accent = PAL.cyan,
+  accent = PAL.blue,
   className,
   bodyClassName,
   children,
@@ -57,28 +60,22 @@ export function Panel({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] shadow-[0_2px_20px_rgba(0,0,0,0.3)] backdrop-blur-sm",
+        "relative overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900",
         className,
       )}
     >
-      <span
-        className="absolute inset-x-0 top-0 h-[2px]"
-        style={{ background: `linear-gradient(90deg, ${accent}, transparent 75%)` }}
-      />
+      <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${accent}, ${accent}00 78%)` }} />
       {(title || right) && (
         <div className="flex items-start justify-between gap-3 px-4 pt-3.5">
           <div className="flex items-center gap-2">
             {icon && (
-              <span
-                className="grid h-7 w-7 place-items-center rounded-lg"
-                style={{ backgroundColor: `${accent}22`, color: accent }}
-              >
+              <span className="grid h-7 w-7 place-items-center rounded-lg" style={{ backgroundColor: `${accent}14`, color: accent }}>
                 {icon}
               </span>
             )}
             <div>
-              {title && <h3 className="text-[13px] font-semibold text-white">{title}</h3>}
-              {subtitle && <p className="text-[11px] text-slate-400">{subtitle}</p>}
+              {title && <h3 className="text-[13px] font-semibold text-neutral-900 dark:text-neutral-100">{title}</h3>}
+              {subtitle && <p className="text-[11px] text-neutral-500">{subtitle}</p>}
             </div>
           </div>
           {right}
@@ -90,15 +87,7 @@ export function Panel({
 }
 
 /* ------------------------------ Sparkline ------------------------------ */
-export function Sparkline({
-  data,
-  color = PAL.cyan,
-  className,
-}: {
-  data: number[];
-  color?: string;
-  className?: string;
-}) {
+export function Sparkline({ data, color = PAL.blue, className }: { data: number[]; color?: string; className?: string }) {
   const n = data.length;
   if (n < 2) return <div className={cn("h-8", className)} />;
   const max = Math.max(...data, 1);
@@ -114,20 +103,12 @@ export function Sparkline({
     <svg viewBox="0 0 100 30" preserveAspectRatio="none" className={cn("h-8 w-full", className)}>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={`0,30 ${pts.join(" ")} 100,30`} fill={`url(#${id})`} />
-      <polyline
-        points={pts.join(" ")}
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
+      <polyline points={pts.join(" ")} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -138,7 +119,7 @@ export function Kpi({
   value,
   sub,
   icon,
-  accent = PAL.cyan,
+  accent = PAL.blue,
   delta,
   spark,
 }: {
@@ -151,40 +132,29 @@ export function Kpi({
   spark?: number[];
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-4 backdrop-blur-sm">
-      <div
-        className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full opacity-20 blur-2xl"
-        style={{ backgroundColor: accent }}
-      />
+    <div className="relative overflow-hidden rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex items-start justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-slate-400">{label}</span>
+        <span className="text-[11px] font-medium uppercase tracking-wide text-neutral-500">{label}</span>
         {icon && (
-          <span
-            className="grid h-8 w-8 place-items-center rounded-lg"
-            style={{ backgroundColor: `${accent}22`, color: accent }}
-          >
+          <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ backgroundColor: `${accent}14`, color: accent }}>
             {icon}
           </span>
         )}
       </div>
       <div className="mt-2 flex items-end gap-2">
-        <span className="text-[26px] font-bold leading-none tracking-tight text-white tabular-nums">
-          {value}
-        </span>
+        <span className="text-[25px] font-bold leading-none tracking-tight text-neutral-900 tabular-nums dark:text-white">{value}</span>
         {delta && (
           <span
             className={cn(
               "mb-0.5 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold",
-              delta.positive
-                ? "bg-emerald-400/15 text-emerald-300"
-                : "bg-red-400/15 text-red-300",
+              delta.positive ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400",
             )}
           >
             {delta.positive ? "▲" : "▼"} {delta.label}
           </span>
         )}
       </div>
-      {sub && <p className="mt-1 text-[11px] text-slate-400">{sub}</p>}
+      {sub && <p className="mt-1 text-[11px] text-neutral-500">{sub}</p>}
       {spark && spark.length > 1 && <Sparkline data={spark} color={accent} className="mt-3" />}
     </div>
   );
@@ -217,53 +187,35 @@ export function AreaLineChart({
     <div>
       <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-1">
         {series.map((s) => (
-          <span key={s.name} className="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <span key={s.name} className="flex items-center gap-1.5 text-[11px] text-neutral-600 dark:text-neutral-300">
             <span className="h-2 w-2.5 rounded-sm" style={{ backgroundColor: s.color }} />
             {s.name}
           </span>
         ))}
-        <span className="ml-auto text-[10.5px] text-slate-500">máx {format(max)}</span>
+        <span className="ml-auto text-[10.5px] text-neutral-400">máx {format(max)}</span>
       </div>
       <div className="relative w-full" style={{ height }}>
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
           <defs>
             {series.map((s, i) => (
               <linearGradient key={i} id={`al-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={s.color} stopOpacity="0.28" />
+                <stop offset="0%" stopColor={s.color} stopOpacity="0.20" />
                 <stop offset="100%" stopColor={s.color} stopOpacity="0" />
               </linearGradient>
             ))}
           </defs>
           {[20, 40, 60, 80].map((y) => (
-            <line
-              key={y}
-              x1="0"
-              y1={y}
-              x2="100"
-              y2={y}
-              stroke="rgba(255,255,255,0.06)"
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
+            <line key={y} x1="0" y1={y} x2="100" y2={y} stroke={GRID} strokeWidth="1" vectorEffect="non-scaling-stroke" />
           ))}
           {series.map((s, i) => (
             <polygon key={`a${i}`} points={`0,100 ${toPts(s.data)} 100,100`} fill={`url(#al-${i})`} />
           ))}
           {series.map((s, i) => (
-            <polyline
-              key={`l${i}`}
-              points={toPts(s.data)}
-              fill="none"
-              stroke={s.color}
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
+            <polyline key={`l${i}`} points={toPts(s.data)} fill="none" stroke={s.color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
           ))}
         </svg>
       </div>
-      <div className="mt-1.5 flex justify-between text-[10px] text-slate-500">
+      <div className="mt-1.5 flex justify-between text-[10px] text-neutral-400">
         {labels.map((l, i) => (
           <span key={i} className={cn(n > 8 && i % 2 !== 0 && "hidden sm:inline")}>
             {l}
@@ -298,11 +250,10 @@ export function DonutChart({
     <div className="flex flex-wrap items-center gap-5">
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={thickness} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TRACK} strokeWidth={thickness} />
           {total > 0 &&
             items.map((it, i) => {
-              const frac = it.value / total;
-              const len = frac * c;
+              const len = (it.value / total) * c;
               const el = (
                 <circle
                   key={i}
@@ -323,23 +274,21 @@ export function DonutChart({
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <div className="text-xl font-bold leading-none text-white tabular-nums">
-              {centerValue ?? format(total)}
-            </div>
-            {centerLabel && <div className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">{centerLabel}</div>}
+            <div className="text-xl font-bold leading-none text-neutral-900 tabular-nums dark:text-white">{centerValue ?? format(total)}</div>
+            {centerLabel && <div className="mt-1 text-[10px] uppercase tracking-wide text-neutral-400">{centerLabel}</div>}
           </div>
         </div>
       </div>
       <ul className="min-w-[140px] flex-1 space-y-1.5">
         {items.map((it, i) => (
           <li key={i} className="flex items-center justify-between gap-3 text-[12.5px]">
-            <span className="flex items-center gap-2 text-slate-300">
+            <span className="flex items-center gap-2 text-neutral-600 dark:text-neutral-300">
               <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: it.color ?? SERIES[i % SERIES.length] }} />
               {it.label}
             </span>
-            <span className="tabular-nums text-slate-400">
+            <span className="tabular-nums text-neutral-500">
               {format(it.value)}
-              {total > 0 && <span className="ml-1 text-[10.5px] text-slate-500">{Math.round((it.value / total) * 100)}%</span>}
+              {total > 0 && <span className="ml-1 text-[10.5px] text-neutral-400">{Math.round((it.value / total) * 100)}%</span>}
             </span>
           </li>
         ))}
@@ -353,7 +302,7 @@ export function RadialGauge({
   pct,
   label,
   value,
-  color = PAL.cyan,
+  color = PAL.blue,
   size = 130,
 }: {
   pct: number;
@@ -371,22 +320,13 @@ export function RadialGauge({
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={thickness} />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth={thickness}
-            strokeDasharray={`${len} ${c - len}`}
-            strokeLinecap="round"
-          />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TRACK} strokeWidth={thickness} />
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={thickness} strokeDasharray={`${len} ${c - len}`} strokeLinecap="round" />
         </svg>
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
-            <div className="text-2xl font-bold leading-none text-white tabular-nums">{value ?? `${Math.round(pct)}%`}</div>
-            {label && <div className="mt-1 text-[10px] uppercase tracking-wide text-slate-400">{label}</div>}
+            <div className="text-2xl font-bold leading-none text-neutral-900 tabular-nums dark:text-white">{value ?? `${Math.round(pct)}%`}</div>
+            {label && <div className="mt-1 text-[10px] uppercase tracking-wide text-neutral-400">{label}</div>}
           </div>
         </div>
       </div>
@@ -406,24 +346,21 @@ export function HBars({
   colorful?: boolean;
   max?: number;
 }) {
-  if (!items.length) return <p className="py-6 text-center text-[13px] text-slate-500">Sem dados no período.</p>;
+  if (!items.length) return <p className="py-6 text-center text-[13px] text-neutral-400">Sem dados no período.</p>;
   const max = maxProp ?? Math.max(...items.map((i) => i.value), 1);
   return (
     <div className="space-y-2.5">
       {items.map((it, i) => {
-        const color = it.color ?? (colorful ? SERIES[i % SERIES.length] : PAL.cyan);
+        const color = it.color ?? (colorful ? SERIES[i % SERIES.length] : PAL.blue);
         const pct = Math.max(2, Math.round((it.value / max) * 100));
         return (
           <div key={i}>
             <div className="mb-1 flex items-center justify-between gap-2 text-[12px]">
-              <span className="truncate text-slate-300">{it.label}</span>
-              <span className="shrink-0 tabular-nums text-slate-400">{format(it.value)}</span>
+              <span className="truncate text-neutral-600 dark:text-neutral-300">{it.label}</span>
+              <span className="shrink-0 tabular-nums text-neutral-500">{format(it.value)}</span>
             </div>
-            <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
-              <div
-                className="h-2 rounded-full"
-                style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}bb)` }}
-              />
+            <div className="h-2 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+              <div className="h-2 rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
             </div>
           </div>
         );
@@ -444,14 +381,14 @@ export function StackedBars({
   height?: number;
   format?: (n: number) => string;
 }) {
-  if (!groups.length) return <p className="py-6 text-center text-[13px] text-slate-500">Sem dados.</p>;
+  if (!groups.length) return <p className="py-6 text-center text-[13px] text-neutral-400">Sem dados.</p>;
   const totals = groups.map((g) => g.values.reduce((a, b) => a + b, 0));
   const max = Math.max(...totals, 1);
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
         {keys.map((k) => (
-          <span key={k.name} className="flex items-center gap-1.5 text-[11px] text-slate-300">
+          <span key={k.name} className="flex items-center gap-1.5 text-[11px] text-neutral-600 dark:text-neutral-300">
             <span className="h-2 w-2.5 rounded-sm" style={{ backgroundColor: k.color }} />
             {k.name}
           </span>
@@ -462,23 +399,13 @@ export function StackedBars({
           const total = totals[gi];
           return (
             <div key={gi} className="flex h-full flex-1 flex-col items-center justify-end">
-              <span className="mb-1 text-[10px] font-semibold text-slate-300 tabular-nums">{format(total)}</span>
-              <div
-                className="flex w-full max-w-[46px] flex-col-reverse overflow-hidden rounded-md"
-                style={{ height: `${Math.max(3, (total / max) * 100)}%` }}
-              >
+              <span className="mb-1 text-[10px] font-semibold text-neutral-500 tabular-nums">{format(total)}</span>
+              <div className="flex w-full max-w-[46px] flex-col-reverse overflow-hidden rounded-md" style={{ height: `${Math.max(3, (total / max) * 100)}%` }}>
                 {g.values.map((v, ki) => (
-                  <div
-                    key={ki}
-                    style={{
-                      height: `${total > 0 ? (v / total) * 100 : 0}%`,
-                      backgroundColor: keys[ki % keys.length].color,
-                    }}
-                    title={`${keys[ki % keys.length].name}: ${format(v)}`}
-                  />
+                  <div key={ki} style={{ height: `${total > 0 ? (v / total) * 100 : 0}%`, backgroundColor: keys[ki % keys.length].color }} title={`${keys[ki % keys.length].name}: ${format(v)}`} />
                 ))}
               </div>
-              <span className="mt-1.5 max-w-[64px] truncate text-[10px] text-slate-400">{g.label}</span>
+              <span className="mt-1.5 max-w-[64px] truncate text-[10px] text-neutral-400">{g.label}</span>
             </div>
           );
         })}
@@ -501,7 +428,7 @@ export function ScatterChart({
   format?: (n: number) => string;
   height?: number;
 }) {
-  if (!points.length) return <p className="py-6 text-center text-[13px] text-slate-500">Sem dados.</p>;
+  if (!points.length) return <p className="py-6 text-center text-[13px] text-neutral-400">Sem dados.</p>;
   const xMax = Math.max(...points.map((p) => p.x), 1);
   const yMax = Math.max(...points.map((p) => p.y), 1);
   const W = 300;
@@ -513,29 +440,20 @@ export function ScatterChart({
       <div className="relative w-full" style={{ height }}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" className="h-full w-full">
           {[0.25, 0.5, 0.75, 1].map((f) => (
-            <line key={f} x1={padL} y1={H - padB - f * (H - padB)} x2={W} y2={H - padB - f * (H - padB)} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+            <line key={f} x1={padL} y1={H - padB - f * (H - padB)} x2={W} y2={H - padB - f * (H - padB)} stroke={GRID} strokeWidth="1" />
           ))}
           {points.map((p, i) => {
             const cx = padL + (p.x / xMax) * (W - padL - 6);
             const cy = H - padB - (p.y / yMax) * (H - padB - 6);
             return (
-              <circle
-                key={i}
-                cx={cx}
-                cy={cy}
-                r={p.r ?? 5}
-                fill={p.color ?? SERIES[i % SERIES.length]}
-                fillOpacity="0.65"
-                stroke={p.color ?? SERIES[i % SERIES.length]}
-                strokeWidth="1"
-              >
+              <circle key={i} cx={cx} cy={cy} r={p.r ?? 5} fill={p.color ?? SERIES[i % SERIES.length]} fillOpacity="0.55" stroke={p.color ?? SERIES[i % SERIES.length]} strokeWidth="1.5">
                 {p.label && <title>{`${p.label} — ${format(p.x)} / ${format(p.y)}`}</title>}
               </circle>
             );
           })}
         </svg>
       </div>
-      <div className="mt-1 flex items-center justify-between text-[10.5px] text-slate-500">
+      <div className="mt-1 flex items-center justify-between text-[10.5px] text-neutral-400">
         <span>{yLabel}</span>
         <span>{xLabel} →</span>
       </div>
@@ -543,34 +461,52 @@ export function ScatterChart({
   );
 }
 
-/* ------------------------- Linha de estatística ------------------------- */
-export function MiniStat({
-  label,
-  value,
-  accent = PAL.cyan,
-  icon,
-}: {
-  label: string;
-  value: string;
-  accent?: string;
-  icon?: React.ReactNode;
-}) {
+/* ------------------------- Mini estatística ------------------------- */
+export function MiniStat({ label, value, accent = PAL.blue, icon }: { label: string; value: string; accent?: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+    <div className="flex items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 dark:border-neutral-800 dark:bg-neutral-900">
       {icon && (
-        <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ backgroundColor: `${accent}22`, color: accent }}>
+        <span className="grid h-8 w-8 place-items-center rounded-lg" style={{ backgroundColor: `${accent}14`, color: accent }}>
           {icon}
         </span>
       )}
       <div className="min-w-0">
-        <div className="truncate text-[16px] font-bold leading-tight text-white tabular-nums">{value}</div>
-        <div className="truncate text-[10.5px] text-slate-400">{label}</div>
+        <div className="truncate text-[16px] font-bold leading-tight text-neutral-900 tabular-nums dark:text-white">{value}</div>
+        <div className="truncate text-[10.5px] text-neutral-500">{label}</div>
       </div>
     </div>
   );
 }
 
-/* ----------------------------- Tabela mini ----------------------------- */
+/* ----------------------- Cartão de alerta (ação) ----------------------- */
+export function AlertCard({
+  label,
+  count,
+  hint,
+  accent = PAL.amber,
+  icon,
+}: {
+  label: string;
+  count: number;
+  hint?: string;
+  accent?: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-full items-center gap-3 rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{ backgroundColor: `${accent}16`, color: accent }}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <div className="text-[22px] font-bold leading-none text-neutral-900 tabular-nums dark:text-white">{count}</div>
+        <div className="mt-0.5 truncate text-[12px] font-medium text-neutral-700 dark:text-neutral-200">{label}</div>
+        {hint && <div className="truncate text-[10.5px] text-neutral-400">{hint}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- Tabela ----------------------------- */
 export function DataTable({
   columns,
   rows,
@@ -582,7 +518,7 @@ export function DataTable({
     <div className="overflow-x-auto">
       <table className="w-full text-[12.5px]">
         <thead>
-          <tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wide text-slate-500">
+          <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
             {columns.map((c) => (
               <th key={c.key} className={cn("px-2 py-2 font-medium", c.align === "right" && "text-right")}>
                 {c.label}
@@ -592,9 +528,9 @@ export function DataTable({
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-b border-white/[0.06] last:border-0">
+            <tr key={i} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800/60">
               {columns.map((c) => (
-                <td key={c.key} className={cn("px-2 py-2 text-slate-300", c.align === "right" && "text-right tabular-nums")}>
+                <td key={c.key} className={cn("px-2 py-2 text-neutral-600 dark:text-neutral-300", c.align === "right" && "text-right tabular-nums")}>
                   {r[c.key]}
                 </td>
               ))}
@@ -602,7 +538,7 @@ export function DataTable({
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-2 py-6 text-center text-slate-500">
+              <td colSpan={columns.length} className="px-2 py-6 text-center text-neutral-400">
                 Sem dados.
               </td>
             </tr>
