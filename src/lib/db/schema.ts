@@ -1754,6 +1754,16 @@ export const notificationType = pgEnum("notification_type", [
   "task_overdue",
   "legal_deadline",
   "system",
+  // Fase 48 — novos eventos
+  "approval_pending",
+  "approval_rejected",
+  "document_expiring",
+  "report_late",
+  "product_review_pending",
+  "purchase_order_late",
+  "sourcing_closing",
+  "supplier_high_risk",
+  "sla_breached",
 ]);
 export type NotificationType = (typeof notificationType.enumValues)[number];
 
@@ -1769,9 +1779,42 @@ export const notification = pgTable("notification", {
   entityId: uuid("entity_id"),
   link: text("link"),
   dedupeKey: text("dedupe_key"),
+  channels: text("channels").notNull().default("in_app"),
   emailedAt: timestamp("emailed_at", { withTimezone: true }),
   readAt: timestamp("read_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Fase 48 — preferências de notificação por usuário (canais por tipo de evento). */
+export const notificationPreference = pgTable(
+  "notification_preference",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    userId: uuid("user_id").notNull(),
+    type: text("type").notNull(),
+    inApp: boolean("in_app").notNull().default(true),
+    email: boolean("email").notNull().default(false),
+    webhook: boolean("webhook").notNull().default(false),
+    push: boolean("push").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_notif_pref").on(t.tenantId, t.userId, t.type)],
+);
+
+/** Fase 48 — webhooks de saída para notificações. */
+export const notificationWebhook = pgTable("notification_webhook", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  label: text("label"),
+  url: text("url").notNull(),
+  secret: text("secret"),
+  events: text("events").notNull().default("all"),
+  active: boolean("active").notNull().default(true),
+  lastStatus: text("last_status"),
+  lastDeliveredAt: timestamp("last_delivered_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
 });
 
 /* ============ FASE 12 — MARKETING 2.0 (suíte completa) ============ */
