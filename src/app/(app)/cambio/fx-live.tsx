@@ -31,6 +31,7 @@ function fmtR(n: number) {
 
 function QuoteCard({ q }: { q: LiveQuote }) {
   const up = q.pctChange >= 0;
+  const flat = q.pctChange === 0;
   return (
     <div className="rounded-xl border border-neutral-200 bg-white p-3.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <div className="flex items-center justify-between">
@@ -40,16 +41,20 @@ function QuoteCard({ q }: { q: LiveQuote }) {
           </span>
           <span className="text-[12px] font-medium text-neutral-500">{q.pairLabel}</span>
         </div>
-        <span
-          className={cn(
-            "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums",
-            up ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400",
-          )}
-        >
-          {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-          {up ? "+" : ""}
-          {q.pctChange.toFixed(2).replace(".", ",")}%
-        </span>
+        {flat ? (
+          <span className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10.5px] font-semibold text-neutral-400 dark:bg-neutral-800">—</span>
+        ) : (
+          <span
+            className={cn(
+              "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold tabular-nums",
+              up ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400" : "bg-red-50 text-red-600 dark:bg-red-950/50 dark:text-red-400",
+            )}
+          >
+            {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            {up ? "+" : ""}
+            {q.pctChange.toFixed(2).replace(".", ",")}%
+          </span>
+        )}
       </div>
       <div className="mt-2.5 flex items-end justify-between">
         <div>
@@ -112,8 +117,8 @@ export function FxLivePanel() {
               Cotação em tempo real
             </h2>
             <p className="mt-0.5 text-[11.5px] text-neutral-500">
-              Fonte: AwesomeAPI · atualiza a cada 60s
-              {data?.updatedAt ? ` · pregão ${data.updatedAt}` : ""}
+              Fonte: {data?.source ?? "—"} · atualiza a cada 60s
+              {data?.updatedAt ? ` · ${data.updatedAt}` : ""}
               {lastFetch ? ` · lido ${lastFetch}` : ""}
             </p>
           </div>
@@ -131,6 +136,12 @@ export function FxLivePanel() {
 
         {syncState.message && <p className="mb-3 text-[12px] text-emerald-600">{syncState.message}</p>}
         {syncState.error && <p className="mb-3 text-[12px] text-red-600">{syncState.error}</p>}
+        {data?.note && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-700 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-300">
+            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+            <span>{data.note}</span>
+          </div>
+        )}
 
         {/* Seletor */}
         <div className="mb-4 inline-flex rounded-lg border border-neutral-200 bg-neutral-50 p-0.5 dark:border-neutral-800 dark:bg-neutral-800/40">
@@ -162,7 +173,11 @@ export function FxLivePanel() {
             <AlertCircle size={16} className="text-amber-500" /> Não foi possível obter as cotações agora. Tente novamente.
           </div>
         ) : quotes.length === 0 ? (
-          <p className="py-10 text-center text-sm text-neutral-400">Sem cotações nesta categoria.</p>
+          <p className="py-10 text-center text-sm text-neutral-400">
+            {view === "comercial"
+              ? "Sem cotações no momento."
+              : "Disponível ao cadastrar a chave gratuita da AwesomeAPI (veja o aviso acima)."}
+          </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {quotes.map((q) => (
@@ -171,12 +186,12 @@ export function FxLivePanel() {
           </div>
         )}
 
-        {view === "turismo" && (
+        {view === "turismo" && quotes.length > 0 && (
           <p className="mt-3 text-[11px] text-neutral-400">
             Turismo: taxa praticada para compra de moeda em espécie/viagem (inclui spread). Comercial é a referência de mercado.
           </p>
         )}
-        {view === "ptax" && (
+        {view === "ptax" && quotes.length > 0 && (
           <p className="mt-3 text-[11px] text-neutral-400">PTAX: taxa oficial de referência do Banco Central do Brasil.</p>
         )}
       </div>
