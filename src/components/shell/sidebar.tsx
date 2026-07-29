@@ -37,6 +37,8 @@ import {
   BadgeCheck,
   FileCheck,
   Sparkles,
+  ListChecks,
+  Files,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,6 +77,8 @@ const groups: NavGroup[] = [
     title: "Suprimentos",
     items: [
       { href: "/fornecedores", label: "Fornecedores", icon: Factory },
+      { href: "/homologacao", label: "Homologação", icon: ListChecks },
+      { href: "/documentos", label: "Documentos", icon: Files },
       { href: "/categorias-compras", label: "Categorias de Compras", icon: Boxes },
       { href: "/budget", label: "Budget de Compras", icon: Wallet },
       { href: "/requisicoes", label: "Requisições", icon: ClipboardList },

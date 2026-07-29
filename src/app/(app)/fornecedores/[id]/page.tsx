@@ -16,16 +16,41 @@ import {
   Globe,
   Trash2,
   Star,
+  FileText,
+  ListChecks,
+  CheckCircle2,
 } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getSupplierDetail, listServedCategoryOptions } from "@/lib/data/suppliers";
 import { computeSupplierPerformance, listEvaluations } from "@/lib/data/evaluations";
-import { changeStatusAction, deleteSubAction, setServedCategoriesAction } from "../actions";
+import { listSupplierDocuments } from "@/lib/data/documents";
+import { getSupplierHomologation, listActiveChecklists } from "@/lib/data/homologation";
+import {
+  changeStatusAction,
+  deleteSubAction,
+  setServedCategoriesAction,
+  setDocStatusAction,
+  deleteDocumentAction,
+  startHomologationAction,
+  saveAnswerAction,
+  decideHomologationAction,
+} from "../actions";
 import { EvaluationForm } from "../evaluation-form";
 import { ContactForm, BankForm, PlantForm, CertForm, AuditForm } from "../sub-forms";
+import { DocumentForm } from "../doc-forms";
 import { Card, Badge, Button, Select } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import { STATUS_LABEL, STATUS_TONE, TYPE_LABEL, SUPPLIER_STATUS_OPTIONS, validityTone } from "../supplier-meta";
+import {
+  DOC_TYPE_LABEL,
+  DOC_STATUS_LABEL,
+  DOC_STATUS_TONE,
+  HOMOLOG_STATUS_LABEL,
+  HOMOLOG_STATUS_TONE,
+  ITEM_RESULT_LABEL,
+  ITEM_RESULT_TONE,
+  ITEM_RESULT_OPTIONS,
+} from "../doc-meta";
 import type { PoStatus, SupplierRiskLevel, SupplierType } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
@@ -38,16 +63,22 @@ const auditTone: Record<string, Tone> = { aprovado: "good", condicional: "warn",
 export default async function FornecedorDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireSession();
-  const [data, perf, evaluations, catOptions] = await Promise.all([
+  const [data, perf, evaluations, catOptions, documents, homolog, activeChecklists] = await Promise.all([
     getSupplierDetail(session.tenantId, id),
     computeSupplierPerformance(session.tenantId, id),
     listEvaluations(session.tenantId, id),
     listServedCategoryOptions(session.tenantId),
+    listSupplierDocuments(session.tenantId, id),
+    getSupplierHomologation(session.tenantId, id),
+    listActiveChecklists(session.tenantId),
   ]);
   if (!data) notFound();
   const { supplier: s, orders, contacts, banks, plants, certs, audits, served } = data;
   const latestEval = evaluations[0] ?? null;
   const servedIds = new Set(served.map((x) => x.categoryId));
+  const homologation = homolog?.homologation ?? null;
+  const homologChecklist = homolog?.checklist ?? null;
+  const homologItems = homolog?.items ?? [];
 
   return (
     <div>
@@ -233,6 +264,202 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
         <FormRow><AuditForm supplierId={id} /></FormRow>
       </SubCard>
 
+      {/* Documentos */}
+      <SubCard title="Documentos" icon={<FileText size={16} className="text-blue-500" />}>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead>
+              <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
+                <th className="px-2 py-2 font-medium">Tipo</th>
+                <th className="px-2 py-2 font-medium">Documento</th>
+                <th className="px-2 py-2 font-medium">Emissor</th>
+                <th className="px-2 py-2 font-medium">Validade</th>
+                <th className="px-2 py-2 font-medium">Status</th>
+                <th className="px-2 py-2 font-medium">Responsável</th>
+                <th className="px-2 py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((d) => {
+                const v = validityTone(d.validUntil as unknown as string | null);
+                return (
+                  <tr key={d.id} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
+                    <td className="px-2 py-2 font-medium">{DOC_TYPE_LABEL[d.docType]}</td>
+                    <td className="px-2 py-2">
+                      <div>{d.name ?? "—"}</div>
+                      {d.number && <div className="text-[11px] text-neutral-400">Nº {d.number}</div>}
+                    </td>
+                    <td className="px-2 py-2 text-neutral-500">{d.issuer ?? "—"}</td>
+                    <td className="px-2 py-2">
+                      <div className="tabular-nums text-neutral-500">{d.validUntil ? fmtDate(d.validUntil) : "—"}</div>
+                      {d.validUntil && (
+                        <Badge tone={v.tone}>{v.label}</Badge>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      <Badge tone={DOC_STATUS_TONE[d.status]}>{DOC_STATUS_LABEL[d.status]}</Badge>
+                      <div className="mt-1 flex gap-2">
+                        <form action={setDocStatusAction.bind(null, id, d.id, "aprovado")}>
+                          <button type="submit" className="text-[11px] text-emerald-600 hover:underline">Aprovar</button>
+                        </form>
+                        <form action={setDocStatusAction.bind(null, id, d.id, "reprovado")}>
+                          <button type="submit" className="text-[11px] text-red-500 hover:underline">Reprovar</button>
+                        </form>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 text-neutral-500">
+                      {d.responsible ?? "—"}
+                      {d.approvedBy && (
+                        <div className="text-[11px] text-emerald-600">✓ {d.approvedBy} · {fmtDate(d.approvedAt)}</div>
+                      )}
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      <DeleteDoc supplierId={id} docId={d.id} />
+                    </td>
+                  </tr>
+                );
+              })}
+              {documents.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-2 py-6 text-center text-sm text-neutral-400">
+                    Nenhum documento cadastrado.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <FormRow><DocumentForm supplierId={id} /></FormRow>
+      </SubCard>
+
+      {/* Homologação */}
+      <Card className="mt-4 p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-semibold">
+            <ListChecks size={16} className="text-blue-500" /> Homologação
+          </h2>
+          {homologation && (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-neutral-500">
+                Conformidade: <strong className="tabular-nums">{homologation.score ?? 0}%</strong>
+              </span>
+              <Badge tone={HOMOLOG_STATUS_TONE[homologation.status]}>
+                {HOMOLOG_STATUS_LABEL[homologation.status]}
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {!homologation ? (
+          activeChecklists.length > 0 ? (
+            <form action={startHomologationAction.bind(null, id)} className="flex flex-wrap items-end gap-2">
+              <div>
+                <p className="mb-1 text-xs text-neutral-400">Selecione um checklist e inicie o processo.</p>
+                <Select name="checklistId" className="h-9 w-72" defaultValue={activeChecklists[0]?.id}>
+                  {activeChecklists.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                      {c.supplierType ? ` (${TYPE_LABEL[c.supplierType]})` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <Button type="submit" size="sm">Iniciar homologação</Button>
+            </form>
+          ) : (
+            <p className="text-sm text-neutral-400">
+              Nenhum checklist ativo. Crie um em <span className="font-medium">Homologação</span> (menu lateral).
+            </p>
+          )
+        ) : (
+          <>
+            <p className="mb-3 text-xs text-neutral-500">
+              Checklist: <strong>{homologChecklist?.name ?? "—"}</strong>
+              {homologation.startedAt ? ` · iniciada em ${fmtDate(homologation.startedAt)}` : ""}
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px] text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
+                    <th className="px-2 py-2 font-medium">Item</th>
+                    <th className="px-2 py-2 font-medium">Categoria</th>
+                    <th className="px-2 py-2 text-right font-medium">Peso</th>
+                    <th className="px-2 py-2 font-medium">Resultado</th>
+                    <th className="px-2 py-2 font-medium">Atual</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {homologItems.map(({ item, answer }) => (
+                    <tr key={item.id} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
+                      <td className="px-2 py-2 font-medium">
+                        {item.label}
+                        {item.required && <span className="text-red-500"> *</span>}
+                      </td>
+                      <td className="px-2 py-2 text-neutral-500">{item.category ?? "—"}</td>
+                      <td className="px-2 py-2 text-right tabular-nums text-neutral-500">{item.weight}</td>
+                      <td className="px-2 py-2">
+                        <form action={saveAnswerAction.bind(null, id, homologation.id, item.id)} className="flex items-center gap-1">
+                          <Select name="result" defaultValue={answer?.result ?? "pendente"} className="h-8 w-36 text-xs">
+                            {ITEM_RESULT_OPTIONS.map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </Select>
+                          <Button type="submit" size="sm" variant="outline">OK</Button>
+                        </form>
+                      </td>
+                      <td className="px-2 py-2">
+                        <Badge tone={ITEM_RESULT_TONE[answer?.result ?? "pendente"]}>
+                          {ITEM_RESULT_LABEL[answer?.result ?? "pendente"]}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  {homologItems.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-2 py-6 text-center text-sm text-neutral-400">
+                        O checklist selecionado não tem itens.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+              {homologation.status === "em_andamento" ? (
+                <>
+                  <span className="mr-1 text-xs text-neutral-500">Decisão:</span>
+                  <form action={decideHomologationAction.bind(null, id, homologation.id, "aprovada")}>
+                    <Button type="submit" size="sm"><CheckCircle2 size={14} /> Aprovar</Button>
+                  </form>
+                  <form action={decideHomologationAction.bind(null, id, homologation.id, "condicional")}>
+                    <Button type="submit" size="sm" variant="outline">Condicional</Button>
+                  </form>
+                  <form action={decideHomologationAction.bind(null, id, homologation.id, "reprovada")}>
+                    <Button type="submit" size="sm" variant="outline">Reprovar</Button>
+                  </form>
+                </>
+              ) : (
+                <span className="text-xs text-neutral-500">
+                  Decidida{homologation.decidedAt ? ` em ${fmtDate(homologation.decidedAt)}` : ""}
+                  {homologation.decidedBy ? ` por ${homologation.decidedBy}` : ""}.
+                </span>
+              )}
+              {activeChecklists.length > 0 && (
+                <form action={startHomologationAction.bind(null, id)} className="ml-auto flex items-center gap-2">
+                  <Select name="checklistId" className="h-8 w-56 text-xs" defaultValue={activeChecklists[0]?.id}>
+                    {activeChecklists.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </Select>
+                  <Button type="submit" size="sm" variant="outline">Nova homologação</Button>
+                </form>
+              )}
+            </div>
+          </>
+        )}
+      </Card>
+
       {/* Scorecard */}
       <Card className="mt-4 p-5">
         <div className="mb-3 flex items-center justify-between">
@@ -325,6 +552,15 @@ function FormRow({ children }: { children: React.ReactNode }) {
 function DeleteBtn({ supplierId, table, subId }: { supplierId: string; table: string; subId: string }) {
   return (
     <form action={deleteSubAction.bind(null, supplierId, table, subId)}>
+      <button type="submit" aria-label="Remover" className="text-neutral-300 hover:text-red-500">
+        <Trash2 size={14} />
+      </button>
+    </form>
+  );
+}
+function DeleteDoc({ supplierId, docId }: { supplierId: string; docId: string }) {
+  return (
+    <form action={deleteDocumentAction.bind(null, supplierId, docId)}>
       <button type="submit" aria-label="Remover" className="text-neutral-300 hover:text-red-500">
         <Trash2 size={14} />
       </button>

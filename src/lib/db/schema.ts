@@ -920,6 +920,124 @@ export const supplierServedCategory = pgTable(
   (t) => [unique("uq_supplier_served").on(t.supplierId, t.purchaseCategoryId)],
 );
 
+/* ---- Fornecedor: Documentos + Homologação (itens 22/23) ---- */
+export const supplierDocType = pgEnum("supplier_doc_type", [
+  "contrato_social",
+  "cnpj",
+  "certidao",
+  "licenca",
+  "certificacao",
+  "seguro",
+  "dados_bancarios",
+  "codigo_conduta",
+  "anticorrupcao",
+  "lgpd",
+  "esg",
+  "qualidade",
+  "saude_seguranca",
+  "direitos_trabalhistas",
+  "auditoria",
+]);
+export type SupplierDocType = (typeof supplierDocType.enumValues)[number];
+
+export const supplierDocStatus = pgEnum("supplier_doc_status", [
+  "pendente",
+  "em_analise",
+  "aprovado",
+  "reprovado",
+  "vencido",
+]);
+export type SupplierDocStatus = (typeof supplierDocStatus.enumValues)[number];
+
+export const homologationStatus = pgEnum("homologation_status", [
+  "nao_iniciada",
+  "em_andamento",
+  "aprovada",
+  "condicional",
+  "reprovada",
+]);
+export type HomologationStatus = (typeof homologationStatus.enumValues)[number];
+
+export const homologationItemResult = pgEnum("homologation_item_result", [
+  "pendente",
+  "conforme",
+  "nao_conforme",
+  "na",
+]);
+export type HomologationItemResult = (typeof homologationItemResult.enumValues)[number];
+
+export const supplierDocument = pgTable("supplier_document", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  docType: supplierDocType("doc_type").notNull(),
+  name: text("name"),
+  number: text("number"),
+  issuer: text("issuer"),
+  issueDate: date("issue_date"),
+  validUntil: date("valid_until"),
+  fileName: text("file_name"),
+  status: supplierDocStatus("status").notNull().default("pendente"),
+  responsible: text("responsible"),
+  approvedBy: text("approved_by"),
+  approvedAt: date("approved_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const homologationChecklist = pgTable("homologation_checklist", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  supplierType: supplierType("supplier_type"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const homologationChecklistItem = pgTable("homologation_checklist_item", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  checklistId: uuid("checklist_id").notNull(),
+  label: text("label").notNull(),
+  category: text("category"),
+  weight: integer("weight").notNull().default(1),
+  required: boolean("required").notNull().default(true),
+  orderIndex: integer("order_index").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplierHomologation = pgTable("supplier_homologation", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  supplierId: uuid("supplier_id").notNull(),
+  checklistId: uuid("checklist_id").notNull(),
+  status: homologationStatus("status").notNull().default("em_andamento"),
+  score: integer("score"),
+  startedAt: date("started_at"),
+  decidedAt: date("decided_at"),
+  decidedBy: text("decided_by"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const homologationAnswer = pgTable(
+  "homologation_answer",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    homologationId: uuid("homologation_id").notNull(),
+    itemId: uuid("item_id").notNull(),
+    result: homologationItemResult("result").notNull().default("pendente"),
+    notes: text("notes"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_homolog_answer").on(t.homologationId, t.itemId)],
+);
+
 export const purchaseOrder = pgTable(
   "purchase_order",
   {

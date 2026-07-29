@@ -19,8 +19,24 @@ import {
 } from "@/lib/data/suppliers";
 import { logAudit } from "@/lib/data/audit";
 import { createEvaluation, type EvaluationInput } from "@/lib/data/evaluations";
+import {
+  addDocument,
+  setDocumentStatus,
+  deleteDocument,
+} from "@/lib/data/documents";
+import {
+  startHomologation,
+  saveAnswer,
+  decideHomologation,
+} from "@/lib/data/homologation";
 import { supplierSchema, evaluationSchema, SUPPLIER_STATUS } from "./schema";
-import type { SupplierStatus } from "@/lib/db/schema";
+import { DOC_TYPE_OPTIONS, DOC_STATUS_OPTIONS, ITEM_RESULT_OPTIONS } from "./doc-meta";
+import type {
+  SupplierStatus,
+  SupplierDocType,
+  SupplierDocStatus,
+  HomologationItemResult,
+} from "@/lib/db/schema";
 
 const SUPPLIER_STATUS_VALUES = SUPPLIER_STATUS;
 
@@ -327,5 +343,98 @@ export async function deleteSubAction(id: string, table: string, subId: string):
   const valid = ["contact", "bank", "plant", "cert", "audit", "served"] as const;
   if (!(valid as readonly string[]).includes(table)) return;
   await deleteSubEntity(s.tenantId, table as (typeof valid)[number], subId);
+  rev(id);
+}
+
+/* ------------------------- Documentos ------------------------- */
+
+const DOC_TYPE_VALUES = DOC_TYPE_OPTIONS.map((o) => o.value);
+const DOC_STATUS_VALUES = DOC_STATUS_OPTIONS.map((o) => o.value);
+const ITEM_RESULT_VALUES = ITEM_RESULT_OPTIONS.map((o) => o.value);
+
+export async function addDocumentAction(id: string, _p: SubState, fd: FormData): Promise<SubState> {
+  const s = await guard();
+  const docType = String(fd.get("docType") ?? "");
+  if (!(DOC_TYPE_VALUES as readonly string[]).includes(docType)) {
+    return { error: "Selecione o tipo de documento." };
+  }
+  try {
+    await addDocument(s.tenantId, id, {
+      docType: docType as SupplierDocType,
+      name: emptyToNull(fd.get("name")),
+      number: emptyToNull(fd.get("number")),
+      issuer: emptyToNull(fd.get("issuer")),
+      issueDate: emptyToNull(fd.get("issueDate")),
+      validUntil: emptyToNull(fd.get("validUntil")),
+      fileName: emptyToNull(fd.get("fileName")),
+      responsible: emptyToNull(fd.get("responsible")),
+      notes: emptyToNull(fd.get("notes")),
+    });
+    await logAudit(s.tenantId, s.userId, "supplier.document.add", "supplier", id, `Documento (${docType}) adicionado`);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erro ao salvar documento." };
+  }
+  rev(id);
+  return { error: null, ok: true };
+}
+
+export async function setDocStatusAction(id: string, docId: string, status: string): Promise<void> {
+  const s = await guard();
+  if (!(DOC_STATUS_VALUES as readonly string[]).includes(status)) return;
+  await setDocumentStatus(s.tenantId, docId, status as SupplierDocStatus, s.name);
+  await logAudit(s.tenantId, s.userId, "supplier.document.status", "supplier", id, `Documento → ${status}`);
+  rev(id);
+}
+
+export async function deleteDocumentAction(id: string, docId: string): Promise<void> {
+  const s = await guard();
+  await deleteDocument(s.tenantId, docId);
+  rev(id);
+}
+
+/* ------------------------- Homologação ------------------------- */
+
+export async function startHomologationAction(id: string, formData: FormData): Promise<void> {
+  const s = await guard();
+  const checklistId = String(formData.get("checklistId") ?? "");
+  if (!checklistId) return;
+  await startHomologation(s.tenantId, id, checklistId);
+  await logAudit(s.tenantId, s.userId, "supplier.homologation.start", "supplier", id, "Homologação iniciada");
+  rev(id);
+}
+
+export async function saveAnswerAction(
+  id: string,
+  homologationId: string,
+  itemId: string,
+  formData: FormData,
+): Promise<void> {
+  const s = await guard();
+  const result = String(formData.get("result") ?? "");
+  if (!(ITEM_RESULT_VALUES as readonly string[]).includes(result)) return;
+  await saveAnswer(
+    s.tenantId,
+    homologationId,
+    itemId,
+    result as HomologationItemResult,
+    emptyToNull(formData.get("notes")),
+  );
+  rev(id);
+}
+
+export async function decideHomologationAction(
+  id: string,
+  homologationId: string,
+  decision: string,
+): Promise<void> {
+  const s = await guard();
+  if (!["aprovada", "condicional", "reprovada"].includes(decision)) return;
+  await decideHomologation(
+    s.tenantId,
+    homologationId,
+    decision as "aprovada" | "condicional" | "reprovada",
+    s.name,
+  );
+  await logAudit(s.tenantId, s.userId, "supplier.homologation.decide", "supplier", id, `Homologação → ${decision}`);
   rev(id);
 }
