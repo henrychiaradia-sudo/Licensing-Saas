@@ -1,10 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireLicenseeSession, logout } from "@/lib/auth";
 import { getLicenseeName } from "@/lib/data/portal";
+import { portalAlertCount } from "@/lib/data/portal-insights";
 import { PortalNav } from "./nav";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { initials } from "@/lib/utils";
-import { LogOut } from "lucide-react";
+import { LogOut, Bell } from "lucide-react";
 
 async function logoutAction() {
   "use server";
@@ -16,6 +18,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const session = await requireLicenseeSession();
   const lic = await getLicenseeName(session.tenantId, session.licenseeId);
   const licName = lic?.tradeName ?? lic?.legalName ?? "Licenciado";
+  const alerts = await portalAlertCount(session.tenantId, session.licenseeId);
 
   return (
     <div className="flex min-h-screen">
@@ -38,6 +41,19 @@ export default async function PortalLayout({ children }: { children: React.React
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-neutral-200 bg-white/90 px-5 py-2.5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
           <div className="text-sm font-semibold">{licName}</div>
           <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/portal/notificacoes"
+              aria-label="Notificações"
+              title="Notificações"
+              className="relative grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-400 hover:text-emerald-600 dark:border-neutral-700"
+            >
+              <Bell size={16} />
+              {alerts > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {alerts > 9 ? "9+" : alerts}
+                </span>
+              )}
+            </Link>
             <ThemeToggle />
             <div className="flex items-center gap-2">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-emerald-600 to-teal-500 text-xs font-bold text-white">
@@ -60,7 +76,7 @@ export default async function PortalLayout({ children }: { children: React.React
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1100px] flex-1 p-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1200px] flex-1 p-6">{children}</main>
       </div>
     </div>
   );
