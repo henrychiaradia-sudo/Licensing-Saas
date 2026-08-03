@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listBrands } from "@/lib/data/brands";
 import { Button, Card, Badge } from "@/components/ui";
@@ -48,12 +48,13 @@ export default async function MarcasPage({
                 <th className="px-4 py-3 font-semibold">Nome</th>
                 <th className="px-4 py-3 font-semibold">Área responsável</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-neutral-400">
+                  <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
                     Nenhuma marca cadastrada.
                   </td>
                 </tr>
@@ -65,16 +66,21 @@ export default async function MarcasPage({
                 >
                   <td className="px-4 py-3 font-mono text-xs text-neutral-500">{r.code}</td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/marcas/${r.id}`}
-                      className="font-semibold text-neutral-900 hover:text-blue-600 dark:text-neutral-100"
-                    >
+                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {r.name}
-                    </Link>
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-neutral-500">{r.ownerArea ?? "—"}</td>
                   <td className="px-4 py-3">
                     <Badge tone={tones[r.status]}>{labels[r.status]}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/marcas/${r.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
+                    >
+                      <Pencil size={13} /> Editar
+                    </Link>
                   </td>
                 </tr>
               ))}

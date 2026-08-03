@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { ShoppingCart, PackageCheck, Clock, Plus } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listPurchaseOrders, purchaseSummary, purchaseSpendAnalysis } from "@/lib/data/purchase-orders";
+import {
+  listPurchaseOrders,
+  purchaseSummary,
+  purchaseSpendAnalysis,
+  listSupplierOptions,
+} from "@/lib/data/purchase-orders";
 import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL } from "@/lib/utils";
@@ -38,10 +43,19 @@ const poLabel: Record<PoStatus, string> = {
   cancelado: "Cancelado",
 };
 
-export default async function ComprasPage() {
+export default async function ComprasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ supplier?: string }>;
+}) {
   const session = await requireSession();
+  const { supplier: supplierParam } = await searchParams;
+  const suppliers = await listSupplierOptions(session.tenantId);
+  const supplierId =
+    supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined;
+
   const [orders, summary, spend] = await Promise.all([
-    listPurchaseOrders(session.tenantId),
+    listPurchaseOrders(session.tenantId, { supplierId }),
     purchaseSummary(session.tenantId),
     purchaseSpendAnalysis(session.tenantId),
   ]);
@@ -83,6 +97,32 @@ export default async function ComprasPage() {
           </Link>
         </div>
       </div>
+
+      <form method="get" className="mb-5 flex flex-wrap items-end gap-3">
+        <div className="min-w-[240px]">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Fornecedor</label>
+          <select
+            name="supplier"
+            defaultValue={supplierId ?? ""}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos os fornecedores</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.tradeName || s.legalName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+        {supplierId && (
+          <Link href="/compras" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Kpi label="Comprometido" value={fmtCompactBRL(summary.committed)} icon={<ShoppingCart size={18} className="text-blue-600" />} />

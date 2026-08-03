@@ -27,6 +27,9 @@ export const contractSchema = z.object({
   insuranceRequired: z.boolean(),
   insuranceInfo: z.string().trim().max(500).nullable(),
   notes: z.string().trim().max(2000).nullable(),
+  responsibleName: z.string().trim().max(160).nullable(),
+  responsibleEmail: z.string().trim().max(160).nullable(),
+  responsiblePhone: z.string().trim().max(60).nullable(),
   brandIds: z.array(z.string().uuid()),
 });
 

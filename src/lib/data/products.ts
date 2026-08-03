@@ -2,8 +2,16 @@ import "server-only";
 import { and, eq, isNull, desc, count, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { product, brand, licensee, productApproval, approvalStage } from "@/lib/db/schema";
+import type { ProductStatus } from "@/lib/db/schema";
 
-export async function listProducts(tenantId: string) {
+export async function listProducts(
+  tenantId: string,
+  opts?: { brandId?: string; licenseeId?: string; status?: ProductStatus },
+) {
+  const conds = [eq(product.tenantId, tenantId), isNull(product.deletedAt)];
+  if (opts?.brandId) conds.push(eq(product.brandId, opts.brandId));
+  if (opts?.licenseeId) conds.push(eq(product.licenseeId, opts.licenseeId));
+  if (opts?.status) conds.push(eq(product.status, opts.status));
   const rows = await db
     .select({
       id: product.id,
@@ -11,6 +19,7 @@ export async function listProducts(tenantId: string) {
       name: product.name,
       status: product.status,
       currentVersion: product.currentVersion,
+      imageUrl: product.imageUrl,
       brandName: brand.name,
       licenseeName: licensee.legalName,
       approvalId: productApproval.id,
@@ -22,7 +31,7 @@ export async function listProducts(tenantId: string) {
       productApproval,
       and(eq(productApproval.productId, product.id), eq(productApproval.version, product.currentVersion)),
     )
-    .where(and(eq(product.tenantId, tenantId), isNull(product.deletedAt)))
+    .where(and(...conds))
     .orderBy(desc(product.createdAt))
     .limit(200);
 

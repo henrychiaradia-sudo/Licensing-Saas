@@ -14,7 +14,9 @@ import {
 } from "@/lib/db/schema";
 import type { PaymentMethod } from "@/lib/db/schema";
 
-export async function listReceivables(tenantId: string) {
+export async function listReceivables(tenantId: string, opts?: { licenseeId?: string }) {
+  const conds = [eq(receivable.tenantId, tenantId)];
+  if (opts?.licenseeId) conds.push(eq(receivable.licenseeId, opts.licenseeId));
   return db
     .select({
       id: receivable.id,
@@ -31,12 +33,14 @@ export async function listReceivables(tenantId: string) {
     .leftJoin(licensee, eq(licensee.id, receivable.licenseeId))
     .leftJoin(currency, eq(currency.id, receivable.currencyId))
     .leftJoin(contract, eq(contract.id, receivable.contractId))
-    .where(eq(receivable.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(receivable.dueDate)
     .limit(200);
 }
 
-export async function listInvoices(tenantId: string) {
+export async function listInvoices(tenantId: string, opts?: { licenseeId?: string }) {
+  const conds = [eq(invoice.tenantId, tenantId)];
+  if (opts?.licenseeId) conds.push(eq(invoice.licenseeId, opts.licenseeId));
   return db
     .select({
       id: invoice.id,
@@ -52,12 +56,14 @@ export async function listInvoices(tenantId: string) {
     .from(invoice)
     .leftJoin(licensee, eq(licensee.id, invoice.licenseeId))
     .leftJoin(currency, eq(currency.id, invoice.currencyId))
-    .where(eq(invoice.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(desc(invoice.issueDate))
     .limit(200);
 }
 
-export async function listPayments(tenantId: string) {
+export async function listPayments(tenantId: string, opts?: { licenseeId?: string }) {
+  const conds = [eq(payment.tenantId, tenantId)];
+  if (opts?.licenseeId) conds.push(eq(receivable.licenseeId, opts.licenseeId));
   return db
     .select({
       id: payment.id,
@@ -73,12 +79,14 @@ export async function listPayments(tenantId: string) {
     .leftJoin(receivable, eq(receivable.id, payment.receivableId))
     .leftJoin(licensee, eq(licensee.id, receivable.licenseeId))
     .leftJoin(currency, eq(currency.id, payment.currencyId))
-    .where(eq(payment.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(desc(payment.paidAt))
     .limit(200);
 }
 
-export async function listLedger(tenantId: string) {
+export async function listLedger(tenantId: string, opts?: { licenseeId?: string }) {
+  const conds = [eq(ledgerEntry.tenantId, tenantId)];
+  if (opts?.licenseeId) conds.push(eq(ledgerEntry.licenseeId, opts.licenseeId));
   return db
     .select({
       id: ledgerEntry.id,
@@ -92,7 +100,7 @@ export async function listLedger(tenantId: string) {
     .from(ledgerEntry)
     .leftJoin(licensee, eq(licensee.id, ledgerEntry.licenseeId))
     .leftJoin(currency, eq(currency.id, ledgerEntry.currencyId))
-    .where(eq(ledgerEntry.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(desc(ledgerEntry.entryDate))
     .limit(50);
 }

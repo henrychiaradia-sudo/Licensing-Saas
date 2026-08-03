@@ -3,7 +3,9 @@ import { and, eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { asset, assetDownload, brand } from "@/lib/db/schema";
 
-export async function listAssets(tenantId: string) {
+export async function listAssets(tenantId: string, opts?: { brandId?: string }) {
+  const conds = [eq(asset.tenantId, tenantId)];
+  if (opts?.brandId) conds.push(eq(asset.brandId, opts.brandId));
   return db
     .select({
       id: asset.id,
@@ -13,12 +15,13 @@ export async function listAssets(tenantId: string) {
       sizeBytes: asset.sizeBytes,
       tags: asset.tags,
       brandName: brand.name,
+      updatedAt: asset.updatedAt,
       downloads: sql<number>`count(${assetDownload.id})::int`,
     })
     .from(asset)
     .leftJoin(brand, eq(brand.id, asset.brandId))
     .leftJoin(assetDownload, eq(assetDownload.assetId, asset.id))
-    .where(eq(asset.tenantId, tenantId))
+    .where(and(...conds))
     .groupBy(asset.id, brand.name)
     .orderBy(desc(asset.createdAt));
 }

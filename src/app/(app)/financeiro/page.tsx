@@ -9,7 +9,8 @@ import {
   financeSummary,
   mgRealizedPercent,
 } from "@/lib/data/finance";
-import { Card, Badge } from "@/components/ui";
+import { listLicensees } from "@/lib/data/licensees";
+import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL, fmtPct } from "@/lib/utils";
 import type {
@@ -70,13 +71,23 @@ const ledgerLabel: Record<LedgerEntryType, string> = {
   adjustment: "Ajuste",
 };
 
-export default async function FinanceiroPage() {
+export default async function FinanceiroPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ licensee?: string }>;
+}) {
   const session = await requireSession();
+  const { licensee: licenseeParam } = await searchParams;
+  const licensees = await listLicensees(session.tenantId);
+  const licenseeId =
+    licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined;
+  const filter = { licenseeId };
+
   const [receivables, invoices, payments, ledger, summary, mgPct] = await Promise.all([
-    listReceivables(session.tenantId),
-    listInvoices(session.tenantId),
-    listPayments(session.tenantId),
-    listLedger(session.tenantId),
+    listReceivables(session.tenantId, filter),
+    listInvoices(session.tenantId, filter),
+    listPayments(session.tenantId, filter),
+    listLedger(session.tenantId, filter),
     financeSummary(session.tenantId),
     mgRealizedPercent(session.tenantId),
   ]);
@@ -108,6 +119,32 @@ export default async function FinanceiroPage() {
           Recebíveis, faturas, pagamentos e razão — consolidado do Supabase
         </p>
       </div>
+
+      <form method="get" className="mb-5 flex flex-wrap items-end gap-3">
+        <div className="min-w-[240px]">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Licenciado</label>
+          <select
+            name="licensee"
+            defaultValue={licenseeId ?? ""}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos os licenciados</option>
+            {licensees.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.legalName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+        {licenseeId && (
+          <Link href="/financeiro" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi label="A receber" value={fmtCompactBRL(summary.outstanding)} icon={<Wallet size={18} className="text-blue-600" />} />

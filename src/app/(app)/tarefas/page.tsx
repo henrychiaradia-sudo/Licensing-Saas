@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth";
 import { listTasks, listUpcomingTasks, taskSummary } from "@/lib/data/tasks";
 import { setTaskStatusAction } from "./actions";
 import { TaskForm } from "./task-form";
+import { TarefasTabs } from "./tabs";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
 import type { TaskStatus, TaskPriority } from "@/lib/db/schema";
@@ -61,6 +62,109 @@ export default async function TarefasPage() {
     !!t.dueDate && t.dueDate < today && (t.status === "a_fazer" || t.status === "em_andamento");
   const byStatus = (s: TaskStatus) => rows.filter((r) => r.status === s);
 
+  const agenda = (
+    <Card className="p-5">
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <CalendarClock size={16} className="text-blue-500" /> Próximos prazos
+      </h2>
+      {upcoming.length > 0 ? (
+        <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+          {upcoming.map((t) => {
+            const overdue = isOverdue(t);
+            return (
+              <li key={t.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <span className="flex items-center gap-2">
+                  <Badge tone={priorityTone[t.priority as TaskPriority]}>
+                    {priorityLabel[t.priority as TaskPriority]}
+                  </Badge>
+                  <span className="font-medium">{t.title}</span>
+                  {t.assignee && <span className="text-xs text-neutral-400">· {t.assignee}</span>}
+                </span>
+                <span className={overdue ? "text-sm font-semibold text-red-600" : "tabular-nums text-neutral-500"}>
+                  {fmtDate(t.dueDate)}
+                  {overdue ? " · atrasada" : ""}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="py-4 text-center text-sm text-neutral-400">Nenhum prazo próximo.</p>
+      )}
+    </Card>
+  );
+
+  const kanban = (
+    <div className="flex gap-4 overflow-x-auto pb-2">
+      {BOARD.map((status) => {
+        const cards = byStatus(status);
+        return (
+          <div key={status} className="w-80 shrink-0">
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <Badge tone={statusTone[status]}>{statusLabel[status]}</Badge>
+              <span className="text-sm text-neutral-400">{cards.length}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {cards.map((t) => {
+                const overdue = isOverdue(t);
+                return (
+                  <div
+                    key={t.id}
+                    className="rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="text-sm font-semibold leading-snug">{t.title}</span>
+                      <Badge tone={priorityTone[t.priority as TaskPriority]}>
+                        {priorityLabel[t.priority as TaskPriority]}
+                      </Badge>
+                    </div>
+                    {t.description && (
+                      <p className="mt-1 line-clamp-2 text-xs text-neutral-500">{t.description}</p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-400">
+                      {t.assignee && <span>{t.assignee}</span>}
+                      {t.dueDate && (
+                        <span className={overdue ? "font-semibold text-red-600" : ""}>
+                          {fmtDate(t.dueDate)}
+                          {overdue ? " · atrasada" : ""}
+                        </span>
+                      )}
+                      {t.entityLabel && <span>· {t.entityLabel}</span>}
+                    </div>
+                    {CARD_ACTIONS[status].length > 0 && (
+                      <div className="mt-2 flex gap-2">
+                        {CARD_ACTIONS[status].map((a) => (
+                          <form key={a.value} action={setTaskStatusAction.bind(null, t.id)}>
+                            <input type="hidden" name="status" value={a.value} />
+                            <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
+                              {a.icon} {a.label}
+                            </Button>
+                          </form>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {cards.length === 0 && (
+                <div className="rounded-lg border border-dashed border-neutral-200 p-4 text-center text-xs text-neutral-400 dark:border-neutral-800">
+                  Vazio
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const nova = (
+    <Card className="p-5">
+      <h2 className="mb-3 text-sm font-semibold">Nova tarefa</h2>
+      <TaskForm />
+    </Card>
+  );
+
   return (
     <div>
       <div className="mb-5">
@@ -75,100 +179,7 @@ export default async function TarefasPage() {
         <Kpi label="Concluídas" value={String(summary.done)} icon={<CheckCircle2 size={16} className="text-emerald-500" />} />
       </div>
 
-      <Card className="mb-5 p-5">
-        <h2 className="mb-3 text-sm font-semibold">Nova tarefa</h2>
-        <TaskForm />
-      </Card>
-
-      {upcoming.length > 0 && (
-        <Card className="mb-5 p-5">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-            <CalendarClock size={16} className="text-blue-500" /> Próximos prazos
-          </h2>
-          <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
-            {upcoming.map((t) => {
-              const overdue = isOverdue(t);
-              return (
-                <li key={t.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="flex items-center gap-2">
-                    <Badge tone={priorityTone[t.priority as TaskPriority]}>
-                      {priorityLabel[t.priority as TaskPriority]}
-                    </Badge>
-                    <span className="font-medium">{t.title}</span>
-                    {t.assignee && <span className="text-xs text-neutral-400">· {t.assignee}</span>}
-                  </span>
-                  <span className={overdue ? "text-sm font-semibold text-red-600" : "tabular-nums text-neutral-500"}>
-                    {fmtDate(t.dueDate)}
-                    {overdue ? " · atrasada" : ""}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
-
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {BOARD.map((status) => {
-          const cards = byStatus(status);
-          return (
-            <div key={status} className="w-80 shrink-0">
-              <div className="mb-2 flex items-center gap-2 px-1">
-                <Badge tone={statusTone[status]}>{statusLabel[status]}</Badge>
-                <span className="text-sm text-neutral-400">{cards.length}</span>
-              </div>
-              <div className="flex flex-col gap-2">
-                {cards.map((t) => {
-                  const overdue = isOverdue(t);
-                  return (
-                    <div
-                      key={t.id}
-                      className="rounded-lg border border-neutral-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="text-sm font-semibold leading-snug">{t.title}</span>
-                        <Badge tone={priorityTone[t.priority as TaskPriority]}>
-                          {priorityLabel[t.priority as TaskPriority]}
-                        </Badge>
-                      </div>
-                      {t.description && (
-                        <p className="mt-1 line-clamp-2 text-xs text-neutral-500">{t.description}</p>
-                      )}
-                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-400">
-                        {t.assignee && <span>{t.assignee}</span>}
-                        {t.dueDate && (
-                          <span className={overdue ? "font-semibold text-red-600" : ""}>
-                            {fmtDate(t.dueDate)}
-                            {overdue ? " · atrasada" : ""}
-                          </span>
-                        )}
-                        {t.entityLabel && <span>· {t.entityLabel}</span>}
-                      </div>
-                      {CARD_ACTIONS[status].length > 0 && (
-                        <div className="mt-2 flex gap-2">
-                          {CARD_ACTIONS[status].map((a) => (
-                            <form key={a.value} action={setTaskStatusAction.bind(null, t.id)}>
-                              <input type="hidden" name="status" value={a.value} />
-                              <Button type="submit" size="sm" variant={a.variant ?? "primary"}>
-                                {a.icon} {a.label}
-                              </Button>
-                            </form>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {cards.length === 0 && (
-                  <div className="rounded-lg border border-dashed border-neutral-200 p-4 text-center text-xs text-neutral-400 dark:border-neutral-800">
-                    Vazio
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <TarefasTabs agenda={agenda} kanban={kanban} nova={nova} />
     </div>
   );
 }

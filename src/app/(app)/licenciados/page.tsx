@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listLicensees } from "@/lib/data/licensees";
 import { Button, Card, Badge } from "@/components/ui";
@@ -62,12 +62,13 @@ export default async function LicenciadosPage({
                 <th className="px-4 py-3 font-semibold">País</th>
                 <th className="px-4 py-3 font-semibold">Score</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
+                <th className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
+                  <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
                     Nenhum licenciado encontrado.
                   </td>
                 </tr>
@@ -78,12 +79,9 @@ export default async function LicenciadosPage({
                   className="border-t border-neutral-100 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/40"
                 >
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/licenciados/${r.id}`}
-                      className="font-semibold text-neutral-900 hover:text-blue-600 dark:text-neutral-100"
-                    >
+                    <span className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {r.legalName}
-                    </Link>
+                    </span>
                     {r.tradeName && <div className="text-xs text-neutral-400">{r.tradeName}</div>}
                   </td>
                   <td className="px-4 py-3 text-neutral-500">{r.segmentName ?? "—"}</td>
@@ -93,6 +91,14 @@ export default async function LicenciadosPage({
                   </td>
                   <td className="px-4 py-3">
                     <Badge tone={statusTone[r.status]}>{statusLabels[r.status]}</Badge>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link
+                      href={`/licenciados/${r.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-neutral-600 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
+                    >
+                      <Pencil size={13} /> Editar
+                    </Link>
                   </td>
                 </tr>
               ))}

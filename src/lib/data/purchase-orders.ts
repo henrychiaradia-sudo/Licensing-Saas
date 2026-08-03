@@ -12,7 +12,9 @@ import {
 } from "@/lib/db/schema";
 import type { PoStatus } from "@/lib/db/schema";
 
-export async function listPurchaseOrders(tenantId: string) {
+export async function listPurchaseOrders(tenantId: string, opts?: { supplierId?: string }) {
+  const conds = [eq(purchaseOrder.tenantId, tenantId)];
+  if (opts?.supplierId) conds.push(eq(purchaseOrder.supplierId, opts.supplierId));
   return db
     .select({
       id: purchaseOrder.id,
@@ -29,7 +31,7 @@ export async function listPurchaseOrders(tenantId: string) {
     .leftJoin(supplier, eq(supplier.id, purchaseOrder.supplierId))
     .leftJoin(licensee, eq(licensee.id, purchaseOrder.licenseeId))
     .leftJoin(currency, eq(currency.id, purchaseOrder.currencyId))
-    .where(eq(purchaseOrder.tenantId, tenantId))
+    .where(and(...conds))
     .orderBy(desc(purchaseOrder.orderDate))
     .limit(200);
 }

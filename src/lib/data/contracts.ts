@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, isNull, desc, count, asc, inArray, or, ilike } from "drizzle-orm";
+import { and, eq, isNull, desc, count, asc, inArray, or, ilike, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   contract,
@@ -40,6 +40,12 @@ export async function listContracts(
       minimumGuaranteeTotal: contract.minimumGuaranteeTotal,
       currencyIso: currency.isoCode,
       licenseeName: licensee.legalName,
+      responsibleName: contract.responsibleName,
+      responsibleEmail: contract.responsibleEmail,
+      responsiblePhone: contract.responsiblePhone,
+      pdfUri: sql<
+        string | null
+      >`(select d.file_uri from contract_document d where d.contract_id = ${contract.id} order by d.version desc, d.uploaded_at desc limit 1)`,
     })
     .from(contract)
     .leftJoin(licensee, eq(licensee.id, contract.licenseeId))
@@ -389,6 +395,9 @@ export async function getContractForEdit(tenantId: string, id: string) {
       insuranceRequired: contract.insuranceRequired,
       insuranceInfo: contract.insuranceInfo,
       notes: contract.notes,
+      responsibleName: contract.responsibleName,
+      responsibleEmail: contract.responsibleEmail,
+      responsiblePhone: contract.responsiblePhone,
     })
     .from(contract)
     .where(and(eq(contract.id, id), eq(contract.tenantId, tenantId), isNull(contract.deletedAt)))
@@ -417,6 +426,9 @@ export type ContractInput = {
   insuranceRequired: boolean;
   insuranceInfo: string | null;
   notes: string | null;
+  responsibleName: string | null;
+  responsibleEmail: string | null;
+  responsiblePhone: string | null;
   brandIds: string[];
 };
 
@@ -486,6 +498,9 @@ export async function createContract(
       insuranceRequired: input.insuranceRequired,
       insuranceInfo: input.insuranceInfo,
       notes: input.notes,
+      responsibleName: input.responsibleName,
+      responsibleEmail: input.responsibleEmail,
+      responsiblePhone: input.responsiblePhone,
       createdBy: userId,
       updatedBy: userId,
     })
@@ -536,6 +551,9 @@ export async function updateContract(
       insuranceRequired: input.insuranceRequired,
       insuranceInfo: input.insuranceInfo,
       notes: input.notes,
+      responsibleName: input.responsibleName,
+      responsibleEmail: input.responsibleEmail,
+      responsiblePhone: input.responsiblePhone,
       updatedBy: userId,
       updatedAt: new Date(),
     })

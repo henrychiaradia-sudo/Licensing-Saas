@@ -23,6 +23,9 @@ export type ContractInitial = {
   insuranceRequired?: boolean;
   insuranceInfo?: string | null;
   notes?: string | null;
+  responsibleName?: string | null;
+  responsibleEmail?: string | null;
+  responsiblePhone?: string | null;
   brandIds?: string[];
 };
 
@@ -176,6 +179,40 @@ export function ContractForm({
       <div>
         <Label htmlFor="insuranceInfo">Informações de seguro</Label>
         <Input id="insuranceInfo" name="insuranceInfo" defaultValue={initial?.insuranceInfo ?? ""} />
+      </div>
+
+      <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-700">
+        <p className="mb-3 text-sm font-semibold">Responsável pelo contrato</p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="responsibleName">Nome</Label>
+            <Input
+              id="responsibleName"
+              name="responsibleName"
+              placeholder="Ex.: Maria Souza"
+              defaultValue={initial?.responsibleName ?? ""}
+            />
+          </div>
+          <div>
+            <Label htmlFor="responsibleEmail">E-mail</Label>
+            <Input
+              id="responsibleEmail"
+              name="responsibleEmail"
+              type="email"
+              placeholder="nome@empresa.com.br"
+              defaultValue={initial?.responsibleEmail ?? ""}
+            />
+          </div>
+          <div>
+            <Label htmlFor="responsiblePhone">Telefone</Label>
+            <Input
+              id="responsiblePhone"
+              name="responsiblePhone"
+              placeholder="+55 11 90000-0000"
+              defaultValue={initial?.responsiblePhone ?? ""}
+            />
+          </div>
+        </div>
       </div>
 
       <div>

@@ -58,6 +58,9 @@ export default async function EditContractPage({
           insuranceRequired: c.insuranceRequired,
           insuranceInfo: c.insuranceInfo,
           notes: c.notes,
+          responsibleName: c.responsibleName,
+          responsibleEmail: c.responsibleEmail,
+          responsiblePhone: c.responsiblePhone,
           brandIds: c.brandIds,
         }}
       />

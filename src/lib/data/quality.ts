@@ -11,11 +11,12 @@ import type {
 
 export async function listInspections(
   tenantId: string,
-  opts?: { result?: QualityResult; type?: QualityInspectionType; q?: string },
+  opts?: { result?: QualityResult; type?: QualityInspectionType; q?: string; supplierId?: string },
 ) {
   const conds = [eq(qualityInspection.tenantId, tenantId)];
   if (opts?.result) conds.push(eq(qualityInspection.result, opts.result));
   if (opts?.type) conds.push(eq(qualityInspection.inspectionType, opts.type));
+  if (opts?.supplierId) conds.push(eq(qualityInspection.supplierId, opts.supplierId));
   if (opts?.q && opts.q.trim()) {
     const term = `%${opts.q.trim()}%`;
     const m = or(ilike(qualityInspection.inspectionNumber, term), ilike(qualityInspection.title, term));

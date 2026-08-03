@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, FileText, Mail, Phone } from "lucide-react";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
 import { listContracts } from "@/lib/data/contracts";
@@ -47,8 +47,10 @@ export default async function ContratosPage({
   const csvColumns = [
     { key: "contrato", label: "Contrato" },
     { key: "licenciado", label: "Licenciado" },
-    { key: "inicio", label: "Início" },
-    { key: "fim", label: "Fim" },
+    { key: "inicio", label: "Vigência Inicial" },
+    { key: "fim", label: "Vigência Expiração" },
+    { key: "email_resp", label: "E-mail do Responsável" },
+    { key: "tel_resp", label: "Telefone do Responsável" },
     { key: "garantia", label: "Garantia mínima" },
     { key: "status", label: "Status" },
   ];
@@ -57,6 +59,8 @@ export default async function ContratosPage({
     licenciado: c.licenseeName ?? "",
     inicio: c.startDate ?? "",
     fim: c.endDate ?? "",
+    email_resp: c.responsibleEmail ?? "",
+    tel_resp: c.responsiblePhone ?? "",
     garantia: c.minimumGuaranteeTotal != null ? Number(c.minimumGuaranteeTotal) : "",
     status: statusLabel[c.status],
   }));
@@ -125,14 +129,18 @@ export default async function ContratosPage({
       </form>
 
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[720px] text-sm">
+        <table className="w-full min-w-[1120px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
               <th className="px-5 py-3 font-medium">Contrato</th>
               <th className="px-5 py-3 font-medium">Licenciado</th>
-              <th className="px-5 py-3 font-medium">Vigência</th>
+              <th className="px-5 py-3 font-medium">Vigência Inicial</th>
+              <th className="px-5 py-3 font-medium">Vigência Expiração</th>
+              <th className="px-5 py-3 font-medium">E-mail do Responsável</th>
+              <th className="px-5 py-3 font-medium">Telefone do Responsável</th>
               <th className="px-5 py-3 text-right font-medium">Garantia mínima</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Arquivo PDF</th>
             </tr>
           </thead>
           <tbody>
@@ -154,8 +162,33 @@ export default async function ContratosPage({
                   </div>
                 </td>
                 <td className="px-5 py-3">{c.licenseeName ?? "—"}</td>
-                <td className="px-5 py-3 tabular-nums">
-                  {fmtDate(c.startDate)} — {fmtDate(c.endDate)}
+                <td className="px-5 py-3 tabular-nums">{fmtDate(c.startDate)}</td>
+                <td className="px-5 py-3 tabular-nums">{fmtDate(c.endDate)}</td>
+                <td className="px-5 py-3">
+                  {c.responsibleEmail ? (
+                    <a
+                      href={`mailto:${c.responsibleEmail}`}
+                      className="inline-flex items-center gap-1.5 text-neutral-600 hover:text-blue-600 dark:text-neutral-300"
+                    >
+                      <Mail size={13} className="text-neutral-400" />
+                      {c.responsibleEmail}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                  {c.responsibleName && (
+                    <div className="text-xs text-neutral-400">{c.responsibleName}</div>
+                  )}
+                </td>
+                <td className="px-5 py-3">
+                  {c.responsiblePhone ? (
+                    <span className="inline-flex items-center gap-1.5 tabular-nums text-neutral-600 dark:text-neutral-300">
+                      <Phone size={13} className="text-neutral-400" />
+                      {c.responsiblePhone}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-5 py-3 text-right tabular-nums">
                   {fmtMoney(c.minimumGuaranteeTotal, c.currencyIso ?? "BRL")}
@@ -163,11 +196,25 @@ export default async function ContratosPage({
                 <td className="px-5 py-3">
                   <Badge tone={statusTone[c.status]}>{statusLabel[c.status]}</Badge>
                 </td>
+                <td className="px-5 py-3">
+                  {c.pdfUri ? (
+                    <a
+                      href={c.pdfUri}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:border-red-400 dark:border-neutral-700"
+                    >
+                      <FileText size={13} /> PDF
+                    </a>
+                  ) : (
+                    <span className="text-neutral-400">—</span>
+                  )}
+                </td>
               </tr>
             ))}
             {contracts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-sm text-neutral-400">
+                <td colSpan={9} className="px-5 py-10 text-center text-sm text-neutral-400">
                   Nenhum contrato encontrado.
                 </td>
               </tr>

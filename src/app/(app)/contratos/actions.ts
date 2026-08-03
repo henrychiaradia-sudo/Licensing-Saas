@@ -68,6 +68,9 @@ export async function saveContract(
     insuranceRequired: formData.get("insuranceRequired") != null,
     insuranceInfo: emptyToNull(formData.get("insuranceInfo")),
     notes: emptyToNull(formData.get("notes")),
+    responsibleName: emptyToNull(formData.get("responsibleName")),
+    responsibleEmail: emptyToNull(formData.get("responsibleEmail")),
+    responsiblePhone: emptyToNull(formData.get("responsiblePhone")),
     brandIds: formData.getAll("brandIds").map((b) => String(b)),
   };
 

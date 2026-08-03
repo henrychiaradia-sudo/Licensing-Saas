@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Search, ClipboardCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listInspections, qualitySummary } from "@/lib/data/quality";
+import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { Button, Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtDate } from "@/lib/utils";
@@ -34,17 +35,21 @@ const TYPE_KEYS = Object.keys(typeLabel) as QualityInspectionType[];
 export default async function QualidadePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; result?: string; type?: string }>;
+  searchParams: Promise<{ q?: string; result?: string; type?: string; supplier?: string }>;
 }) {
   const session = await requireSession();
-  const { q, result, type } = await searchParams;
+  const { q, result, type, supplier: supplierParam } = await searchParams;
   const resultFilter =
     result && (RESULT_KEYS as string[]).includes(result) ? (result as QualityResult) : undefined;
   const typeFilter =
     type && (TYPE_KEYS as string[]).includes(type) ? (type as QualityInspectionType) : undefined;
 
+  const suppliers = await listSupplierOptions(session.tenantId);
+  const supplierId =
+    supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined;
+
   const [rows, summary] = await Promise.all([
-    listInspections(session.tenantId, { q, result: resultFilter, type: typeFilter }),
+    listInspections(session.tenantId, { q, result: resultFilter, type: typeFilter, supplierId }),
     qualitySummary(session.tenantId),
   ]);
 
@@ -125,6 +130,21 @@ export default async function QualidadePage({
           </div>
         </div>
         <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Fornecedor</label>
+          <select
+            name="supplier"
+            defaultValue={supplierId ?? ""}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.tradeName || s.legalName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label className="mb-1 block text-xs font-medium text-neutral-500">Tipo</label>
           <select
             name="type"
@@ -157,7 +177,7 @@ export default async function QualidadePage({
         <Button type="submit" variant="outline">
           Filtrar
         </Button>
-        {(q || resultFilter || typeFilter) && (
+        {(q || resultFilter || typeFilter || supplierId) && (
           <Link href="/qualidade" className="text-sm text-neutral-500 hover:underline">
             Limpar
           </Link>

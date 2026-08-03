@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { ImageIcon } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listProducts } from "@/lib/data/products";
-import { Card, Badge } from "@/components/ui";
+import { listBrands } from "@/lib/data/brands";
+import { listLicensees } from "@/lib/data/licensees";
+import { Card, Badge, Button } from "@/components/ui";
 import type { ProductStatus } from "@/lib/db/schema";
 
 const pLabels: Record<ProductStatus, string> = {
@@ -23,9 +26,31 @@ const pTones: Record<ProductStatus, "neutral" | "info" | "warn" | "good" | "dang
   descontinuado: "neutral",
 };
 
-export default async function ProdutosPage() {
+const STATUS_KEYS = Object.keys(pLabels) as ProductStatus[];
+
+export default async function ProdutosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ brand?: string; licensee?: string; status?: string }>;
+}) {
   const session = await requireSession();
-  const rows = await listProducts(session.tenantId);
+  const { brand: brandParam, licensee: licenseeParam, status: statusParam } = await searchParams;
+
+  const [brands, licensees] = await Promise.all([
+    listBrands(session.tenantId),
+    listLicensees(session.tenantId),
+  ]);
+
+  const brandId = brandParam && brands.some((b) => b.id === brandParam) ? brandParam : undefined;
+  const licenseeId =
+    licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined;
+  const status =
+    statusParam && (STATUS_KEYS as string[]).includes(statusParam)
+      ? (statusParam as ProductStatus)
+      : undefined;
+
+  const rows = await listProducts(session.tenantId, { brandId, licenseeId, status });
+  const hasFilter = !!(brandId || licenseeId || status);
 
   return (
     <div>
@@ -34,13 +59,70 @@ export default async function ProdutosPage() {
         <p className="text-sm text-neutral-500">Workflow multi-alçada · {rows.length} produto(s)</p>
       </div>
 
+      <form method="get" className="mb-4 flex flex-wrap items-end gap-3">
+        <div className="min-w-[190px]">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Marca</label>
+          <select
+            name="brand"
+            defaultValue={brandId ?? ""}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todas as marcas</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-[190px]">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Licenciado</label>
+          <select
+            name="licensee"
+            defaultValue={licenseeId ?? ""}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos os licenciados</option>
+            {licensees.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.legalName}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="min-w-[170px]">
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Status</label>
+          <select
+            name="status"
+            defaultValue={status ?? ""}
+            className="h-10 w-full rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {STATUS_KEYS.map((s) => (
+              <option key={s} value={s}>
+                {pLabels[s]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button type="submit" variant="outline">
+          Filtrar
+        </Button>
+        {hasFilter && (
+          <Link href="/produtos" className="text-sm text-neutral-500 hover:underline">
+            Limpar
+          </Link>
+        )}
+      </form>
+
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                <th className="px-4 py-3 font-semibold">SKU / Produto</th>
                 <th className="px-4 py-3 font-semibold">Marca</th>
+                <th className="px-4 py-3 font-semibold">Foto</th>
+                <th className="px-4 py-3 font-semibold">SKU / Produto</th>
                 <th className="px-4 py-3 font-semibold">Licenciado</th>
                 <th className="px-4 py-3 font-semibold">Progresso</th>
                 <th className="px-4 py-3 font-semibold">Status</th>
@@ -49,8 +131,8 @@ export default async function ProdutosPage() {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-12 text-center text-neutral-400">
-                    Nenhum produto em aprovação.
+                  <td colSpan={6} className="px-4 py-12 text-center text-neutral-400">
+                    Nenhum produto encontrado.
                   </td>
                 </tr>
               )}
@@ -59,6 +141,22 @@ export default async function ProdutosPage() {
                   key={r.id}
                   className="border-t border-neutral-100 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/40"
                 >
+                  <td className="px-4 py-3 text-neutral-500">{r.brandName ?? "—"}</td>
+                  <td className="px-4 py-3">
+                    <div className="grid h-11 w-11 place-items-center overflow-hidden rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800">
+                      {r.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.imageUrl}
+                          alt={r.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={16} className="text-neutral-300 dark:text-neutral-600" />
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/produtos/${r.id}`}
@@ -68,7 +166,6 @@ export default async function ProdutosPage() {
                     </Link>
                     <div className="font-mono text-xs text-neutral-400">{r.sku}</div>
                   </td>
-                  <td className="px-4 py-3 text-neutral-500">{r.brandName ?? "—"}</td>
                   <td className="px-4 py-3 text-neutral-500">{r.licenseeName ?? "—"}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
