@@ -4,7 +4,8 @@ import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
 import { listContracts } from "@/lib/data/contracts";
 import { Button, Card, Badge, Input } from "@/components/ui";
-import { ExportCsvButton } from "@/components/export-csv-button";
+import { ExportGroup } from "@/components/export-group";
+import { HighlightScroll } from "@/components/highlight-scroll";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import { CONTRACT_STATUS } from "./schema";
 import type { ContractStatus } from "@/lib/db/schema";
@@ -33,16 +34,23 @@ const statusLabel: Record<ContractStatus, string> = {
 export default async function ContratosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; highlight?: string }>;
 }) {
   const session = await requireSession();
-  const { q, status } = await searchParams;
+  const { q, status, highlight } = await searchParams;
   const statusFilter =
     status && (CONTRACT_STATUS as readonly string[]).includes(status)
       ? (status as ContractStatus)
       : undefined;
   const contracts = await listContracts(session.tenantId, { q, status: statusFilter });
   const canWrite = can(session, PERMISSIONS.contractWrite);
+
+  // Highlight vindo dos cards de "pontos de atenção" do dashboard (contratos vencendo em 60 dias).
+  const soonIso = new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  const isHl = (c: (typeof contracts)[number]) =>
+    highlight === "vencendo" && c.status === "vigente" && !!c.endDate && c.endDate <= soonIso;
+  const firstHlId = contracts.find(isHl)?.id;
+  const HL = "bg-amber-50 ring-2 ring-inset ring-amber-300 dark:bg-amber-950/30 dark:ring-amber-500/40";
 
   const csvColumns = [
     { key: "contrato", label: "Contrato" },
@@ -76,7 +84,7 @@ export default async function ContratosPage({
         </div>
         <div className="flex items-center gap-2">
           <Badge tone="info">{contracts.length} contrato(s)</Badge>
-          <ExportCsvButton filename="contratos.csv" columns={csvColumns} rows={csvRows} />
+          <ExportGroup filename="contratos" columns={csvColumns} rows={csvRows} title="Contratos — ALIANZA" />
           {canWrite && (
             <Link href="/contratos/new">
               <Button>
@@ -128,6 +136,16 @@ export default async function ContratosPage({
         )}
       </form>
 
+      {highlight === "vencendo" && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <span>Destacando contratos vigentes que vencem nos próximos 60 dias.</span>
+          <Link href="/contratos" className="ml-auto text-xs font-medium hover:underline">
+            Limpar destaque
+          </Link>
+        </div>
+      )}
+      {highlight && <HighlightScroll />}
+
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[1120px] text-sm">
           <thead>
@@ -147,7 +165,8 @@ export default async function ContratosPage({
             {contracts.map((c) => (
               <tr
                 key={c.id}
-                className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+                id={c.id === firstHlId ? "hl-first" : undefined}
+                className={`border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50${isHl(c) ? " " + HL : ""}`}
               >
                 <td className="px-5 py-3">
                   <Link

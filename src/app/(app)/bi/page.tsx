@@ -35,6 +35,7 @@ import {
 } from "@/lib/data/analytics";
 import { fmtCompactBRL, fmtMoney } from "@/lib/utils";
 import type { SupplierRiskLevel } from "@/lib/db/schema";
+import { ExportGroup } from "@/components/export-group";
 import { Panel, Kpi, DonutChart, HBars, ScatterChart, DataTable, MiniStat, PAL, SERIES } from "@/components/charts-pro";
 
 const receivableStatusLabel: Record<string, string> = {
@@ -115,6 +116,12 @@ export default async function BiPage() {
     label: p.label,
   }));
 
+  const exportColumns = [
+    { key: "licenciado", label: "Licenciado" },
+    { key: "receita", label: "Receita (R$)" },
+  ];
+  const exportRows = revenue.map((r) => ({ licenciado: r.label, receita: r.value }));
+
   const topEvals = [...evaluations].sort((a, b) => (b.overallScore ?? 0) - (a.overallScore ?? 0)).slice(0, 8);
   const evalRows = topEvals.map((e) => ({
     forn: e.supplierName ?? "—",
@@ -135,6 +142,15 @@ export default async function BiPage() {
           <p className="text-sm text-neutral-500">
             Detalhamentos e análises por dimensão — royalties, vendas, comercial, suprimentos e qualidade
           </p>
+        </div>
+        <div className="ml-auto">
+          <ExportGroup
+            filename="bi-receita-por-licenciado"
+            columns={exportColumns}
+            rows={exportRows}
+            title="BI & Analytics — Receita por licenciado"
+            pdfOrientation="portrait"
+          />
         </div>
       </div>
 

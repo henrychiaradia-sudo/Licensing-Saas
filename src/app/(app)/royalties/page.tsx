@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { listRoyaltyReports } from "@/lib/data/royalties";
 import { Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { HighlightScroll } from "@/components/highlight-scroll";
 import { fmtMoney } from "@/lib/utils";
 import type { RoyaltyReportStatus } from "@/lib/db/schema";
 
@@ -31,15 +32,21 @@ const STATUS_KEYS = Object.keys(statusLabel) as RoyaltyReportStatus[];
 export default async function RoyaltiesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; highlight?: string }>;
 }) {
   const session = await requireSession();
-  const { q, status } = await searchParams;
+  const { q, status, highlight } = await searchParams;
   const statusFilter =
     status && (STATUS_KEYS as string[]).includes(status)
       ? (status as RoyaltyReportStatus)
       : undefined;
   const reports = await listRoyaltyReports(session.tenantId, { q, status: statusFilter });
+
+  // Highlight vindo do card "Royalties pendentes" do dashboard.
+  const PENDING = new Set(["enviado", "em_validacao", "com_divergencia"]);
+  const isHl = (r: (typeof reports)[number]) => highlight === "pendentes" && PENDING.has(r.status);
+  const firstHlId = reports.find(isHl)?.id;
+  const HL = "bg-amber-50 ring-2 ring-inset ring-amber-300 dark:bg-amber-950/30 dark:ring-amber-500/40";
 
   const csvColumns = [
     { key: "competencia", label: "Competência" },
@@ -121,6 +128,16 @@ export default async function RoyaltiesPage({
         )}
       </form>
 
+      {highlight === "pendentes" && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <span>Destacando royalties pendentes de validação/aprovação.</span>
+          <Link href="/royalties" className="ml-auto text-xs font-medium hover:underline">
+            Limpar destaque
+          </Link>
+        </div>
+      )}
+      {highlight && <HighlightScroll />}
+
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
@@ -138,10 +155,12 @@ export default async function RoyaltiesPage({
             {reports.map((r) => {
               const iso = r.currencyIso ?? "BRL";
               const variance = Number(r.variance);
+              const hl = isHl(r);
               return (
                 <tr
                   key={r.id}
-                  className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+                  id={r.id === firstHlId ? "hl-first" : undefined}
+                  className={`border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50${hl ? " " + HL : ""}`}
                 >
                   <td className="px-5 py-3">
                     <Link

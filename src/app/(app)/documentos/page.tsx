@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { listDocumentAlerts } from "@/lib/data/documents";
 import { Card, Badge, StatCard } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { HighlightScroll } from "@/components/highlight-scroll";
 import { fmtDate } from "@/lib/utils";
 import { validityTone } from "../fornecedores/supplier-meta";
 import { DOC_TYPE_LABEL, DOC_STATUS_LABEL, DOC_STATUS_TONE } from "../fornecedores/doc-meta";
@@ -15,9 +16,25 @@ function daysTo(v: string | null): number | null {
   return Number.isNaN(n) ? null : n;
 }
 
-export default async function DocumentosPage() {
+export default async function DocumentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ highlight?: string }>;
+}) {
   const session = await requireSession();
+  const { highlight } = await searchParams;
   const docs = await listDocumentAlerts(session.tenantId);
+
+  // Highlight vindo dos cards "Documentos vencidos" / "Docs a vencer" do dashboard.
+  const isHl = (d: (typeof docs)[number]) => {
+    const dd = daysTo(d.validUntil as unknown as string | null);
+    if (dd == null) return false;
+    if (highlight === "vencidos") return dd < 0;
+    if (highlight === "avencer") return dd >= 0 && dd <= 30;
+    return false;
+  };
+  const firstHlId = docs.find(isHl)?.id;
+  const HL = "bg-amber-50 ring-2 ring-inset ring-amber-300 dark:bg-amber-950/30 dark:ring-amber-500/40";
 
   let vencidos = 0;
   let aVencer = 0;
@@ -92,6 +109,20 @@ export default async function DocumentosPage() {
         />
       </div>
 
+      {(highlight === "vencidos" || highlight === "avencer") && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <span>
+            {highlight === "vencidos"
+              ? "Destacando documentos com validade expirada."
+              : "Destacando documentos que vencem nos próximos 30 dias."}
+          </span>
+          <Link href="/documentos" className="ml-auto text-xs font-medium hover:underline">
+            Limpar destaque
+          </Link>
+        </div>
+      )}
+      {highlight && <HighlightScroll />}
+
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
@@ -108,10 +139,12 @@ export default async function DocumentosPage() {
           <tbody>
             {docs.map((d) => {
               const v = validityTone(d.validUntil as unknown as string | null);
+              const hl = isHl(d);
               return (
                 <tr
                   key={d.id}
-                  className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+                  id={d.id === firstHlId ? "hl-first" : undefined}
+                  className={`border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50${hl ? " " + HL : ""}`}
                 >
                   <td className="px-5 py-3">
                     <Link href={`/fornecedores/${d.supplierId}`} className="font-semibold text-blue-600 hover:underline">

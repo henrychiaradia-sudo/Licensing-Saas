@@ -27,6 +27,7 @@ import { financeSummary, mgRealizedPercent } from "@/lib/data/finance";
 import { sourcingSavings } from "@/lib/data/sourcing";
 import { financialTimeline, execTotals, pipelineByStage, attentionSignals, trendDelta } from "@/lib/data/analytics";
 import { fmtCompactBRL } from "@/lib/utils";
+import { ExportGroup } from "@/components/export-group";
 import { Panel, Kpi, AreaLineChart, RadialGauge, MiniStat, AlertCard, PAL } from "@/components/charts-pro";
 
 export default async function DashboardPage() {
@@ -49,6 +50,19 @@ export default async function DashboardPage() {
   const lost = pipeline.find((p) => p.stage === "perdido")?.count ?? 0;
   const conversion = won + lost > 0 ? Math.round((won / (won + lost)) * 100) : 0;
   const today = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+
+  const exportColumns = [
+    { key: "mes", label: "Mês" },
+    { key: "receita", label: "Receita prevista (R$)" },
+    { key: "royalties", label: "Royalties apurados (R$)" },
+    { key: "compras", label: "Compras comprometidas (R$)" },
+  ];
+  const exportRows = timeline.labels.map((label, i) => ({
+    mes: label,
+    receita: timeline.receita[i] ?? 0,
+    royalties: timeline.royalties[i] ?? 0,
+    compras: timeline.compras[i] ?? 0,
+  }));
 
   return (
     <div>
@@ -73,6 +87,16 @@ export default async function DashboardPage() {
           <MiniStat label="Fornecedores ativos" value={String(suppliers)} accent={PAL.cyan} icon={<Layers size={16} />} />
           <MiniStat label="MG realizado" value={`${mgPct}%`} accent={PAL.emerald} icon={<TrendingUp size={16} />} />
         </div>
+      </div>
+
+      {/* Exportação */}
+      <div className="mb-4 flex justify-end">
+        <ExportGroup
+          filename="dashboard-executivo"
+          columns={exportColumns}
+          rows={exportRows}
+          title="Dashboard Executivo — Fluxo financeiro (12 meses)"
+        />
       </div>
 
       {/* KPIs executivos */}
@@ -116,19 +140,19 @@ export default async function DashboardPage() {
         <span className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
       </div>
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Link href="/documentos">
+        <Link href="/documentos?highlight=vencidos">
           <AlertCard label="Documentos vencidos" count={attention.docsVencidos} hint="regularizar" accent={PAL.red} icon={<AlertTriangle size={20} />} />
         </Link>
-        <Link href="/documentos">
+        <Link href="/documentos?highlight=avencer">
           <AlertCard label="Docs a vencer (30d)" count={attention.docsAVencer} hint="renovar em breve" accent={PAL.amber} icon={<Clock size={20} />} />
         </Link>
         <Link href="/qualidade">
           <AlertCard label="NCs em aberto" count={attention.ncsAbertas} hint="qualidade" accent={PAL.orange} icon={<ShieldAlert size={20} />} />
         </Link>
-        <Link href="/contratos">
+        <Link href="/contratos?highlight=vencendo">
           <AlertCard label="Contratos vencendo" count={attention.contratosVencendo} hint="próx. 60 dias" accent={PAL.violet} icon={<FileText size={20} />} />
         </Link>
-        <Link href="/royalties">
+        <Link href="/royalties?highlight=pendentes">
           <AlertCard label="Royalties pendentes" count={attention.royaltiesPendentes} hint="validar/aprovar" accent={PAL.blue} icon={<Coins size={20} />} />
         </Link>
       </div>
