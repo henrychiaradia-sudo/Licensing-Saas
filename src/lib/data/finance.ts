@@ -114,7 +114,12 @@ export async function financeSummary(tenantId: string, scope?: ViewScope) {
       overdue: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} not in ('pago','cancelado') and ${receivable.dueDate} < current_date), 0)`,
     })
     .from(receivable)
-    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId })));
+    .where(
+      and(
+        eq(receivable.tenantId, tenantId),
+        ...scopeConds(scope, { licensee: receivable.licenseeId, contract: receivable.contractId }),
+      ),
+    );
   const r = rows[0];
   return {
     outstanding: Number(r?.outstanding ?? 0),

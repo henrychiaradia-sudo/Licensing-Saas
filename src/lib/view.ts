@@ -1,4 +1,4 @@
-import { eq, type SQL, type AnyColumn } from "drizzle-orm";
+import { eq, sql, type SQL, type AnyColumn } from "drizzle-orm";
 
 /** Dimensão da "Visão global" (Consolidada × por Marca/Licenciado/Fornecedor). */
 export type ViewDim = "marca" | "licenciado" | "fornecedor";
@@ -37,13 +37,23 @@ export function viewToScope(view: ParsedView): ViewScope {
  */
 export function scopeConds(
   scope: ViewScope | undefined,
-  cols: { licensee?: AnyColumn; supplier?: AnyColumn; brand?: AnyColumn },
+  cols: { licensee?: AnyColumn; supplier?: AnyColumn; brand?: AnyColumn; contract?: AnyColumn },
 ): SQL[] {
   const out: SQL[] = [];
   if (!scope) return out;
   if (scope.licenseeId && cols.licensee) out.push(eq(cols.licensee, scope.licenseeId));
   if (scope.supplierId && cols.supplier) out.push(eq(cols.supplier, scope.supplierId));
-  if (scope.brandId && cols.brand) out.push(eq(cols.brand, scope.brandId));
+  if (scope.brandId) {
+    if (cols.brand) {
+      // Tabela com marca nativa (ex.: oportunidade, produto).
+      out.push(eq(cols.brand, scope.brandId));
+    } else if (cols.contract) {
+      // Marca ligada ao financeiro via contrato → contract_brand.
+      out.push(
+        sql`${cols.contract} in (select contract_id from contract_brand where brand_id = ${scope.brandId})`,
+      );
+    }
+  }
   return out;
 }
 

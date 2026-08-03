@@ -81,7 +81,7 @@ export async function financialTimeline(tenantId: string, scope?: ViewScope) {
         and(
           eq(receivable.tenantId, tenantId),
           sql`${receivable.status} <> 'cancelado'`,
-          ...scopeConds(scope, { licensee: receivable.licenseeId }),
+          ...scopeConds(scope, { licensee: receivable.licenseeId, contract: receivable.contractId }),
         ),
       )
       .groupBy(sql`date_trunc('month', ${receivable.dueDate})`),
@@ -91,7 +91,7 @@ export async function financialTimeline(tenantId: string, scope?: ViewScope) {
         value: sql<string>`coalesce(sum(${royaltyReport.royaltyCalculated}), 0)`,
       })
       .from(royaltyReport)
-      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })))
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId })))
       .groupBy(sql`date_trunc('month', ${royaltyReport.periodStart})`),
     db
       .select({
@@ -133,11 +133,11 @@ export async function execTotals(tenantId: string, scope?: ViewScope) {
     db
       .select({ v: sql<string>`coalesce(sum(${invoice.netAmount}) filter (where ${invoice.status} <> 'cancelada'), 0)` })
       .from(invoice)
-      .where(and(eq(invoice.tenantId, tenantId), ...scopeConds(scope, { licensee: invoice.licenseeId }))),
+      .where(and(eq(invoice.tenantId, tenantId), ...scopeConds(scope, { licensee: invoice.licenseeId, contract: invoice.contractId }))),
     db
       .select({ v: sql<string>`coalesce(sum(${royaltyReport.royaltyCalculated}), 0)` })
       .from(royaltyReport)
-      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId }))),
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId }))),
     db
       .select({ v: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}) filter (where ${purchaseOrder.status} <> 'cancelado'), 0)` })
       .from(purchaseOrder)
@@ -284,7 +284,7 @@ export async function contractStatusMix(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({ status: contract.status, count: sql<string>`count(*)` })
     .from(contract)
-    .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId })))
+    .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId, contract: contract.id })))
     .groupBy(contract.status);
   return rows
     .map((r) => ({ label: CONTRACT_STATUS_LABEL[r.status] ?? r.status, value: Number(r.count) }))
@@ -339,7 +339,7 @@ export async function receivablesAging(tenantId: string, scope?: ViewScope) {
       and(
         eq(receivable.tenantId, tenantId),
         sql`${receivable.status} not in ('pago','cancelado')`,
-        ...scopeConds(scope, { licensee: receivable.licenseeId }),
+        ...scopeConds(scope, { licensee: receivable.licenseeId, contract: receivable.contractId }),
       ),
     )
     .groupBy(sql`1`);
@@ -370,7 +370,7 @@ export async function salesRoyaltyScatter(tenantId: string, scope?: ViewScope) {
     })
     .from(royaltyReport)
     .leftJoin(licensee, eq(licensee.id, royaltyReport.licenseeId))
-    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })));
+    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId })));
   return rows
     .map((r) => ({
       label: `${r.licenseeName ?? "—"} · ${r.reference}`,
@@ -397,7 +397,7 @@ export async function royaltyStatusMix(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({ status: royaltyReport.status, count: sql<string>`count(*)` })
     .from(royaltyReport)
-    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })))
+    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId })))
     .groupBy(royaltyReport.status);
   return rows.map((r) => ({
     label: ROYALTY_STATUS_LABEL[r.status]?.label ?? r.status,
@@ -427,13 +427,13 @@ export async function attentionSignals(tenantId: string, scope?: ViewScope) {
         vencendo: sql<string>`count(*) filter (where ${contract.status} = 'vigente' and ${contract.endDate} is not null and ${contract.endDate} <= current_date + 60)`,
       })
       .from(contract)
-      .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId }))),
+      .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId, contract: contract.id }))),
     db
       .select({
         pendentes: sql<string>`count(*) filter (where ${royaltyReport.status} in ('enviado','em_validacao','com_divergencia'))`,
       })
       .from(royaltyReport)
-      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId }))),
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId }))),
   ]);
   return {
     docsVencidos: Number(docs[0]?.vencidos ?? 0),

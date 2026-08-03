@@ -13,7 +13,7 @@ export async function royaltiesByCompetencia(tenantId: string, scope?: ViewScope
       value: sql<string>`sum(${royaltyReport.royaltyCalculated})`,
     })
     .from(royaltyReport)
-    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })))
+    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId, contract: royaltyReport.contractId })))
     .groupBy(royaltyReport.referenceLabel)
     .orderBy(royaltyReport.referenceLabel);
   return rows.map((r) => ({ label: r.label, value: Number(r.value) }));
@@ -46,7 +46,7 @@ export async function receivablesByStatus(tenantId: string, scope?: ViewScope): 
       value: sql<string>`sum(${receivable.amount})`,
     })
     .from(receivable)
-    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId })))
+    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId, contract: receivable.contractId })))
     .groupBy(receivable.status)
     .orderBy(sql`sum(${receivable.amount}) desc`);
   return rows.map((r) => ({ label: r.label, value: Number(r.value) }));
@@ -60,7 +60,7 @@ export async function revenueByLicensee(tenantId: string, scope?: ViewScope): Pr
     })
     .from(receivable)
     .leftJoin(licensee, eq(licensee.id, receivable.licenseeId))
-    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId })))
+    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId, contract: receivable.contractId })))
     .groupBy(licensee.legalName)
     .orderBy(sql`sum(${receivable.amount}) desc`);
   return rows.map((r) => ({ label: r.label ?? "—", value: Number(r.value) }));
