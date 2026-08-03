@@ -147,7 +147,7 @@ export async function portalControladoria(tenantId: string, licenseeId: string) 
       (select coalesce(sum(royalty_declared),0) from royalty_report where tenant_id=${T} and licensee_id=${L}) as declared,
       (select coalesce(sum(royalty_calculated),0) from royalty_report where tenant_id=${T} and licensee_id=${L}) as calculated,
       (select coalesce(sum(net_amount),0) from invoice where tenant_id=${T} and licensee_id=${L}) as billed,
-      (select count(*) from invoice where tenant_id=${T} and licensee_id=${L} and status not in ('paga','cancelada'))::int as open_invoices
+      (select count(*) from invoice where tenant_id=${T} and licensee_id=${L} and status = 'emitida')::int as open_invoices
   `);
   const t = totals[0] ?? {};
 
