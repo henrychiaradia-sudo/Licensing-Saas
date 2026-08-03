@@ -192,7 +192,7 @@ export default async function DashboardPage({
         <Link href="/documentos?highlight=avencer">
           <AlertCard label="Docs a vencer (30d)" count={attention.docsAVencer} hint="renovar em breve" accent={PAL.amber} icon={<Clock size={20} />} />
         </Link>
-        <Link href="/qualidade">
+        <Link href="/qualidade?highlight=nc">
           <AlertCard label="NCs em aberto" count={attention.ncsAbertas} hint="qualidade" accent={PAL.orange} icon={<ShieldAlert size={20} />} />
         </Link>
         <Link href="/contratos?highlight=vencendo">

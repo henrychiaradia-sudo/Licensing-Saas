@@ -71,6 +71,21 @@ export async function qualitySummary(tenantId: string) {
   };
 }
 
+/** IDs das inspeções que possuem não-conformidades em aberto (para o highlight vindo do dashboard). */
+export async function listOpenNcInspectionIds(tenantId: string): Promise<string[]> {
+  const rows = await db
+    .selectDistinct({ id: nonConformity.qualityInspectionId })
+    .from(nonConformity)
+    .where(
+      and(
+        eq(nonConformity.tenantId, tenantId),
+        sql`${nonConformity.status} in ('aberta','em_tratamento')`,
+        sql`${nonConformity.qualityInspectionId} is not null`,
+      ),
+    );
+  return rows.map((r) => r.id).filter((x): x is string => !!x);
+}
+
 export async function getInspectionDetail(tenantId: string, id: string) {
   const rows = await db
     .select({

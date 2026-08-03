@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { Plus, Search, ClipboardCheck, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listInspections, qualitySummary } from "@/lib/data/quality";
+import { listInspections, qualitySummary, listOpenNcInspectionIds } from "@/lib/data/quality";
 import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { parseView } from "@/lib/view";
 import { Button, Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { HighlightScroll } from "@/components/highlight-scroll";
 import { fmtDate } from "@/lib/utils";
 import type { QualityInspectionType, QualityResult } from "@/lib/db/schema";
 
@@ -36,10 +37,17 @@ const TYPE_KEYS = Object.keys(typeLabel) as QualityInspectionType[];
 export default async function QualidadePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; result?: string; type?: string; supplier?: string; view?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    result?: string;
+    type?: string;
+    supplier?: string;
+    view?: string;
+    highlight?: string;
+  }>;
 }) {
   const session = await requireSession();
-  const { q, result, type, supplier: supplierParam, view: viewParam } = await searchParams;
+  const { q, result, type, supplier: supplierParam, view: viewParam, highlight } = await searchParams;
   const view = parseView(viewParam);
   const resultFilter =
     result && (RESULT_KEYS as string[]).includes(result) ? (result as QualityResult) : undefined;
@@ -55,6 +63,13 @@ export default async function QualidadePage({
     listInspections(session.tenantId, { q, result: resultFilter, type: typeFilter, supplierId }),
     qualitySummary(session.tenantId),
   ]);
+
+  // Highlight vindo do card "NCs em aberto" do dashboard: realça inspeções com NC em aberto.
+  const ncHighlight = highlight === "nc";
+  const openNcIds = ncHighlight ? new Set(await listOpenNcInspectionIds(session.tenantId)) : null;
+  const isHl = (id: string) => !!openNcIds && openNcIds.has(id);
+  const firstHlId = ncHighlight ? rows.find((r) => isHl(r.id))?.id : undefined;
+  const HL = "bg-amber-50 ring-2 ring-inset ring-amber-300 dark:bg-amber-950/30 dark:ring-amber-500/40";
 
   const csvColumns = [
     { key: "numero", label: "Inspeção" },
@@ -187,6 +202,16 @@ export default async function QualidadePage({
         )}
       </form>
 
+      {ncHighlight && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-300">
+          <span>Destacando inspeções com não-conformidades em aberto.</span>
+          <Link href="/qualidade" className="ml-auto text-xs font-medium hover:underline">
+            Limpar destaque
+          </Link>
+        </div>
+      )}
+      {ncHighlight && <HighlightScroll />}
+
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[820px] text-sm">
           <thead>
@@ -204,7 +229,8 @@ export default async function QualidadePage({
             {rows.map((r) => (
               <tr
                 key={r.id}
-                className="border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50"
+                id={r.id === firstHlId ? "hl-first" : undefined}
+                className={`border-b border-neutral-100 last:border-0 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800/50${isHl(r.id) ? " " + HL : ""}`}
               >
                 <td className="px-5 py-3">
                   <Link
