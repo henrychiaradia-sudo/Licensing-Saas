@@ -1,7 +1,7 @@
 import "server-only";
 import { and, eq, desc, asc, sql, or, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { catalogItem, category, brand } from "@/lib/db/schema";
+import { catalogItem, catalogGrade, category, brand } from "@/lib/db/schema";
 import type { CatalogItemStatus, CatalogAudience } from "@/lib/db/schema";
 
 export const AUDIENCE_LABEL: Record<CatalogAudience, string> = {
@@ -34,6 +34,8 @@ export async function listCatalogItems(
       costPrice: catalogItem.costPrice,
       publico: catalogItem.publico,
       grade: catalogItem.grade,
+      gradeId: catalogItem.gradeId,
+      gradeName: catalogGrade.name,
       status: catalogItem.status,
       ncm: catalogItem.ncm,
       upc: catalogItem.upc,
@@ -42,6 +44,7 @@ export async function listCatalogItems(
     })
     .from(catalogItem)
     .leftJoin(category, eq(category.id, catalogItem.categoryId))
+    .leftJoin(catalogGrade, eq(catalogGrade.id, catalogItem.gradeId))
     .leftJoin(brand, eq(brand.id, catalogItem.brandId))
     .where(and(...conds))
     .orderBy(asc(catalogItem.sku))
@@ -76,6 +79,8 @@ export async function getCatalogItemDetail(tenantId: string, id: string) {
       costPrice: catalogItem.costPrice,
       publico: catalogItem.publico,
       grade: catalogItem.grade,
+      gradeId: catalogItem.gradeId,
+      gradeName: catalogGrade.name,
       pantone: catalogItem.pantone,
       upi: catalogItem.upi,
       upc: catalogItem.upc,
@@ -90,6 +95,7 @@ export async function getCatalogItemDetail(tenantId: string, id: string) {
     })
     .from(catalogItem)
     .leftJoin(category, eq(category.id, catalogItem.categoryId))
+    .leftJoin(catalogGrade, eq(catalogGrade.id, catalogItem.gradeId))
     .leftJoin(brand, eq(brand.id, catalogItem.brandId))
     .where(and(eq(catalogItem.id, id), eq(catalogItem.tenantId, tenantId)))
     .limit(1);
@@ -108,13 +114,28 @@ export type CatalogItemInput = {
   listPrice: number;
   costPrice: number | null;
   publico: CatalogAudience | null;
-  grade: string | null;
+  gradeId: string | null;
   pantone: string | null;
   upi: string | null;
   upc: string | null;
   discontinuationReason: string | null;
   status: CatalogItemStatus;
 };
+
+/** Resolve o nome da grade (subtipo estruturado) validando o tenant; mantém o texto legado em sincronia. */
+async function resolveGrade(
+  tenantId: string,
+  gradeId: string | null,
+): Promise<{ gradeId: string | null; grade: string | null }> {
+  if (!gradeId) return { gradeId: null, grade: null };
+  const g = await db
+    .select({ id: catalogGrade.id, name: catalogGrade.name })
+    .from(catalogGrade)
+    .where(and(eq(catalogGrade.id, gradeId), eq(catalogGrade.tenantId, tenantId)))
+    .limit(1);
+  if (!g[0]) return { gradeId: null, grade: null };
+  return { gradeId: g[0].id, grade: g[0].name };
+}
 
 function catalogValues(input: CatalogItemInput) {
   return {
@@ -129,7 +150,6 @@ function catalogValues(input: CatalogItemInput) {
     listPrice: input.listPrice.toFixed(2),
     costPrice: input.costPrice != null ? input.costPrice.toFixed(2) : null,
     publico: input.publico,
-    grade: input.grade,
     pantone: input.pantone,
     upi: input.upi,
     upc: input.upc,
@@ -149,9 +169,10 @@ export async function createCatalogItem(
     .where(and(eq(catalogItem.tenantId, tenantId), eq(catalogItem.sku, input.sku)))
     .limit(1);
   if (dup[0]) throw new Error("Já existe um item com este SKU.");
+  const g = await resolveGrade(tenantId, input.gradeId);
   const inserted = await db
     .insert(catalogItem)
-    .values({ tenantId, ...catalogValues(input), createdBy: userId })
+    .values({ tenantId, ...catalogValues(input), gradeId: g.gradeId, grade: g.grade, createdBy: userId })
     .returning({ id: catalogItem.id });
   return { id: inserted[0].id };
 }
@@ -173,9 +194,10 @@ export async function updateCatalogItem(
     .where(and(eq(catalogItem.tenantId, tenantId), eq(catalogItem.sku, input.sku)))
     .limit(1);
   if (dup[0] && dup[0].id !== id) throw new Error("Já existe outro item com este SKU.");
+  const g = await resolveGrade(tenantId, input.gradeId);
   await db
     .update(catalogItem)
-    .set({ ...catalogValues(input), updatedAt: new Date() })
+    .set({ ...catalogValues(input), gradeId: g.gradeId, grade: g.grade, updatedAt: new Date() })
     .where(and(eq(catalogItem.id, id), eq(catalogItem.tenantId, tenantId)));
 }
 
@@ -193,6 +215,8 @@ export type CategoryItemLite = {
   listPrice: string;
 };
 
+export type GradeLite = { id: string; name: string; code: string | null };
+
 export type CategoryNode = {
   id: string;
   name: string;
@@ -200,6 +224,7 @@ export type CategoryNode = {
   parentId: string | null;
   itemCount: number;
   items: CategoryItemLite[];
+  grades: GradeLite[];
   children: CategoryNode[];
 };
 
@@ -218,12 +243,20 @@ export async function listCategoryTree(tenantId: string): Promise<CategoryNode[]
       status: catalogItem.status,
       publico: catalogItem.publico,
       grade: catalogItem.grade,
+      gradeName: catalogGrade.name,
       listPrice: catalogItem.listPrice,
       categoryId: catalogItem.categoryId,
     })
     .from(catalogItem)
+    .leftJoin(catalogGrade, eq(catalogGrade.id, catalogItem.gradeId))
     .where(eq(catalogItem.tenantId, tenantId))
     .orderBy(asc(catalogItem.sku));
+
+  const grades = await db
+    .select({ id: catalogGrade.id, name: catalogGrade.name, code: catalogGrade.code, categoryId: catalogGrade.categoryId })
+    .from(catalogGrade)
+    .where(eq(catalogGrade.tenantId, tenantId))
+    .orderBy(asc(catalogGrade.name));
 
   const itemsByCat = new Map<string, CategoryItemLite[]>();
   for (const it of items) {
@@ -235,16 +268,30 @@ export async function listCategoryTree(tenantId: string): Promise<CategoryNode[]
       name: it.name,
       status: it.status,
       publico: it.publico,
-      grade: it.grade,
+      grade: it.gradeName ?? it.grade,
       listPrice: it.listPrice,
     });
     itemsByCat.set(it.categoryId, list);
   }
 
+  const gradesByCat = new Map<string, GradeLite[]>();
+  for (const g of grades) {
+    if (!g.categoryId) continue;
+    const list = gradesByCat.get(g.categoryId) ?? [];
+    list.push({ id: g.id, name: g.name, code: g.code });
+    gradesByCat.set(g.categoryId, list);
+  }
+
   const nodes = new Map<string, CategoryNode>();
   for (const c of cats) {
     const catItems = itemsByCat.get(c.id) ?? [];
-    nodes.set(c.id, { ...c, itemCount: catItems.length, items: catItems, children: [] });
+    nodes.set(c.id, {
+      ...c,
+      itemCount: catItems.length,
+      items: catItems,
+      grades: gradesByCat.get(c.id) ?? [],
+      children: [],
+    });
   }
   const roots: CategoryNode[] = [];
   for (const node of nodes.values()) {
@@ -263,6 +310,55 @@ export async function listCategoryOptions(tenantId: string) {
     .from(category)
     .where(eq(category.tenantId, tenantId))
     .orderBy(asc(category.name));
+}
+
+/** Opções de grade/subtipo (para os selects dependentes de categoria). */
+export async function listGradeOptions(tenantId: string) {
+  return db
+    .select({
+      id: catalogGrade.id,
+      name: catalogGrade.name,
+      categoryId: catalogGrade.categoryId,
+      categoryName: category.name,
+    })
+    .from(catalogGrade)
+    .leftJoin(category, eq(category.id, catalogGrade.categoryId))
+    .where(eq(catalogGrade.tenantId, tenantId))
+    .orderBy(asc(category.name), asc(catalogGrade.name));
+}
+
+export async function createGrade(
+  tenantId: string,
+  input: { categoryId: string | null; name: string; code: string | null },
+): Promise<void> {
+  if (input.categoryId) {
+    const c = await db
+      .select({ id: category.id })
+      .from(category)
+      .where(and(eq(category.id, input.categoryId), eq(category.tenantId, tenantId)))
+      .limit(1);
+    if (!c[0]) throw new Error("Categoria inválida.");
+  }
+  const dup = await db
+    .select({ id: catalogGrade.id })
+    .from(catalogGrade)
+    .where(
+      and(
+        eq(catalogGrade.tenantId, tenantId),
+        input.categoryId
+          ? eq(catalogGrade.categoryId, input.categoryId)
+          : sql`${catalogGrade.categoryId} is null`,
+        eq(catalogGrade.name, input.name),
+      ),
+    )
+    .limit(1);
+  if (dup[0]) throw new Error("Já existe uma grade com este nome nesta categoria.");
+  await db.insert(catalogGrade).values({
+    tenantId,
+    categoryId: input.categoryId,
+    name: input.name,
+    code: input.code,
+  });
 }
 
 export async function createCategory(

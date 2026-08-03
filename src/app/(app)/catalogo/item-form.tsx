@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui";
 import type { FormState } from "./actions";
 
 type Option = { id: string; label: string };
+type GradeOption = { id: string; name: string; categoryId: string | null };
 
 const UNIT_OPTIONS = ["un", "pc", "cx", "kg", "m", "par", "kit"];
 const STATUS_OPTIONS = [
@@ -33,6 +34,7 @@ export type ItemInitial = {
   costPrice?: number | string | null;
   publico?: string | null;
   grade?: string | null;
+  gradeId?: string | null;
   pantone?: string | null;
   upi?: string | null;
   upc?: string | null;
@@ -44,17 +46,24 @@ export function ItemForm({
   action,
   categories,
   brands,
+  grades,
   initial,
   submitLabel = "Criar item",
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   categories: Option[];
   brands: Option[];
+  grades: GradeOption[];
   initial?: ItemInitial;
   submitLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, { error: null });
   const num = (v: number | string | null | undefined) => (v == null ? "" : String(v));
+
+  // Categoria controla a grade (subtipo estruturado): ao trocar a categoria, filtramos as grades.
+  const [categoryId, setCategoryId] = useState<string>(initial?.categoryId ?? "");
+  const [gradeId, setGradeId] = useState<string>(initial?.gradeId ?? "");
+  const gradeChoices = grades.filter((g) => g.categoryId === categoryId || g.categoryId == null);
 
   return (
     <form action={formAction} className="grid max-w-3xl gap-5">
@@ -69,7 +78,20 @@ export function ItemForm({
         </div>
         <div>
           <Label htmlFor="categoryId">Categoria / Subcategoria</Label>
-          <Select id="categoryId" name="categoryId" defaultValue={initial?.categoryId ?? ""}>
+          <Select
+            id="categoryId"
+            name="categoryId"
+            value={categoryId}
+            onChange={(e) => {
+              const next = e.target.value;
+              setCategoryId(next);
+              // Se a grade atual não pertence à nova categoria, limpa a seleção.
+              const stillValid = grades.some(
+                (g) => g.id === gradeId && (g.categoryId === next || g.categoryId == null),
+              );
+              if (!stillValid) setGradeId("");
+            }}
+          >
             <option value="">— (opcional)</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -90,8 +112,26 @@ export function ItemForm({
           </Select>
         </div>
         <div>
-          <Label htmlFor="grade">Grade / Modelagem</Label>
-          <Input id="grade" name="grade" placeholder="Ex.: Aba Reta, Baseball, Trucker" defaultValue={initial?.grade ?? ""} />
+          <Label htmlFor="gradeId">Grade / Subtipo</Label>
+          <Select
+            id="gradeId"
+            name="gradeId"
+            value={gradeId}
+            onChange={(e) => setGradeId(e.target.value)}
+            disabled={!categoryId && gradeChoices.length === 0}
+          >
+            <option value="">
+              {!categoryId ? "Selecione uma categoria primeiro" : "— (opcional)"}
+            </option>
+            {gradeChoices.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-[11px] text-neutral-400">
+            Subtipo estruturado da categoria (ex.: Bonés → Aba Reta, Trucker). Cadastre novas grades em Categorias.
+          </p>
         </div>
         <div>
           <Label htmlFor="publico">Público</Label>

@@ -16,7 +16,7 @@ export const itemSchema = z.object({
   listPrice: z.number().min(0).max(10_000_000_000),
   costPrice: z.number().min(0).max(10_000_000_000).nullable(),
   publico: z.enum(AUDIENCE_OPTIONS).nullable(),
-  grade: z.string().trim().max(80).nullable(),
+  gradeId: z.string().uuid().nullable(),
   pantone: z.string().trim().max(80).nullable(),
   upi: z.string().trim().max(60).nullable(),
   upc: z.string().trim().max(60).nullable(),
@@ -28,4 +28,10 @@ export const categorySchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da categoria.").max(120),
   code: z.string().trim().max(40).nullable(),
   parentId: z.string().uuid().nullable(),
+});
+
+export const gradeSchema = z.object({
+  name: z.string().trim().min(1, "Informe o nome da grade / subtipo.").max(80),
+  code: z.string().trim().max(40).nullable(),
+  categoryId: z.string().uuid().nullable(),
 });

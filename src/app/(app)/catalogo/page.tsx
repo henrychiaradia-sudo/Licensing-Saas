@@ -57,7 +57,7 @@ export default async function CatalogPage({
     nome: r.name,
     categoria: r.categoryName ?? "",
     marca: r.brandName ?? "",
-    grade: r.grade ?? "",
+    grade: r.gradeName ?? r.grade ?? "",
     publico: r.publico ? AUDIENCE_LABEL[r.publico] : "",
     upc: r.upc ?? "",
     ncm: r.ncm ?? "",
@@ -165,7 +165,7 @@ export default async function CatalogPage({
                   {r.brandName && <div className="text-xs text-neutral-400">{r.brandName}</div>}
                 </td>
                 <td className="px-5 py-3 text-neutral-500">{r.categoryName ?? "—"}</td>
-                <td className="px-5 py-3 text-neutral-500">{r.grade ?? "—"}</td>
+                <td className="px-5 py-3 text-neutral-500">{r.gradeName ?? r.grade ?? "—"}</td>
                 <td className="px-5 py-3 text-neutral-500">{r.publico ? AUDIENCE_LABEL[r.publico] : "—"}</td>
                 <td className="px-5 py-3 text-right tabular-nums">{fmtBRL(Number(r.listPrice))}</td>
                 <td className="px-5 py-3 text-right tabular-nums text-neutral-500">

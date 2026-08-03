@@ -8,10 +8,11 @@ import {
   createCatalogItem,
   updateCatalogItem,
   createCategory,
+  createGrade,
   type CatalogItemInput,
 } from "@/lib/data/catalog";
 import { logAudit } from "@/lib/data/audit";
-import { itemSchema, categorySchema } from "./schema";
+import { itemSchema, categorySchema, gradeSchema } from "./schema";
 
 export type FormState = { error: string | null };
 
@@ -49,7 +50,7 @@ function parseItem(formData: FormData) {
     listPrice: numOrZero(formData.get("listPrice")),
     costPrice: numOrNull(formData.get("costPrice")),
     publico: emptyToNull(formData.get("publico")),
-    grade: emptyToNull(formData.get("grade")),
+    gradeId: emptyToNull(formData.get("gradeId")),
     pantone: emptyToNull(formData.get("pantone")),
     upi: emptyToNull(formData.get("upi")),
     upc: emptyToNull(formData.get("upc")),
@@ -147,5 +148,37 @@ export async function createCategoryAction(_prev: FormState, formData: FormData)
     `Categoria "${parsed.data.name}" criada`,
   );
   revalidatePath("/categorias");
+  return { error: null };
+}
+
+export async function createGradeAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const session = await requireSession();
+  if (!canWriteCatalog(session)) {
+    return { error: "Você não tem permissão para editar grades." };
+  }
+  const candidate = {
+    name: String(formData.get("name") ?? "").trim(),
+    code: emptyToNull(formData.get("code")),
+    categoryId: emptyToNull(formData.get("categoryId")),
+  };
+  const parsed = gradeSchema.safeParse(candidate);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  try {
+    await createGrade(session.tenantId, parsed.data);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível criar a grade." };
+  }
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "grade.create",
+    "catalog_grade",
+    null,
+    `Grade "${parsed.data.name}" criada`,
+  );
+  revalidatePath("/categorias");
+  revalidatePath("/catalogo");
   return { error: null };
 }

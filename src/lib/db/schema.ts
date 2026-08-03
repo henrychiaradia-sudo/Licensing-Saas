@@ -1608,6 +1608,7 @@ export const catalogItem = pgTable(
     costPrice: numeric("cost_price", { precision: 18, scale: 2 }),
     publico: catalogAudience("publico"),
     grade: text("grade"),
+    gradeId: uuid("grade_id"),
     pantone: text("pantone"),
     upi: text("upi"),
     upc: text("upc"),
@@ -1618,6 +1619,20 @@ export const catalogItem = pgTable(
     createdBy: uuid("created_by"),
   },
   (t) => [unique("uq_catalog_sku").on(t.tenantId, t.sku)],
+);
+
+/** Grade / subtipo estruturado do catálogo (ex.: Bonés → Aba Reta, Trucker, Snapback). */
+export const catalogGrade = pgTable(
+  "catalog_grade",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    categoryId: uuid("category_id"),
+    name: text("name").notNull(),
+    code: text("code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("uq_catalog_grade_cat_name").on(t.tenantId, t.categoryId, t.name)],
 );
 
 

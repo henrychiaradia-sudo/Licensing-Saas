@@ -50,7 +50,7 @@ export default async function CatalogItemPage({
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
           <Field label="Categoria / Subcategoria" value={item.categoryName} />
           <Field label="Marca" value={item.brandName} />
-          <Field label="Grade / Modelagem" value={item.grade} />
+          <Field label="Grade / Subtipo" value={item.gradeName ?? item.grade} />
           <Field label="Público" value={item.publico ? AUDIENCE_LABEL[item.publico as CatalogAudience] : null} />
           <Field label="Unidade" value={item.unit} />
           <Field label="Preço de tabela" value={fmtBRL(Number(item.listPrice))} />

@@ -6,6 +6,7 @@ import { listAssets } from "@/lib/data/assets";
 import { decideStageAction } from "../actions";
 import { downloadAction } from "../../biblioteca/actions";
 import { ProductVersions } from "@/components/product-versions";
+import { ProductPhoto } from "@/components/product-photo";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
 import type { ApprovalStageType, ApprovalDecision, ProductStatus } from "@/lib/db/schema";
@@ -106,13 +107,11 @@ export default async function ProdutoDetailPage({
 
       {product.imageUrl && (
         <Card className="mb-4 p-5">
-          <h2 className="mb-3 text-sm font-semibold">Arte do produto</h2>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="max-h-72 rounded-lg border border-neutral-200 object-contain dark:border-neutral-800"
-          />
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Arte do produto</h2>
+            <span className="text-xs text-neutral-400">Clique na imagem para ver em alta resolução</span>
+          </div>
+          <ProductPhoto src={product.imageUrl} alt={product.name} />
         </Card>
       )}
 

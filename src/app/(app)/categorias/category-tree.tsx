@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Tag, Package } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Tag, Package, Layers } from "lucide-react";
 import { Badge } from "@/components/ui";
 import type { CategoryNode } from "@/lib/data/catalog";
 
@@ -27,7 +27,8 @@ function TreeNode({ node, depth }: { node: CategoryNode; depth: number }) {
   const [open, setOpen] = useState(depth === 0);
   const hasChildren = node.children.length > 0;
   const hasItems = node.items.length > 0;
-  const canToggle = hasChildren || hasItems;
+  const hasGrades = node.grades.length > 0;
+  const canToggle = hasChildren || hasItems || hasGrades;
 
   return (
     <li>
@@ -61,6 +62,11 @@ function TreeNode({ node, depth }: { node: CategoryNode; depth: number }) {
           )}
           <span className="font-medium">{node.name}</span>
           {node.code && <span className="text-xs text-neutral-400">({node.code})</span>}
+          {hasGrades && (
+            <Badge tone="info" className="ml-1">
+              {node.grades.length} {node.grades.length === 1 ? "grade" : "grades"}
+            </Badge>
+          )}
           {node.itemCount > 0 && (
             <Badge tone="neutral" className="ml-1">
               {node.itemCount} {node.itemCount === 1 ? "item" : "itens"}
@@ -69,8 +75,25 @@ function TreeNode({ node, depth }: { node: CategoryNode; depth: number }) {
         </button>
       </div>
 
-      {open && (hasItems || hasChildren) && (
+      {open && (hasItems || hasChildren || hasGrades) && (
         <div>
+          {hasGrades && (
+            <div
+              className="flex flex-wrap items-center gap-1.5 py-1"
+              style={{ paddingLeft: `${depth * 18 + 34}px` }}
+            >
+              <span className="text-[11px] uppercase tracking-wide text-neutral-400">Subtipos:</span>
+              {node.grades.map((g) => (
+                <span
+                  key={g.id}
+                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                >
+                  <Layers size={10} />
+                  {g.name}
+                </span>
+              ))}
+            </div>
+          )}
           {hasItems && (
             <ul className="space-y-0.5" style={{ paddingLeft: `${depth * 18 + 34}px` }}>
               {node.items.map((it) => (

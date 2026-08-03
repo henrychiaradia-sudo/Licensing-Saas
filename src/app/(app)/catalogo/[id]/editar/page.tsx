@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { getCatalogItemDetail, listCategoryOptions } from "@/lib/data/catalog";
+import { getCatalogItemDetail, listCategoryOptions, listGradeOptions } from "@/lib/data/catalog";
 import { listBrandOptions } from "@/lib/data/contracts";
 import { ItemForm } from "../../item-form";
 import { updateItemAction } from "../../actions";
@@ -14,10 +14,11 @@ export default async function EditCatalogItemPage({
 }) {
   const { id } = await params;
   const session = await requireSession();
-  const [item, categories, brands] = await Promise.all([
+  const [item, categories, brands, grades] = await Promise.all([
     getCatalogItemDetail(session.tenantId, id),
     listCategoryOptions(session.tenantId),
     listBrandOptions(session.tenantId),
+    listGradeOptions(session.tenantId),
   ]);
   if (!item) notFound();
 
@@ -40,6 +41,7 @@ export default async function EditCatalogItemPage({
         submitLabel="Salvar item"
         categories={categories.map((c) => ({ id: c.id, label: c.name }))}
         brands={brands.map((b) => ({ id: b.id, label: `${b.name} (${b.code})` }))}
+        grades={grades.map((g) => ({ id: g.id, name: g.name, categoryId: g.categoryId }))}
         initial={{
           sku: item.sku,
           name: item.name,
@@ -52,7 +54,7 @@ export default async function EditCatalogItemPage({
           listPrice: item.listPrice,
           costPrice: item.costPrice,
           publico: item.publico,
-          grade: item.grade,
+          gradeId: item.gradeId,
           pantone: item.pantone,
           upi: item.upi,
           upc: item.upc,
