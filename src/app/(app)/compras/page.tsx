@@ -7,6 +7,7 @@ import {
   purchaseSpendAnalysis,
   listSupplierOptions,
 } from "@/lib/data/purchase-orders";
+import { parseView } from "@/lib/view";
 import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL } from "@/lib/utils";
@@ -46,13 +47,15 @@ const poLabel: Record<PoStatus, string> = {
 export default async function ComprasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ supplier?: string }>;
+  searchParams: Promise<{ supplier?: string; view?: string }>;
 }) {
   const session = await requireSession();
-  const { supplier: supplierParam } = await searchParams;
+  const { supplier: supplierParam, view: viewParam } = await searchParams;
+  const view = parseView(viewParam);
   const suppliers = await listSupplierOptions(session.tenantId);
   const supplierId =
-    supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined;
+    (supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined) ??
+    (view?.dim === "fornecedor" ? view.id : undefined);
 
   const [orders, summary, spend] = await Promise.all([
     listPurchaseOrders(session.tenantId, { supplierId }),

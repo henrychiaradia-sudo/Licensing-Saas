@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { scopeConds, type ViewScope } from "@/lib/view";
 import {
   receivable,
   royaltyReport,
@@ -68,7 +69,7 @@ export function trendDelta(series: number[]): { label: string; positive: boolean
 /* ------------------------------------------------------------------ *
  * Linha do tempo financeira (12 meses): receita, royalties, compras
  * ------------------------------------------------------------------ */
-export async function financialTimeline(tenantId: string) {
+export async function financialTimeline(tenantId: string, scope?: ViewScope) {
   const [rec, roy, com] = await Promise.all([
     db
       .select({
@@ -76,7 +77,13 @@ export async function financialTimeline(tenantId: string) {
         value: sql<string>`coalesce(sum(${receivable.amount}), 0)`,
       })
       .from(receivable)
-      .where(and(eq(receivable.tenantId, tenantId), sql`${receivable.status} <> 'cancelado'`))
+      .where(
+        and(
+          eq(receivable.tenantId, tenantId),
+          sql`${receivable.status} <> 'cancelado'`,
+          ...scopeConds(scope, { licensee: receivable.licenseeId }),
+        ),
+      )
       .groupBy(sql`date_trunc('month', ${receivable.dueDate})`),
     db
       .select({
@@ -84,7 +91,7 @@ export async function financialTimeline(tenantId: string) {
         value: sql<string>`coalesce(sum(${royaltyReport.royaltyCalculated}), 0)`,
       })
       .from(royaltyReport)
-      .where(eq(royaltyReport.tenantId, tenantId))
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })))
       .groupBy(sql`date_trunc('month', ${royaltyReport.periodStart})`),
     db
       .select({
@@ -97,6 +104,7 @@ export async function financialTimeline(tenantId: string) {
           eq(purchaseOrder.tenantId, tenantId),
           sql`${purchaseOrder.status} <> 'cancelado'`,
           sql`${purchaseOrder.orderDate} is not null`,
+          ...scopeConds(scope, { supplier: purchaseOrder.supplierId, licensee: purchaseOrder.licenseeId }),
         ),
       )
       .groupBy(sql`date_trunc('month', ${purchaseOrder.orderDate})`),
@@ -120,27 +128,37 @@ export async function financialTimeline(tenantId: string) {
 /* ------------------------------------------------------------------ *
  * Totais executivos (cartões KPI)
  * ------------------------------------------------------------------ */
-export async function execTotals(tenantId: string) {
+export async function execTotals(tenantId: string, scope?: ViewScope) {
   const [inv, roy, po, opp] = await Promise.all([
     db
       .select({ v: sql<string>`coalesce(sum(${invoice.netAmount}) filter (where ${invoice.status} <> 'cancelada'), 0)` })
       .from(invoice)
-      .where(eq(invoice.tenantId, tenantId)),
+      .where(and(eq(invoice.tenantId, tenantId), ...scopeConds(scope, { licensee: invoice.licenseeId }))),
     db
       .select({ v: sql<string>`coalesce(sum(${royaltyReport.royaltyCalculated}), 0)` })
       .from(royaltyReport)
-      .where(eq(royaltyReport.tenantId, tenantId)),
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId }))),
     db
       .select({ v: sql<string>`coalesce(sum(${purchaseOrder.totalAmount}) filter (where ${purchaseOrder.status} <> 'cancelado'), 0)` })
       .from(purchaseOrder)
-      .where(eq(purchaseOrder.tenantId, tenantId)),
+      .where(
+        and(
+          eq(purchaseOrder.tenantId, tenantId),
+          ...scopeConds(scope, { supplier: purchaseOrder.supplierId, licensee: purchaseOrder.licenseeId }),
+        ),
+      ),
     db
       .select({
         weighted: sql<string>`coalesce(sum(${licensingOpportunity.estimatedValue} * ${licensingOpportunity.probability} / 100.0) filter (where ${licensingOpportunity.stage} not in ('ganho','perdido')), 0)`,
         openCount: sql<string>`count(*) filter (where ${licensingOpportunity.stage} not in ('ganho','perdido'))`,
       })
       .from(licensingOpportunity)
-      .where(eq(licensingOpportunity.tenantId, tenantId)),
+      .where(
+        and(
+          eq(licensingOpportunity.tenantId, tenantId),
+          ...scopeConds(scope, { brand: licensingOpportunity.brandId, licensee: licensingOpportunity.licenseeId }),
+        ),
+      ),
   ]);
   return {
     faturamento: Number(inv[0]?.v ?? 0),
@@ -171,7 +189,7 @@ const STAGE_ORDER: OpportunityStage[] = [
   "perdido",
 ];
 
-export async function pipelineByStage(tenantId: string) {
+export async function pipelineByStage(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({
       stage: licensingOpportunity.stage,
@@ -179,7 +197,12 @@ export async function pipelineByStage(tenantId: string) {
       value: sql<string>`coalesce(sum(${licensingOpportunity.estimatedValue}), 0)`,
     })
     .from(licensingOpportunity)
-    .where(eq(licensingOpportunity.tenantId, tenantId))
+    .where(
+      and(
+        eq(licensingOpportunity.tenantId, tenantId),
+        ...scopeConds(scope, { brand: licensingOpportunity.brandId, licensee: licensingOpportunity.licenseeId }),
+      ),
+    )
     .groupBy(licensingOpportunity.stage);
 
   const map = new Map(rows.map((r) => [r.stage, { count: Number(r.count), value: Number(r.value) }]));
@@ -194,22 +217,22 @@ export async function pipelineByStage(tenantId: string) {
 /* ------------------------------------------------------------------ *
  * Qualidade & não conformidades
  * ------------------------------------------------------------------ */
-export async function qualityBreakdown(tenantId: string) {
+export async function qualityBreakdown(tenantId: string, scope?: ViewScope) {
   const [insp, ncStatusRows, ncSevRows] = await Promise.all([
     db
       .select({ result: qualityInspection.result, count: sql<string>`count(*)` })
       .from(qualityInspection)
-      .where(eq(qualityInspection.tenantId, tenantId))
+      .where(and(eq(qualityInspection.tenantId, tenantId), ...scopeConds(scope, { supplier: qualityInspection.supplierId })))
       .groupBy(qualityInspection.result),
     db
       .select({ status: nonConformity.status, count: sql<string>`count(*)` })
       .from(nonConformity)
-      .where(eq(nonConformity.tenantId, tenantId))
+      .where(and(eq(nonConformity.tenantId, tenantId), ...scopeConds(scope, { supplier: nonConformity.supplierId })))
       .groupBy(nonConformity.status),
     db
       .select({ severity: nonConformity.severity, count: sql<string>`count(*)` })
       .from(nonConformity)
-      .where(eq(nonConformity.tenantId, tenantId))
+      .where(and(eq(nonConformity.tenantId, tenantId), ...scopeConds(scope, { supplier: nonConformity.supplierId })))
       .groupBy(nonConformity.severity),
   ]);
 
@@ -257,11 +280,11 @@ const CONTRACT_STATUS_LABEL: Record<string, string> = {
   encerrado: "Encerrado",
 };
 
-export async function contractStatusMix(tenantId: string) {
+export async function contractStatusMix(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({ status: contract.status, count: sql<string>`count(*)` })
     .from(contract)
-    .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt)))
+    .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId })))
     .groupBy(contract.status);
   return rows
     .map((r) => ({ label: CONTRACT_STATUS_LABEL[r.status] ?? r.status, value: Number(r.count) }))
@@ -301,7 +324,7 @@ export async function supplierRiskMix(tenantId: string) {
 /* ------------------------------------------------------------------ *
  * Aging de recebíveis em aberto
  * ------------------------------------------------------------------ */
-export async function receivablesAging(tenantId: string) {
+export async function receivablesAging(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({
       bucket: sql<string>`case
@@ -312,7 +335,13 @@ export async function receivablesAging(tenantId: string) {
       value: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}), 0)`,
     })
     .from(receivable)
-    .where(and(eq(receivable.tenantId, tenantId), sql`${receivable.status} not in ('pago','cancelado')`))
+    .where(
+      and(
+        eq(receivable.tenantId, tenantId),
+        sql`${receivable.status} not in ('pago','cancelado')`,
+        ...scopeConds(scope, { licensee: receivable.licenseeId }),
+      ),
+    )
     .groupBy(sql`1`);
   const label: Record<string, { label: string; color: string }> = {
     vencido: { label: "Vencido", color: "#dc2626" },
@@ -331,7 +360,7 @@ export async function receivablesAging(tenantId: string) {
  * Scatter: vendas brutas × royalties por licenciado
  * ------------------------------------------------------------------ */
 /** Uma bolha por reporte de royalties: x = vendas brutas, y = royalty apurado. */
-export async function salesRoyaltyScatter(tenantId: string) {
+export async function salesRoyaltyScatter(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({
       licenseeName: licensee.legalName,
@@ -341,7 +370,7 @@ export async function salesRoyaltyScatter(tenantId: string) {
     })
     .from(royaltyReport)
     .leftJoin(licensee, eq(licensee.id, royaltyReport.licenseeId))
-    .where(eq(royaltyReport.tenantId, tenantId));
+    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })));
   return rows
     .map((r) => ({
       label: `${r.licenseeName ?? "—"} · ${r.reference}`,
@@ -364,11 +393,11 @@ const ROYALTY_STATUS_LABEL: Record<string, { label: string; color: string }> = {
   rejeitado: { label: "Rejeitado", color: "#dc2626" },
 };
 
-export async function royaltyStatusMix(tenantId: string) {
+export async function royaltyStatusMix(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({ status: royaltyReport.status, count: sql<string>`count(*)` })
     .from(royaltyReport)
-    .where(eq(royaltyReport.tenantId, tenantId))
+    .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId })))
     .groupBy(royaltyReport.status);
   return rows.map((r) => ({
     label: ROYALTY_STATUS_LABEL[r.status]?.label ?? r.status,
@@ -380,7 +409,7 @@ export async function royaltyStatusMix(tenantId: string) {
 /* ------------------------------------------------------------------ *
  * Pontos de atenção (cockpit executivo — ações)
  * ------------------------------------------------------------------ */
-export async function attentionSignals(tenantId: string) {
+export async function attentionSignals(tenantId: string, scope?: ViewScope) {
   const [docs, ncs, ctr, roy] = await Promise.all([
     db
       .select({
@@ -388,23 +417,23 @@ export async function attentionSignals(tenantId: string) {
         aVencer: sql<string>`count(*) filter (where ${supplierDocument.validUntil} >= current_date and ${supplierDocument.validUntil} <= current_date + 30)`,
       })
       .from(supplierDocument)
-      .where(eq(supplierDocument.tenantId, tenantId)),
+      .where(and(eq(supplierDocument.tenantId, tenantId), ...scopeConds(scope, { supplier: supplierDocument.supplierId }))),
     db
       .select({ abertas: sql<string>`count(*) filter (where ${nonConformity.status} in ('aberta','em_tratamento'))` })
       .from(nonConformity)
-      .where(eq(nonConformity.tenantId, tenantId)),
+      .where(and(eq(nonConformity.tenantId, tenantId), ...scopeConds(scope, { supplier: nonConformity.supplierId }))),
     db
       .select({
         vencendo: sql<string>`count(*) filter (where ${contract.status} = 'vigente' and ${contract.endDate} is not null and ${contract.endDate} <= current_date + 60)`,
       })
       .from(contract)
-      .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt))),
+      .where(and(eq(contract.tenantId, tenantId), isNull(contract.deletedAt), ...scopeConds(scope, { licensee: contract.licenseeId }))),
     db
       .select({
         pendentes: sql<string>`count(*) filter (where ${royaltyReport.status} in ('enviado','em_validacao','com_divergencia'))`,
       })
       .from(royaltyReport)
-      .where(eq(royaltyReport.tenantId, tenantId)),
+      .where(and(eq(royaltyReport.tenantId, tenantId), ...scopeConds(scope, { licensee: royaltyReport.licenseeId }))),
   ]);
   return {
     docsVencidos: Number(docs[0]?.vencidos ?? 0),

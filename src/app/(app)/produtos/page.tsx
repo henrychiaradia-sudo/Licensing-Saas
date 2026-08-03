@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { listProducts } from "@/lib/data/products";
 import { listBrands } from "@/lib/data/brands";
 import { listLicensees } from "@/lib/data/licensees";
+import { parseView } from "@/lib/view";
 import { Card, Badge, Button } from "@/components/ui";
 import type { ProductStatus } from "@/lib/db/schema";
 
@@ -31,19 +32,24 @@ const STATUS_KEYS = Object.keys(pLabels) as ProductStatus[];
 export default async function ProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string; licensee?: string; status?: string }>;
+  searchParams: Promise<{ brand?: string; licensee?: string; status?: string; view?: string }>;
 }) {
   const session = await requireSession();
-  const { brand: brandParam, licensee: licenseeParam, status: statusParam } = await searchParams;
+  const { brand: brandParam, licensee: licenseeParam, status: statusParam, view: viewParam } =
+    await searchParams;
+  const view = parseView(viewParam);
 
   const [brands, licensees] = await Promise.all([
     listBrands(session.tenantId),
     listLicensees(session.tenantId),
   ]);
 
-  const brandId = brandParam && brands.some((b) => b.id === brandParam) ? brandParam : undefined;
+  const brandId =
+    (brandParam && brands.some((b) => b.id === brandParam) ? brandParam : undefined) ??
+    (view?.dim === "marca" ? view.id : undefined);
   const licenseeId =
-    licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined;
+    (licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined) ??
+    (view?.dim === "licenciado" ? view.id : undefined);
   const status =
     statusParam && (STATUS_KEYS as string[]).includes(statusParam)
       ? (statusParam as ProductStatus)

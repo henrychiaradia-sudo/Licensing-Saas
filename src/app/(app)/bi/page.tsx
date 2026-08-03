@@ -15,6 +15,7 @@ import {
   FileStack,
   Trophy,
 } from "lucide-react";
+import Link from "next/link";
 import { requireSession } from "@/lib/auth";
 import {
   royaltiesByCompetencia,
@@ -22,6 +23,9 @@ import {
   purchasesBySupplier,
   receivablesByStatus,
 } from "@/lib/data/bi";
+import { listBrandOptions, listLicenseeOptions } from "@/lib/data/contracts";
+import { listSupplierOptions } from "@/lib/data/purchase-orders";
+import { parseView, type ViewScope } from "@/lib/view";
 import { listLatestEvaluations } from "@/lib/data/evaluations";
 import {
   execTotals,
@@ -65,8 +69,39 @@ function Section({ label, icon }: { label: string; icon: React.ReactNode }) {
   );
 }
 
-export default async function BiPage() {
+export default async function BiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const session = await requireSession();
+  const { view: viewRaw } = await searchParams;
+  const view = parseView(viewRaw);
+
+  let scope: ViewScope = {};
+  let viewLabel: string | null = null;
+  if (view) {
+    if (view.dim === "marca") {
+      const m = (await listBrandOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { brandId: view.id };
+        viewLabel = `Marca · ${m.name}`;
+      }
+    } else if (view.dim === "licenciado") {
+      const m = (await listLicenseeOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { licenseeId: view.id };
+        viewLabel = `Licenciado · ${m.legalName}`;
+      }
+    } else {
+      const m = (await listSupplierOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { supplierId: view.id };
+        viewLabel = `Fornecedor · ${m.tradeName || m.legalName}`;
+      }
+    }
+  }
+
   const [
     royalties,
     revenue,
@@ -82,19 +117,19 @@ export default async function BiPage() {
     scatter,
     royStatus,
   ] = await Promise.all([
-    royaltiesByCompetencia(session.tenantId),
-    revenueByLicensee(session.tenantId),
-    purchasesBySupplier(session.tenantId),
-    receivablesByStatus(session.tenantId),
+    royaltiesByCompetencia(session.tenantId, scope),
+    revenueByLicensee(session.tenantId, scope),
+    purchasesBySupplier(session.tenantId, scope),
+    receivablesByStatus(session.tenantId, scope),
     listLatestEvaluations(session.tenantId),
-    execTotals(session.tenantId),
-    pipelineByStage(session.tenantId),
-    qualityBreakdown(session.tenantId),
+    execTotals(session.tenantId, scope),
+    pipelineByStage(session.tenantId, scope),
+    qualityBreakdown(session.tenantId, scope),
     supplierRiskMix(session.tenantId),
-    contractStatusMix(session.tenantId),
-    receivablesAging(session.tenantId),
-    salesRoyaltyScatter(session.tenantId),
-    royaltyStatusMix(session.tenantId),
+    contractStatusMix(session.tenantId, scope),
+    receivablesAging(session.tenantId, scope),
+    salesRoyaltyScatter(session.tenantId, scope),
+    royaltyStatusMix(session.tenantId, scope),
   ]);
 
   const recItems = receivables.map((r) => ({ label: receivableStatusLabel[r.label] ?? r.label, value: r.value }));
@@ -153,6 +188,18 @@ export default async function BiPage() {
           />
         </div>
       </div>
+
+      {viewLabel && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
+          <span className="font-semibold">Visão: {viewLabel}</span>
+          <span className="text-blue-600/70 dark:text-blue-300/70">
+            — painéis filtrados onde a dimensão se aplica.
+          </span>
+          <Link href="/bi" className="ml-auto text-xs font-medium hover:underline">
+            Ver consolidado
+          </Link>
+        </div>
+      )}
 
       {/* Métricas analíticas (distintas do dashboard) */}
       <div className="mb-2 grid grid-cols-2 gap-3 lg:grid-cols-4">

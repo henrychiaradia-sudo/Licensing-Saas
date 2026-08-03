@@ -10,6 +10,7 @@ import {
   mgRealizedPercent,
 } from "@/lib/data/finance";
 import { listLicensees } from "@/lib/data/licensees";
+import { parseView } from "@/lib/view";
 import { Card, Badge, Button } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtMoney, fmtDate, fmtCompactBRL, fmtPct } from "@/lib/utils";
@@ -74,13 +75,15 @@ const ledgerLabel: Record<LedgerEntryType, string> = {
 export default async function FinanceiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ licensee?: string }>;
+  searchParams: Promise<{ licensee?: string; view?: string }>;
 }) {
   const session = await requireSession();
-  const { licensee: licenseeParam } = await searchParams;
+  const { licensee: licenseeParam, view: viewParam } = await searchParams;
+  const view = parseView(viewParam);
   const licensees = await listLicensees(session.tenantId);
   const licenseeId =
-    licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined;
+    (licenseeParam && licensees.some((l) => l.id === licenseeParam) ? licenseeParam : undefined) ??
+    (view?.dim === "licenciado" ? view.id : undefined);
   const filter = { licenseeId };
 
   const [receivables, invoices, payments, ledger, summary, mgPct] = await Promise.all([

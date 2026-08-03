@@ -21,29 +21,63 @@ import {
 } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { countLicensees } from "@/lib/data/licensees";
-import { countActiveContracts } from "@/lib/data/contracts";
+import { countActiveContracts, listBrandOptions, listLicenseeOptions } from "@/lib/data/contracts";
 import { countActiveSuppliers } from "@/lib/data/suppliers";
+import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { financeSummary, mgRealizedPercent } from "@/lib/data/finance";
 import { sourcingSavings } from "@/lib/data/sourcing";
 import { financialTimeline, execTotals, pipelineByStage, attentionSignals, trendDelta } from "@/lib/data/analytics";
+import { parseView, type ViewScope } from "@/lib/view";
 import { fmtCompactBRL } from "@/lib/utils";
 import { ExportGroup } from "@/components/export-group";
 import { Panel, Kpi, AreaLineChart, RadialGauge, MiniStat, AlertCard, PAL } from "@/components/charts-pro";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string }>;
+}) {
   const session = await requireSession();
+  const { view: viewRaw } = await searchParams;
+  const view = parseView(viewRaw);
+
+  // Resolve o escopo da Visão global (valida o id contra as opções e monta o rótulo).
+  let scope: ViewScope = {};
+  let viewLabel: string | null = null;
+  if (view) {
+    if (view.dim === "marca") {
+      const m = (await listBrandOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { brandId: view.id };
+        viewLabel = `Marca · ${m.name}`;
+      }
+    } else if (view.dim === "licenciado") {
+      const m = (await listLicenseeOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { licenseeId: view.id };
+        viewLabel = `Licenciado · ${m.legalName}`;
+      }
+    } else {
+      const m = (await listSupplierOptions(session.tenantId)).find((o) => o.id === view.id);
+      if (m) {
+        scope = { supplierId: view.id };
+        viewLabel = `Fornecedor · ${m.tradeName || m.legalName}`;
+      }
+    }
+  }
+
   const [licensees, contracts, suppliers, fin, mgPct, savings, timeline, totals, pipeline, attention] =
     await Promise.all([
       countLicensees(session.tenantId),
       countActiveContracts(session.tenantId),
       countActiveSuppliers(session.tenantId),
-      financeSummary(session.tenantId),
+      financeSummary(session.tenantId, scope),
       mgRealizedPercent(session.tenantId),
       sourcingSavings(session.tenantId),
-      financialTimeline(session.tenantId),
-      execTotals(session.tenantId),
-      pipelineByStage(session.tenantId),
-      attentionSignals(session.tenantId),
+      financialTimeline(session.tenantId, scope),
+      execTotals(session.tenantId, scope),
+      pipelineByStage(session.tenantId, scope),
+      attentionSignals(session.tenantId, scope),
     ]);
 
   const won = pipeline.find((p) => p.stage === "ganho")?.count ?? 0;
@@ -88,6 +122,18 @@ export default async function DashboardPage() {
           <MiniStat label="MG realizado" value={`${mgPct}%`} accent={PAL.emerald} icon={<TrendingUp size={16} />} />
         </div>
       </div>
+
+      {viewLabel && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-900/50 dark:bg-blue-950/30 dark:text-blue-300">
+          <span className="font-semibold">Visão: {viewLabel}</span>
+          <span className="text-blue-600/70 dark:text-blue-300/70">
+            — indicadores filtrados onde a dimensão se aplica (métricas gerais permanecem consolidadas).
+          </span>
+          <Link href="/dashboard" className="ml-auto text-xs font-medium hover:underline">
+            Ver consolidado
+          </Link>
+        </div>
+      )}
 
       {/* Exportação */}
       <div className="mb-4 flex justify-end">

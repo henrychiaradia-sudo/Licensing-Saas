@@ -1,6 +1,7 @@
 import "server-only";
 import { and, eq, desc, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { scopeConds, type ViewScope } from "@/lib/view";
 import {
   receivable,
   invoice,
@@ -105,7 +106,7 @@ export async function listLedger(tenantId: string, opts?: { licenseeId?: string 
     .limit(50);
 }
 
-export async function financeSummary(tenantId: string) {
+export async function financeSummary(tenantId: string, scope?: ViewScope) {
   const rows = await db
     .select({
       outstanding: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} not in ('pago', 'cancelado')), 0)`,
@@ -113,7 +114,7 @@ export async function financeSummary(tenantId: string) {
       overdue: sql<string>`coalesce(sum(${receivable.amount} - ${receivable.paidAmount}) filter (where ${receivable.status} not in ('pago','cancelado') and ${receivable.dueDate} < current_date), 0)`,
     })
     .from(receivable)
-    .where(eq(receivable.tenantId, tenantId));
+    .where(and(eq(receivable.tenantId, tenantId), ...scopeConds(scope, { licensee: receivable.licenseeId })));
   const r = rows[0];
   return {
     outstanding: Number(r?.outstanding ?? 0),

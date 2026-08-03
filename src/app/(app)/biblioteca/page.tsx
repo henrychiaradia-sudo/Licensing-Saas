@@ -3,6 +3,7 @@ import { Download } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listAssets } from "@/lib/data/assets";
 import { listBrands } from "@/lib/data/brands";
+import { parseView } from "@/lib/view";
 import { downloadAction } from "./actions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
@@ -38,12 +39,15 @@ function fmtBytes(n: number | null) {
 export default async function BibliotecaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ brand?: string }>;
+  searchParams: Promise<{ brand?: string; view?: string }>;
 }) {
   const session = await requireSession();
-  const { brand: brandParam } = await searchParams;
+  const { brand: brandParam, view: viewParam } = await searchParams;
+  const view = parseView(viewParam);
   const brands = await listBrands(session.tenantId);
-  const brandId = brandParam && brands.some((b) => b.id === brandParam) ? brandParam : undefined;
+  const brandId =
+    (brandParam && brands.some((b) => b.id === brandParam) ? brandParam : undefined) ??
+    (view?.dim === "marca" ? view.id : undefined);
   const assets = await listAssets(session.tenantId, { brandId });
 
   return (

@@ -3,6 +3,7 @@ import { Plus, Search, ClipboardCheck, CheckCircle2, XCircle, AlertTriangle } fr
 import { requireSession } from "@/lib/auth";
 import { listInspections, qualitySummary } from "@/lib/data/quality";
 import { listSupplierOptions } from "@/lib/data/purchase-orders";
+import { parseView } from "@/lib/view";
 import { Button, Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtDate } from "@/lib/utils";
@@ -35,10 +36,11 @@ const TYPE_KEYS = Object.keys(typeLabel) as QualityInspectionType[];
 export default async function QualidadePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; result?: string; type?: string; supplier?: string }>;
+  searchParams: Promise<{ q?: string; result?: string; type?: string; supplier?: string; view?: string }>;
 }) {
   const session = await requireSession();
-  const { q, result, type, supplier: supplierParam } = await searchParams;
+  const { q, result, type, supplier: supplierParam, view: viewParam } = await searchParams;
+  const view = parseView(viewParam);
   const resultFilter =
     result && (RESULT_KEYS as string[]).includes(result) ? (result as QualityResult) : undefined;
   const typeFilter =
@@ -46,7 +48,8 @@ export default async function QualidadePage({
 
   const suppliers = await listSupplierOptions(session.tenantId);
   const supplierId =
-    supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined;
+    (supplierParam && suppliers.some((s) => s.id === supplierParam) ? supplierParam : undefined) ??
+    (view?.dim === "fornecedor" ? view.id : undefined);
 
   const [rows, summary] = await Promise.all([
     listInspections(session.tenantId, { q, result: resultFilter, type: typeFilter, supplierId }),

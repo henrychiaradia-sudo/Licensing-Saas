@@ -4,7 +4,10 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { unreadCount } from "@/lib/data/notifications";
+import { listBrandOptions, listLicenseeOptions } from "@/lib/data/contracts";
+import { listSupplierOptions } from "@/lib/data/purchase-orders";
 import { AiAssistantButton } from "@/components/ai-fab";
+import { ViewSelector } from "@/components/shell/view-selector";
 import { initials } from "@/lib/utils";
 import { LogOut, Search, Bell } from "lucide-react";
 
@@ -18,7 +21,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await requireSession();
   if (session.licenseeId) redirect("/portal");
   if (session.supplierId) redirect("/fornecedor");
-  const unread = await unreadCount(session.tenantId);
+  const [unread, brands, licensees, suppliers] = await Promise.all([
+    unreadCount(session.tenantId),
+    listBrandOptions(session.tenantId),
+    listLicenseeOptions(session.tenantId),
+    listSupplierOptions(session.tenantId),
+  ]);
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -36,6 +44,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             />
           </form>
           <div className="ml-auto flex items-center gap-3">
+            <ViewSelector
+              brands={brands.map((b) => ({ id: b.id, label: b.name }))}
+              licensees={licensees.map((l) => ({ id: l.id, label: l.legalName }))}
+              suppliers={suppliers.map((s) => ({ id: s.id, label: s.tradeName || s.legalName }))}
+            />
             <Link
               href="/notificacoes"
               aria-label="Notificações"
