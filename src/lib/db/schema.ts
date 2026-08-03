@@ -1471,6 +1471,8 @@ export const licensingOpportunity = pgTable(
     estimatedValue: numeric("estimated_value", { precision: 18, scale: 2 }).notNull().default("0"),
     probability: integer("probability").notNull().default(20),
     source: text("source"),
+    firstContactDate: date("first_contact_date"),
+    firstContactChannel: text("first_contact_channel"),
     expectedCloseDate: date("expected_close_date"),
     ownerUserId: uuid("owner_user_id"),
     notes: text("notes"),
@@ -1491,6 +1493,19 @@ export const opportunityActivity = pgTable("opportunity_activity", {
   activityType: text("activity_type").notNull().default("nota"),
   description: text("description").notNull(),
   occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: uuid("created_by"),
+});
+
+export const opportunityContact = pgTable("opportunity_contact", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").notNull(),
+  opportunityId: uuid("opportunity_id").notNull(),
+  name: text("name").notNull(),
+  role: text("role"),
+  email: text("email"),
+  phone: text("phone"),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: uuid("created_by"),
 });
 

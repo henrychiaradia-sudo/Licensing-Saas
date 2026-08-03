@@ -8,14 +8,17 @@ import {
   createOpportunity,
   setOpportunityStage,
   addOpportunityActivity,
+  addOpportunityContact,
+  deleteOpportunityContact,
   convertOpportunity,
   type OpportunityInput,
 } from "@/lib/data/opportunities";
 import { logAudit } from "@/lib/data/audit";
-import { opportunitySchema, activitySchema, OPPORTUNITY_STAGE } from "./schema";
+import { opportunitySchema, activitySchema, contactSchema, OPPORTUNITY_STAGE } from "./schema";
 import type { OpportunityStage } from "@/lib/db/schema";
 
 export type FormState = { error: string | null };
+export type SubState = { error: string | null; ok?: boolean };
 
 function emptyToNull(v: FormDataEntryValue | null): string | null {
   const s = v == null ? "" : String(v).trim();
@@ -54,6 +57,8 @@ export async function createOpportunityAction(
     stage: String(formData.get("stage") ?? "prospeccao"),
     estimatedValue: numOrZero(formData.get("estimatedValue")),
     source: emptyToNull(formData.get("source")),
+    firstContactDate: emptyToNull(formData.get("firstContactDate")),
+    firstContactChannel: emptyToNull(formData.get("firstContactChannel")),
     expectedCloseDate: emptyToNull(formData.get("expectedCloseDate")),
     ownerUserId: emptyToNull(formData.get("ownerUserId")),
     notes: emptyToNull(formData.get("notes")),
@@ -133,6 +138,45 @@ export async function addActivityAction(
   }
   revalidatePath(`/pipeline/${opportunityId}`);
   return { error: null };
+}
+
+export async function addContactAction(
+  opportunityId: string,
+  _prev: SubState,
+  formData: FormData,
+): Promise<SubState> {
+  const session = await requireSession();
+  if (!canWritePipeline(session)) {
+    return { error: "Você não tem permissão para gerenciar responsáveis." };
+  }
+  const candidate = {
+    name: String(formData.get("name") ?? "").trim(),
+    role: emptyToNull(formData.get("role")),
+    email: emptyToNull(formData.get("email")),
+    phone: emptyToNull(formData.get("phone")),
+    isPrimary: formData.get("isPrimary") != null,
+  };
+  const parsed = contactSchema.safeParse(candidate);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+  try {
+    await addOpportunityContact(session.tenantId, opportunityId, parsed.data, session.userId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Não foi possível salvar o responsável." };
+  }
+  revalidatePath(`/pipeline/${opportunityId}`);
+  return { error: null, ok: true };
+}
+
+export async function deleteContactAction(
+  opportunityId: string,
+  contactId: string,
+): Promise<void> {
+  const session = await requireSession();
+  if (!canWritePipeline(session)) return;
+  await deleteOpportunityContact(session.tenantId, contactId);
+  revalidatePath(`/pipeline/${opportunityId}`);
 }
 
 export async function convertAction(id: string): Promise<void> {

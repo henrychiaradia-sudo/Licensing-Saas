@@ -4,12 +4,19 @@ import { db } from "@/lib/db";
 import {
   licensingOpportunity,
   opportunityActivity,
+  opportunityContact,
+  task,
   brand,
   segment,
   appUser,
   licensee,
 } from "@/lib/db/schema";
 import type { OpportunityStage } from "@/lib/db/schema";
+
+/** Data (YYYY-MM-DD) somando `days` a partir de hoje. */
+function addDaysIso(days: number): string {
+  return new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+}
 
 export const STAGE_PROBABILITY: Record<OpportunityStage, number> = {
   prospeccao: 20,
@@ -98,6 +105,8 @@ export async function getOpportunityDetail(tenantId: string, id: string) {
       estimatedValue: licensingOpportunity.estimatedValue,
       probability: licensingOpportunity.probability,
       source: licensingOpportunity.source,
+      firstContactDate: licensingOpportunity.firstContactDate,
+      firstContactChannel: licensingOpportunity.firstContactChannel,
       expectedCloseDate: licensingOpportunity.expectedCloseDate,
       notes: licensingOpportunity.notes,
       lostReason: licensingOpportunity.lostReason,
@@ -122,6 +131,8 @@ export async function getOpportunityDetail(tenantId: string, id: string) {
     .where(eq(opportunityActivity.opportunityId, id))
     .orderBy(desc(opportunityActivity.occurredAt));
 
+  const contacts = await listOpportunityContacts(tenantId, id);
+
   let licenseeName: string | null = null;
   if (head.licenseeId) {
     const l = await db
@@ -131,7 +142,60 @@ export async function getOpportunityDetail(tenantId: string, id: string) {
       .limit(1);
     licenseeName = l[0]?.legalName ?? null;
   }
-  return { opportunity: head, activities, licenseeName };
+  return { opportunity: head, activities, contacts, licenseeName };
+}
+
+export async function listOpportunityContacts(tenantId: string, opportunityId: string) {
+  return db
+    .select({
+      id: opportunityContact.id,
+      name: opportunityContact.name,
+      role: opportunityContact.role,
+      email: opportunityContact.email,
+      phone: opportunityContact.phone,
+      isPrimary: opportunityContact.isPrimary,
+    })
+    .from(opportunityContact)
+    .where(
+      and(
+        eq(opportunityContact.tenantId, tenantId),
+        eq(opportunityContact.opportunityId, opportunityId),
+      ),
+    )
+    .orderBy(desc(opportunityContact.isPrimary), asc(opportunityContact.name));
+}
+
+export async function addOpportunityContact(
+  tenantId: string,
+  opportunityId: string,
+  input: { name: string; role: string | null; email: string | null; phone: string | null; isPrimary: boolean },
+  userId: string,
+): Promise<void> {
+  const exists = await db
+    .select({ id: licensingOpportunity.id })
+    .from(licensingOpportunity)
+    .where(and(eq(licensingOpportunity.id, opportunityId), eq(licensingOpportunity.tenantId, tenantId)))
+    .limit(1);
+  if (!exists[0]) throw new Error("Oportunidade não encontrada.");
+  await db.insert(opportunityContact).values({
+    tenantId,
+    opportunityId,
+    name: input.name,
+    role: input.role,
+    email: input.email,
+    phone: input.phone,
+    isPrimary: input.isPrimary,
+    createdBy: userId,
+  });
+}
+
+export async function deleteOpportunityContact(
+  tenantId: string,
+  contactId: string,
+): Promise<void> {
+  await db
+    .delete(opportunityContact)
+    .where(and(eq(opportunityContact.id, contactId), eq(opportunityContact.tenantId, tenantId)));
 }
 
 export type OpportunityInput = {
@@ -145,6 +209,8 @@ export type OpportunityInput = {
   stage: OpportunityStage;
   estimatedValue: number;
   source: string | null;
+  firstContactDate: string | null;
+  firstContactChannel: string | null;
   expectedCloseDate: string | null;
   ownerUserId: string | null;
   notes: string | null;
@@ -178,13 +244,62 @@ export async function createOpportunity(
       estimatedValue: input.estimatedValue.toFixed(2),
       probability: STAGE_PROBABILITY[input.stage],
       source: input.source,
+      firstContactDate: input.firstContactDate,
+      firstContactChannel: input.firstContactChannel,
       expectedCloseDate: input.expectedCloseDate,
       ownerUserId: input.ownerUserId ?? userId,
       notes: input.notes,
       createdBy: userId,
     })
     .returning({ id: licensingOpportunity.id });
-  return { id: inserted[0].id };
+  const opportunityId = inserted[0].id;
+
+  // Contato inicial vira o 1º responsável (primário) do prospect.
+  if (input.contactName) {
+    await db.insert(opportunityContact).values({
+      tenantId,
+      opportunityId,
+      name: input.contactName,
+      role: "Contato principal",
+      email: input.contactEmail,
+      phone: input.contactPhone,
+      isPrimary: true,
+      createdBy: userId,
+    });
+  }
+
+  // Régua automática de follow-up: FU1 em 8 dias, FU2 em 30 dias.
+  const label = `Oportunidade · ${input.name}`;
+  await db.insert(task).values([
+    {
+      tenantId,
+      title: `Follow-up 1 — ${input.name}`,
+      description: "Primeiro follow-up automático (7–10 dias) do primeiro contato.",
+      status: "a_fazer" as const,
+      priority: "media" as const,
+      assignee: null,
+      dueDate: addDaysIso(8),
+      entityType: "opportunity",
+      entityId: opportunityId,
+      entityLabel: label,
+      createdBy: userId,
+    },
+    {
+      tenantId,
+      title: `Follow-up 2 — ${input.name}`,
+      description: "Segundo follow-up automático (30 dias) para reengajar o prospect.",
+      status: "a_fazer" as const,
+      priority: "media" as const,
+      assignee: null,
+      dueDate: addDaysIso(30),
+      entityType: "opportunity",
+      entityId: opportunityId,
+      entityLabel: label,
+      createdBy: userId,
+    },
+  ]);
+
+  return { id: opportunityId };
 }
 
 export async function setOpportunityStage(

@@ -27,6 +27,13 @@ export async function createTaskAction(
   if (!canWriteTasks(session)) {
     return { error: "Você não tem permissão para gerenciar tarefas." };
   }
+  const entityType = String(formData.get("entityType") ?? "");
+  const entityId =
+    entityType === "marca"
+      ? emptyToNull(formData.get("brandId"))
+      : entityType === "licenciado"
+        ? emptyToNull(formData.get("licenseeId"))
+        : null;
   const candidate = {
     title: String(formData.get("title") ?? "").trim(),
     description: emptyToNull(formData.get("description")),
@@ -34,7 +41,8 @@ export async function createTaskAction(
     priority: String(formData.get("priority") ?? "media"),
     assignee: emptyToNull(formData.get("assignee")),
     dueDate: emptyToNull(formData.get("dueDate")),
-    entityLabel: emptyToNull(formData.get("entityLabel")),
+    entityType,
+    entityId: entityId ?? "",
   };
   const parsed = taskSchema.safeParse(candidate);
   if (!parsed.success) {

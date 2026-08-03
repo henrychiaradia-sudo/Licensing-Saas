@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui";
 import { createOpportunityAction, type FormState } from "./actions";
+import { FIRST_CONTACT_CHANNEL } from "./schema";
 
 type Option = { id: string; label: string };
 
@@ -82,6 +83,21 @@ export function OpportunityForm({
         <div>
           <Label htmlFor="source">Origem</Label>
           <Input id="source" name="source" placeholder="Evento, indicação, inbound…" />
+        </div>
+        <div>
+          <Label htmlFor="firstContactDate">Data do 1º contato</Label>
+          <Input id="firstContactDate" name="firstContactDate" type="date" />
+        </div>
+        <div>
+          <Label htmlFor="firstContactChannel">Canal do 1º contato</Label>
+          <Select id="firstContactChannel" name="firstContactChannel" defaultValue="">
+            <option value="">— (opcional)</option>
+            {FIRST_CONTACT_CHANNEL.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
         </div>
         <div>
           <Label htmlFor="ownerUserId">Responsável</Label>

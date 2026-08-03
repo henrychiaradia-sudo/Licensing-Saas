@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createTaskAction, type FormState } from "./actions";
 import { Button, Input, Label, Select, Textarea } from "@/components/ui";
 
@@ -15,10 +15,20 @@ const STATUS_OPTIONS = [
   { value: "em_andamento", label: "Em andamento" },
 ];
 
-export function TaskForm() {
+type BrandOpt = { id: string; name: string };
+type LicenseeOpt = { id: string; legalName: string };
+
+export function TaskForm({
+  brands,
+  licensees,
+}: {
+  brands: BrandOpt[];
+  licensees: LicenseeOpt[];
+}) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(createTaskAction, {
     error: null,
   });
+  const [kind, setKind] = useState<"marca" | "licenciado">("marca");
 
   return (
     <form action={formAction} className="grid gap-4">
@@ -55,9 +65,48 @@ export function TaskForm() {
             ))}
           </Select>
         </div>
-        <div className="lg:col-span-2">
-          <Label htmlFor="entityLabel">Vínculo (opcional)</Label>
-          <Input id="entityLabel" name="entityLabel" placeholder="Contrato, fornecedor, produto…" />
+        <div>
+          <Label htmlFor="entityType">Vínculo *</Label>
+          <Select
+            id="entityType"
+            name="entityType"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "marca" | "licenciado")}
+          >
+            <option value="marca">Marca</option>
+            <option value="licenciado">Licenciado / Empresa</option>
+          </Select>
+        </div>
+        <div>
+          {kind === "marca" ? (
+            <>
+              <Label htmlFor="brandId">Marca *</Label>
+              <Select id="brandId" name="brandId" defaultValue="" required>
+                <option value="" disabled>
+                  Selecione a marca…
+                </option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </Select>
+            </>
+          ) : (
+            <>
+              <Label htmlFor="licenseeId">Licenciado / Empresa *</Label>
+              <Select id="licenseeId" name="licenseeId" defaultValue="" required>
+                <option value="" disabled>
+                  Selecione o licenciado…
+                </option>
+                {licensees.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.legalName}
+                  </option>
+                ))}
+              </Select>
+            </>
+          )}
         </div>
         <div className="sm:col-span-2 lg:col-span-4">
           <Label htmlFor="description">Detalhes</Label>

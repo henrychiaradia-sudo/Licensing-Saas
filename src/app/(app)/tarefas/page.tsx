@@ -1,6 +1,7 @@
 import { CalendarClock, ListTodo, Loader2, CheckCircle2, AlertTriangle, Play, Undo2, CircleCheck } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listTasks, listUpcomingTasks, taskSummary } from "@/lib/data/tasks";
+import { listBrandOptions, listLicenseeOptions } from "@/lib/data/contracts";
 import { setTaskStatusAction } from "./actions";
 import { TaskForm } from "./task-form";
 import { TarefasTabs } from "./tabs";
@@ -51,10 +52,12 @@ const CARD_ACTIONS: Record<
 
 export default async function TarefasPage() {
   const session = await requireSession();
-  const [rows, upcoming, summary] = await Promise.all([
+  const [rows, upcoming, summary, brands, licensees] = await Promise.all([
     listTasks(session.tenantId),
     listUpcomingTasks(session.tenantId),
     taskSummary(session.tenantId),
+    listBrandOptions(session.tenantId),
+    listLicenseeOptions(session.tenantId),
   ]);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -161,7 +164,10 @@ export default async function TarefasPage() {
   const nova = (
     <Card className="p-5">
       <h2 className="mb-3 text-sm font-semibold">Nova tarefa</h2>
-      <TaskForm />
+      <TaskForm
+        brands={brands.map((b) => ({ id: b.id, name: b.name }))}
+        licensees={licensees.map((l) => ({ id: l.id, legalName: l.legalName }))}
+      />
     </Card>
   );
 

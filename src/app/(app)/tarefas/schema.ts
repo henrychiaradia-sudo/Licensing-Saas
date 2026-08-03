@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const TASK_STATUS = ["a_fazer", "em_andamento", "concluida", "cancelada"] as const;
 export const TASK_PRIORITY = ["baixa", "media", "alta", "urgente"] as const;
+export const TASK_ENTITY_TYPE = ["marca", "licenciado"] as const;
 
 export const taskSchema = z.object({
   title: z.string().trim().min(2, "Informe o título da tarefa.").max(200),
@@ -10,5 +11,6 @@ export const taskSchema = z.object({
   priority: z.enum(TASK_PRIORITY),
   assignee: z.string().trim().max(160).nullable(),
   dueDate: z.string().nullable(),
-  entityLabel: z.string().trim().max(200).nullable(),
+  entityType: z.enum(TASK_ENTITY_TYPE, { message: "Selecione o tipo de vínculo (Marca ou Licenciado)." }),
+  entityId: z.string().uuid("Selecione a Marca ou o Licenciado do vínculo."),
 });

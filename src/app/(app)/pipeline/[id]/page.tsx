@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, UserCheck, XCircle, RotateCcw, Mail, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, UserCheck, XCircle, RotateCcw, Mail, Phone, Users, Trash2, Star } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getOpportunityDetail } from "@/lib/data/opportunities";
-import { setStageAction, convertAction } from "../actions";
+import { setStageAction, convertAction, deleteContactAction } from "../actions";
 import { ActivityForm } from "../activity-form";
+import { ContactForm } from "../contact-form";
 import { stageTone, stageLabel } from "../page";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
@@ -42,7 +43,7 @@ export default async function OpportunityDetailPage({
   const session = await requireSession();
   const data = await getOpportunityDetail(session.tenantId, id);
   if (!data) notFound();
-  const { opportunity: o, activities, licenseeName } = data;
+  const { opportunity: o, activities, contacts, licenseeName } = data;
   const stage = o.stage as OpportunityStage;
   const isOpen = OPEN_ORDER.includes(stage);
   const idx = OPEN_ORDER.indexOf(stage);
@@ -146,8 +147,9 @@ export default async function OpportunityDetailPage({
             <Field label="Marca-alvo" value={o.brandName} />
             <Field label="Segmento" value={o.segmentName} />
             <Field label="Origem" value={o.source} />
+            <Field label="1º contato — data" value={fmtDate(o.firstContactDate)} />
+            <Field label="1º contato — canal" value={o.firstContactChannel} />
             <Field label="Previsão de fechamento" value={fmtDate(o.expectedCloseDate)} />
-            <Field label="Contato" value={o.contactName} />
           </dl>
           {(o.contactEmail || o.contactPhone) && (
             <div className="mt-4 flex flex-wrap gap-4 border-t border-neutral-100 pt-3 text-sm dark:border-neutral-800">
@@ -180,6 +182,65 @@ export default async function OpportunityDetailPage({
           </p>
         </Card>
       </div>
+
+      <Card className="mt-4 p-5">
+        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
+          <Users size={16} className="text-blue-500" /> Responsáveis / decisores
+        </h2>
+        <p className="mb-3 text-xs text-neutral-500">
+          Cadastre os contatos e tomadores de decisão do prospect.
+        </p>
+        {contacts.length > 0 && (
+          <div className="mb-4 overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
+                  <th className="px-3 py-2 font-medium">Nome</th>
+                  <th className="px-3 py-2 font-medium">Cargo</th>
+                  <th className="px-3 py-2 font-medium">E-mail</th>
+                  <th className="px-3 py-2 font-medium">Telefone</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {contacts.map((c) => (
+                  <tr key={c.id} className="border-b border-neutral-100 last:border-0 dark:border-neutral-800">
+                    <td className="px-3 py-2 font-medium">
+                      <span className="inline-flex items-center gap-1.5">
+                        {c.isPrimary && <Star size={13} className="text-amber-500" fill="currentColor" />}
+                        {c.name}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-neutral-500">{c.role ?? "—"}</td>
+                    <td className="px-3 py-2 text-neutral-500">
+                      {c.email ? (
+                        <a href={`mailto:${c.email}`} className="hover:text-blue-600">
+                          {c.email}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums text-neutral-500">{c.phone ?? "—"}</td>
+                    <td className="px-3 py-2 text-right">
+                      <form action={deleteContactAction.bind(null, o.id, c.id)}>
+                        <button
+                          type="submit"
+                          aria-label="Remover responsável"
+                          className="text-neutral-400 hover:text-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <ContactForm opportunityId={o.id} />
+      </Card>
 
       <Card className="mt-4 p-5">
         <h2 className="mb-3 text-sm font-semibold">Interações</h2>

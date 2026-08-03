@@ -1,8 +1,10 @@
 import "server-only";
 import { and, eq, desc, asc, sql, or, ilike, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { task } from "@/lib/db/schema";
+import { task, brand, licensee } from "@/lib/db/schema";
 import type { TaskStatus, TaskPriority } from "@/lib/db/schema";
+
+export type TaskEntityType = "marca" | "licenciado";
 
 const OPEN_STATUSES = ["a_fazer", "em_andamento"] as const;
 
@@ -70,14 +72,40 @@ export type TaskInput = {
   priority: TaskPriority;
   assignee: string | null;
   dueDate: string | null;
-  entityLabel: string | null;
+  entityType: TaskEntityType;
+  entityId: string;
 };
+
+/** Resolve o rótulo do vínculo (Marca / Licenciado) validando o tenant. */
+async function resolveEntityLabel(
+  tenantId: string,
+  entityType: TaskEntityType,
+  entityId: string,
+): Promise<string | null> {
+  if (entityType === "marca") {
+    const r = await db
+      .select({ name: brand.name })
+      .from(brand)
+      .where(and(eq(brand.id, entityId), eq(brand.tenantId, tenantId)))
+      .limit(1);
+    if (!r[0]) throw new Error("Marca inválida no vínculo.");
+    return `Marca · ${r[0].name}`;
+  }
+  const r = await db
+    .select({ name: licensee.legalName })
+    .from(licensee)
+    .where(and(eq(licensee.id, entityId), eq(licensee.tenantId, tenantId)))
+    .limit(1);
+  if (!r[0]) throw new Error("Licenciado inválido no vínculo.");
+  return `Licenciado · ${r[0].name}`;
+}
 
 export async function createTask(
   tenantId: string,
   input: TaskInput,
   userId: string,
 ): Promise<{ id: string }> {
+  const entityLabel = await resolveEntityLabel(tenantId, input.entityType, input.entityId);
   const inserted = await db
     .insert(task)
     .values({
@@ -89,7 +117,9 @@ export async function createTask(
       assignee: input.assignee,
       dueDate: input.dueDate,
       completedAt: input.status === "concluida" ? new Date().toISOString().slice(0, 10) : null,
-      entityLabel: input.entityLabel,
+      entityType: input.entityType,
+      entityId: input.entityId,
+      entityLabel,
       createdBy: userId,
     })
     .returning({ id: task.id });
