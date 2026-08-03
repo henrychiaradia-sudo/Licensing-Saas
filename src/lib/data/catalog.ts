@@ -2,15 +2,23 @@ import "server-only";
 import { and, eq, desc, asc, sql, or, ilike } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { catalogItem, category, brand } from "@/lib/db/schema";
-import type { CatalogItemStatus } from "@/lib/db/schema";
+import type { CatalogItemStatus, CatalogAudience } from "@/lib/db/schema";
+
+export const AUDIENCE_LABEL: Record<CatalogAudience, string> = {
+  masculino: "Masculino",
+  feminino: "Feminino",
+  infantil: "Infantil",
+  unissex: "Unissex",
+};
 
 export async function listCatalogItems(
   tenantId: string,
-  opts?: { status?: CatalogItemStatus; categoryId?: string; q?: string },
+  opts?: { status?: CatalogItemStatus; categoryId?: string; publico?: CatalogAudience; q?: string },
 ) {
   const conds = [eq(catalogItem.tenantId, tenantId)];
   if (opts?.status) conds.push(eq(catalogItem.status, opts.status));
   if (opts?.categoryId) conds.push(eq(catalogItem.categoryId, opts.categoryId));
+  if (opts?.publico) conds.push(eq(catalogItem.publico, opts.publico));
   if (opts?.q && opts.q.trim()) {
     const term = `%${opts.q.trim()}%`;
     const m = or(ilike(catalogItem.sku, term), ilike(catalogItem.name, term));
@@ -23,8 +31,12 @@ export async function listCatalogItems(
       name: catalogItem.name,
       unit: catalogItem.unit,
       listPrice: catalogItem.listPrice,
+      costPrice: catalogItem.costPrice,
+      publico: catalogItem.publico,
+      grade: catalogItem.grade,
       status: catalogItem.status,
       ncm: catalogItem.ncm,
+      upc: catalogItem.upc,
       categoryName: category.name,
       brandName: brand.name,
     })
@@ -61,9 +73,18 @@ export async function getCatalogItemDetail(tenantId: string, id: string) {
       description: catalogItem.description,
       unit: catalogItem.unit,
       listPrice: catalogItem.listPrice,
+      costPrice: catalogItem.costPrice,
+      publico: catalogItem.publico,
+      grade: catalogItem.grade,
+      pantone: catalogItem.pantone,
+      upi: catalogItem.upi,
+      upc: catalogItem.upc,
+      discontinuationReason: catalogItem.discontinuationReason,
       status: catalogItem.status,
       ncm: catalogItem.ncm,
       cest: catalogItem.cest,
+      categoryId: catalogItem.categoryId,
+      brandId: catalogItem.brandId,
       categoryName: category.name,
       brandName: brand.name,
     })
@@ -85,8 +106,37 @@ export type CatalogItemInput = {
   cest: string | null;
   unit: string;
   listPrice: number;
+  costPrice: number | null;
+  publico: CatalogAudience | null;
+  grade: string | null;
+  pantone: string | null;
+  upi: string | null;
+  upc: string | null;
+  discontinuationReason: string | null;
   status: CatalogItemStatus;
 };
+
+function catalogValues(input: CatalogItemInput) {
+  return {
+    sku: input.sku,
+    name: input.name,
+    description: input.description,
+    categoryId: input.categoryId,
+    brandId: input.brandId,
+    ncm: input.ncm,
+    cest: input.cest,
+    unit: input.unit,
+    listPrice: input.listPrice.toFixed(2),
+    costPrice: input.costPrice != null ? input.costPrice.toFixed(2) : null,
+    publico: input.publico,
+    grade: input.grade,
+    pantone: input.pantone,
+    upi: input.upi,
+    upc: input.upc,
+    discontinuationReason: input.status === "descontinuado" ? input.discontinuationReason : null,
+    status: input.status,
+  };
+}
 
 export async function createCatalogItem(
   tenantId: string,
@@ -101,27 +151,47 @@ export async function createCatalogItem(
   if (dup[0]) throw new Error("Já existe um item com este SKU.");
   const inserted = await db
     .insert(catalogItem)
-    .values({
-      tenantId,
-      sku: input.sku,
-      name: input.name,
-      description: input.description,
-      categoryId: input.categoryId,
-      brandId: input.brandId,
-      ncm: input.ncm,
-      cest: input.cest,
-      unit: input.unit,
-      listPrice: input.listPrice.toFixed(2),
-      status: input.status,
-      createdBy: userId,
-    })
+    .values({ tenantId, ...catalogValues(input), createdBy: userId })
     .returning({ id: catalogItem.id });
   return { id: inserted[0].id };
+}
+
+export async function updateCatalogItem(
+  tenantId: string,
+  id: string,
+  input: CatalogItemInput,
+): Promise<void> {
+  const exists = await db
+    .select({ id: catalogItem.id })
+    .from(catalogItem)
+    .where(and(eq(catalogItem.id, id), eq(catalogItem.tenantId, tenantId)))
+    .limit(1);
+  if (!exists[0]) throw new Error("Item não encontrado.");
+  const dup = await db
+    .select({ id: catalogItem.id })
+    .from(catalogItem)
+    .where(and(eq(catalogItem.tenantId, tenantId), eq(catalogItem.sku, input.sku)))
+    .limit(1);
+  if (dup[0] && dup[0].id !== id) throw new Error("Já existe outro item com este SKU.");
+  await db
+    .update(catalogItem)
+    .set({ ...catalogValues(input), updatedAt: new Date() })
+    .where(and(eq(catalogItem.id, id), eq(catalogItem.tenantId, tenantId)));
 }
 
 /* ---------------------------------------------------------------------------
  * Categorias (árvore hierárquica)
  * ------------------------------------------------------------------------- */
+
+export type CategoryItemLite = {
+  id: string;
+  sku: string;
+  name: string;
+  status: CatalogItemStatus;
+  publico: CatalogAudience | null;
+  grade: string | null;
+  listPrice: string;
+};
 
 export type CategoryNode = {
   id: string;
@@ -129,6 +199,7 @@ export type CategoryNode = {
   code: string | null;
   parentId: string | null;
   itemCount: number;
+  items: CategoryItemLite[];
   children: CategoryNode[];
 };
 
@@ -139,17 +210,41 @@ export async function listCategoryTree(tenantId: string): Promise<CategoryNode[]
     .where(eq(category.tenantId, tenantId))
     .orderBy(asc(category.name));
 
-  const counts = await db
-    .select({ categoryId: catalogItem.categoryId, c: sql<string>`count(*)` })
+  const items = await db
+    .select({
+      id: catalogItem.id,
+      sku: catalogItem.sku,
+      name: catalogItem.name,
+      status: catalogItem.status,
+      publico: catalogItem.publico,
+      grade: catalogItem.grade,
+      listPrice: catalogItem.listPrice,
+      categoryId: catalogItem.categoryId,
+    })
     .from(catalogItem)
     .where(eq(catalogItem.tenantId, tenantId))
-    .groupBy(catalogItem.categoryId);
-  const countMap = new Map<string, number>();
-  for (const row of counts) if (row.categoryId) countMap.set(row.categoryId, Number(row.c));
+    .orderBy(asc(catalogItem.sku));
+
+  const itemsByCat = new Map<string, CategoryItemLite[]>();
+  for (const it of items) {
+    if (!it.categoryId) continue;
+    const list = itemsByCat.get(it.categoryId) ?? [];
+    list.push({
+      id: it.id,
+      sku: it.sku,
+      name: it.name,
+      status: it.status,
+      publico: it.publico,
+      grade: it.grade,
+      listPrice: it.listPrice,
+    });
+    itemsByCat.set(it.categoryId, list);
+  }
 
   const nodes = new Map<string, CategoryNode>();
   for (const c of cats) {
-    nodes.set(c.id, { ...c, itemCount: countMap.get(c.id) ?? 0, children: [] });
+    const catItems = itemsByCat.get(c.id) ?? [];
+    nodes.set(c.id, { ...c, itemCount: catItems.length, items: catItems, children: [] });
   }
   const roots: CategoryNode[] = [];
   for (const node of nodes.values()) {

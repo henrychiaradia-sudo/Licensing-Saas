@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const CATALOG_STATUS = ["ativo", "inativo", "descontinuado"] as const;
 export const UNIT_OPTIONS = ["un", "pc", "cx", "kg", "m", "par", "kit"] as const;
+export const AUDIENCE_OPTIONS = ["masculino", "feminino", "infantil", "unissex"] as const;
 
 export const itemSchema = z.object({
   sku: z.string().trim().min(1, "Informe o SKU.").max(60),
@@ -13,6 +14,13 @@ export const itemSchema = z.object({
   cest: z.string().trim().max(20).nullable(),
   unit: z.enum(UNIT_OPTIONS),
   listPrice: z.number().min(0).max(10_000_000_000),
+  costPrice: z.number().min(0).max(10_000_000_000).nullable(),
+  publico: z.enum(AUDIENCE_OPTIONS).nullable(),
+  grade: z.string().trim().max(80).nullable(),
+  pantone: z.string().trim().max(80).nullable(),
+  upi: z.string().trim().max(60).nullable(),
+  upc: z.string().trim().max(60).nullable(),
+  discontinuationReason: z.string().trim().max(300).nullable(),
   status: z.enum(CATALOG_STATUS),
 });
 

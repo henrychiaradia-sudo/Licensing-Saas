@@ -217,6 +217,10 @@ export const product = pgTable(
     suggestedPrice: numeric("suggested_price", { precision: 18, scale: 4 }),
     barcode: text("barcode"),
     imageUrl: text("image_url"),
+    upi: text("upi"),
+    logoCode: text("logo_code"),
+    pantone: text("pantone"),
+    technologies: text("technologies").array(),
     status: productStatus("status").notNull().default("rascunho"),
     currentVersion: integer("current_version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -1563,6 +1567,13 @@ export const campaignActivation = pgTable("campaign_activation", {
 
 /* ============ FASE 8 — CATÁLOGO DE ITENS (SKU) ============ */
 export const catalogItemStatus = pgEnum("catalog_item_status", ["ativo", "inativo", "descontinuado"]);
+export const catalogAudience = pgEnum("catalog_audience", [
+  "masculino",
+  "feminino",
+  "infantil",
+  "unissex",
+]);
+export type CatalogAudience = (typeof catalogAudience.enumValues)[number];
 export type CatalogItemStatus = (typeof catalogItemStatus.enumValues)[number];
 
 export const catalogItem = pgTable(
@@ -1579,6 +1590,13 @@ export const catalogItem = pgTable(
     cest: text("cest"),
     unit: text("unit").notNull().default("un"),
     listPrice: numeric("list_price", { precision: 18, scale: 2 }).notNull().default("0"),
+    costPrice: numeric("cost_price", { precision: 18, scale: 2 }),
+    publico: catalogAudience("publico"),
+    grade: text("grade"),
+    pantone: text("pantone"),
+    upi: text("upi"),
+    upc: text("upc"),
+    discontinuationReason: text("discontinuation_reason"),
     status: catalogItemStatus("status").notNull().default("ativo"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

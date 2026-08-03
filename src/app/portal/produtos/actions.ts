@@ -16,7 +16,21 @@ const schema = z.object({
   supplierName: z.string().trim().max(160).optional().default(""),
   suggestedPrice: z.coerce.number().min(0).max(1_000_000_000).optional().default(0),
   imageUrl: z.string().trim().max(1000).optional().default(""),
+  barcode: z.string().trim().max(60).optional().default(""),
+  upi: z.string().trim().max(60).optional().default(""),
+  logoCode: z.string().trim().max(60).optional().default(""),
+  pantone: z.string().trim().max(80).optional().default(""),
+  technologies: z.string().trim().max(400).optional().default(""),
 });
+
+function splitTech(s: string | undefined | null): string[] | null {
+  if (!s) return null;
+  const arr = s
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  return arr.length > 0 ? arr : null;
+}
 
 export type SubmitProductResult = { ok: false; error: string };
 
@@ -45,6 +59,11 @@ export async function submitProductAction(input: unknown): Promise<SubmitProduct
       supplierName: d.supplierName || null,
       suggestedPrice: d.suggestedPrice && d.suggestedPrice > 0 ? d.suggestedPrice : null,
       imageUrl: d.imageUrl || null,
+      barcode: d.barcode || null,
+      upi: d.upi || null,
+      logoCode: d.logoCode || null,
+      pantone: d.pantone || null,
+      technologies: splitTech(d.technologies),
     });
     productId = result.productId;
   } catch (e) {

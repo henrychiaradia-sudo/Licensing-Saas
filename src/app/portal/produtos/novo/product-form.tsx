@@ -20,6 +20,11 @@ type FormValues = {
   supplierName: string;
   suggestedPrice: number;
   imageUrl: string;
+  barcode: string;
+  upi: string;
+  logoCode: string;
+  pantone: string;
+  technologies: string;
 };
 
 export function ProductForm({ brands, categories }: { brands: Brand[]; categories: Category[] }) {
@@ -43,6 +48,11 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
       supplierName: "",
       suggestedPrice: 0,
       imageUrl: "",
+      barcode: "",
+      upi: "",
+      logoCode: "",
+      pantone: "",
+      technologies: "",
     },
   });
   const imageUrl = watch("imageUrl");
@@ -61,6 +71,11 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
       supplierName: data.supplierName,
       suggestedPrice: Number(data.suggestedPrice) || 0,
       imageUrl: data.imageUrl?.trim() ?? "",
+      barcode: data.barcode,
+      upi: data.upi,
+      logoCode: data.logoCode,
+      pantone: data.pantone,
+      technologies: data.technologies,
     });
     // Em caso de sucesso o servidor redireciona; só chegamos aqui em erro.
     if (res && !res.ok) {
@@ -124,13 +139,34 @@ export function ProductForm({ brands, categories }: { brands: Brand[]; categorie
             <Input placeholder="Confecção parceira" {...register("supplierName")} />
           </div>
           <div>
-            <Label>Preço sugerido (R$)</Label>
+            <Label>Preço sugerido — MSRP (R$)</Label>
             <Input
               type="number"
               step="0.01"
               min="0"
               {...register("suggestedPrice", { valueAsNumber: true })}
             />
+          </div>
+          <div>
+            <Label>UPC (código de barras)</Label>
+            <Input placeholder="7891234567890" {...register("barcode")} />
+          </div>
+          <div>
+            <Label>UPI</Label>
+            <Input placeholder="Código UPI" {...register("upi")} />
+          </div>
+          <div>
+            <Label>Código do Logo</Label>
+            <Input placeholder="LOGO-0001" {...register("logoCode")} />
+          </div>
+          <div>
+            <Label>Cor Pantone</Label>
+            <Input placeholder="PANTONE 186 C" {...register("pantone")} />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Tecnologias aplicadas</Label>
+            <Input placeholder="Dry-Fit, Proteção UV, Antiodor" {...register("technologies")} />
+            <p className="mt-1 text-xs text-neutral-400">Separe por vírgula.</p>
           </div>
           <div className="sm:col-span-2">
             <Label>Imagem / arte do produto (URL)</Label>

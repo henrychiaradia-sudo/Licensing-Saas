@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Download, ImageIcon } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { getProductDetail, getProductApprovalVersions } from "@/lib/data/products";
+import { listAssets } from "@/lib/data/assets";
 import { decideStageAction } from "../actions";
+import { downloadAction } from "../../biblioteca/actions";
 import { ProductVersions } from "@/components/product-versions";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtBRL, fmtDate } from "@/lib/utils";
@@ -49,6 +51,9 @@ export default async function ProdutoDetailPage({
   if (!data) notFound();
 
   const { product, approval, stages } = data;
+  const brandAssets = product.brandId
+    ? await listAssets(session.tenantId, { brandId: product.brandId })
+    : [];
   const versions = await getProductApprovalVersions(session.tenantId, id);
   const firstPendingIdx = stages.findIndex((s) => s.decision === "pendente");
   const decidedCount = stages.filter((s) => s.decision !== "pendente").length;
@@ -231,11 +236,64 @@ export default async function ProdutoDetailPage({
           <Field label="Linha" value={product.productLine} />
           <Field label="Material" value={product.material} />
           <Field label="Cor" value={product.color} />
+          <Field label="Cor Pantone" value={product.pantone} />
           <Field label="Fornecedor" value={product.supplierName} />
-          <Field label="Código de barras" value={product.barcode} />
-          <Field label="Preço sugerido" value={product.suggestedPrice ? fmtBRL(Number(product.suggestedPrice)) : "—"} />
+          <Field label="UPC (código de barras)" value={product.barcode} />
+          <Field label="UPI" value={product.upi} />
+          <Field label="Código do Logo" value={product.logoCode} />
+          <Field label="Preço sugerido (MSRP)" value={product.suggestedPrice ? fmtBRL(Number(product.suggestedPrice)) : "—"} />
           <Field label="Versão" value={`v${product.currentVersion}`} />
         </dl>
+        <div className="mt-4 border-t border-neutral-100 pt-3 dark:border-neutral-800">
+          <dt className="mb-1.5 text-xs text-neutral-400">Tecnologias aplicadas</dt>
+          {product.technologies && product.technologies.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5">
+              {product.technologies.map((t) => (
+                <span
+                  key={t}
+                  className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-sm text-neutral-400">—</span>
+          )}
+        </div>
+      </Card>
+
+      <Card className="mt-4 p-5">
+        <h2 className="mb-1 text-sm font-semibold">Assets da marca (Biblioteca Digital)</h2>
+        <p className="mb-3 text-xs text-neutral-500">
+          Materiais oficiais de {product.brandName ?? "marca"} para aplicação neste produto. Cada download é registrado.
+        </p>
+        {brandAssets.length === 0 ? (
+          <p className="text-sm text-neutral-400">Nenhum ativo de marca disponível.</p>
+        ) : (
+          <ul className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            {brandAssets.slice(0, 8).map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
+                    <ImageIcon size={15} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{a.name}</div>
+                    <div className="text-[11px] text-neutral-400">
+                      v{a.currentVersion} · {a.downloads}× baixado
+                    </div>
+                  </div>
+                </div>
+                <form action={downloadAction.bind(null, a.id)}>
+                  <Button type="submit" variant="outline" size="sm">
+                    <Download size={14} /> Baixar
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );

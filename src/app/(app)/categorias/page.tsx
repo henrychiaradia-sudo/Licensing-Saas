@@ -1,8 +1,9 @@
-import { FolderTree, Folder, Tag } from "lucide-react";
+import { FolderTree } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listCategoryTree, listCategoryOptions, type CategoryNode } from "@/lib/data/catalog";
+import { listCategoryTree, listCategoryOptions } from "@/lib/data/catalog";
 import { CategoryForm } from "./category-form";
-import { Card, Badge } from "@/components/ui";
+import { CategoryTree } from "./category-tree";
+import { Card } from "@/components/ui";
 
 export default async function CategoriasPage() {
   const session = await requireSession();
@@ -15,7 +16,9 @@ export default async function CategoriasPage() {
     <div>
       <div className="mb-5">
         <h1 className="text-xl font-bold">Gestão de Categorias</h1>
-        <p className="text-sm text-neutral-500">Árvore de categorias do catálogo (categoria → subcategoria)</p>
+        <p className="text-sm text-neutral-500">
+          Árvore navegável (categoria → subcategoria → itens). Clique para expandir e ver os SKUs.
+        </p>
       </div>
 
       <Card className="mb-4 p-5">
@@ -30,44 +33,9 @@ export default async function CategoriasPage() {
         {tree.length === 0 ? (
           <p className="text-sm text-neutral-400">Nenhuma categoria cadastrada.</p>
         ) : (
-          <ul className="space-y-1">
-            {tree.map((node) => (
-              <CategoryRow key={node.id} node={node} depth={0} />
-            ))}
-          </ul>
+          <CategoryTree nodes={tree} />
         )}
       </Card>
     </div>
-  );
-}
-
-function CategoryRow({ node, depth }: { node: CategoryNode; depth: number }) {
-  return (
-    <li>
-      <div
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-        style={{ paddingLeft: `${depth * 20 + 8}px` }}
-      >
-        {node.children.length > 0 ? (
-          <Folder size={15} className="text-amber-500" />
-        ) : (
-          <Tag size={14} className="text-neutral-400" />
-        )}
-        <span className="font-medium">{node.name}</span>
-        {node.code && <span className="text-xs text-neutral-400">({node.code})</span>}
-        {node.itemCount > 0 && (
-          <Badge tone="neutral" className="ml-1">
-            {node.itemCount} {node.itemCount === 1 ? "item" : "itens"}
-          </Badge>
-        )}
-      </div>
-      {node.children.length > 0 && (
-        <ul className="space-y-1">
-          {node.children.map((child) => (
-            <CategoryRow key={child.id} node={child} depth={depth + 1} />
-          ))}
-        </ul>
-      )}
-    </li>
   );
 }

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { Plus, Search, Package, CheckCircle2, Archive } from "lucide-react";
 import { requireSession } from "@/lib/auth";
-import { listCatalogItems, catalogSummary } from "@/lib/data/catalog";
+import { listCatalogItems, catalogSummary, AUDIENCE_LABEL } from "@/lib/data/catalog";
 import { Button, Card, Badge, Input } from "@/components/ui";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { fmtBRL } from "@/lib/utils";
-import type { CatalogItemStatus } from "@/lib/db/schema";
+import type { CatalogItemStatus, CatalogAudience } from "@/lib/db/schema";
 
 type Tone = "good" | "info" | "neutral" | "warn" | "danger";
 export const itemTone: Record<CatalogItemStatus, Tone> = {
@@ -19,19 +19,22 @@ export const itemLabel: Record<CatalogItemStatus, string> = {
   descontinuado: "Descontinuado",
 };
 const STATUS_KEYS = Object.keys(itemLabel) as CatalogItemStatus[];
+const AUDIENCE_KEYS = Object.keys(AUDIENCE_LABEL) as CatalogAudience[];
 
 export default async function CatalogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; publico?: string }>;
 }) {
   const session = await requireSession();
-  const { q, status } = await searchParams;
+  const { q, status, publico } = await searchParams;
   const statusFilter =
     status && (STATUS_KEYS as string[]).includes(status) ? (status as CatalogItemStatus) : undefined;
+  const audienceFilter =
+    publico && (AUDIENCE_KEYS as string[]).includes(publico) ? (publico as CatalogAudience) : undefined;
 
   const [rows, summary] = await Promise.all([
-    listCatalogItems(session.tenantId, { q, status: statusFilter }),
+    listCatalogItems(session.tenantId, { q, status: statusFilter, publico: audienceFilter }),
     catalogSummary(session.tenantId),
   ]);
 
@@ -40,9 +43,13 @@ export default async function CatalogPage({
     { key: "nome", label: "Nome" },
     { key: "categoria", label: "Categoria" },
     { key: "marca", label: "Marca" },
+    { key: "grade", label: "Grade" },
+    { key: "publico", label: "Público" },
+    { key: "upc", label: "UPC" },
     { key: "ncm", label: "NCM" },
     { key: "unidade", label: "Unidade" },
-    { key: "preco", label: "Preço" },
+    { key: "preco_tabela", label: "Preço de tabela" },
+    { key: "preco_custo", label: "Preço de custo" },
     { key: "status", label: "Status" },
   ];
   const csvRows = rows.map((r) => ({
@@ -50,9 +57,13 @@ export default async function CatalogPage({
     nome: r.name,
     categoria: r.categoryName ?? "",
     marca: r.brandName ?? "",
+    grade: r.grade ?? "",
+    publico: r.publico ? AUDIENCE_LABEL[r.publico] : "",
+    upc: r.upc ?? "",
     ncm: r.ncm ?? "",
     unidade: r.unit,
-    preco: r.listPrice,
+    preco_tabela: r.listPrice,
+    preco_custo: r.costPrice ?? "",
     status: itemLabel[r.status],
   }));
 
@@ -88,6 +99,21 @@ export default async function CatalogPage({
           </div>
         </div>
         <div>
+          <label className="mb-1 block text-xs font-medium text-neutral-500">Público</label>
+          <select
+            name="publico"
+            defaultValue={audienceFilter ?? ""}
+            className="h-10 rounded-lg border border-neutral-200 bg-white px-3 text-sm outline-none focus:border-blue-400 dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Todos</option>
+            {AUDIENCE_KEYS.map((a) => (
+              <option key={a} value={a}>
+                {AUDIENCE_LABEL[a]}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
           <label className="mb-1 block text-xs font-medium text-neutral-500">Status</label>
           <select
             name="status"
@@ -105,7 +131,7 @@ export default async function CatalogPage({
         <Button type="submit" variant="outline">
           Filtrar
         </Button>
-        {(q || statusFilter) && (
+        {(q || statusFilter || audienceFilter) && (
           <Link href="/catalogo" className="text-sm text-neutral-500 hover:underline">
             Limpar
           </Link>
@@ -113,14 +139,16 @@ export default async function CatalogPage({
       </form>
 
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
               <th className="px-5 py-3 font-medium">SKU</th>
               <th className="px-5 py-3 font-medium">Item</th>
               <th className="px-5 py-3 font-medium">Categoria</th>
-              <th className="px-5 py-3 font-medium">NCM</th>
-              <th className="px-5 py-3 text-right font-medium">Preço</th>
+              <th className="px-5 py-3 font-medium">Grade</th>
+              <th className="px-5 py-3 font-medium">Público</th>
+              <th className="px-5 py-3 text-right font-medium">Preço tabela</th>
+              <th className="px-5 py-3 text-right font-medium">Preço custo</th>
               <th className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
@@ -137,8 +165,12 @@ export default async function CatalogPage({
                   {r.brandName && <div className="text-xs text-neutral-400">{r.brandName}</div>}
                 </td>
                 <td className="px-5 py-3 text-neutral-500">{r.categoryName ?? "—"}</td>
-                <td className="px-5 py-3 tabular-nums text-neutral-500">{r.ncm ?? "—"}</td>
+                <td className="px-5 py-3 text-neutral-500">{r.grade ?? "—"}</td>
+                <td className="px-5 py-3 text-neutral-500">{r.publico ? AUDIENCE_LABEL[r.publico] : "—"}</td>
                 <td className="px-5 py-3 text-right tabular-nums">{fmtBRL(Number(r.listPrice))}</td>
+                <td className="px-5 py-3 text-right tabular-nums text-neutral-500">
+                  {r.costPrice != null ? fmtBRL(Number(r.costPrice)) : "—"}
+                </td>
                 <td className="px-5 py-3">
                   <Badge tone={itemTone[r.status]}>{itemLabel[r.status]}</Badge>
                 </td>
@@ -146,7 +178,7 @@ export default async function CatalogPage({
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-sm text-neutral-400">
+                <td colSpan={8} className="px-5 py-10 text-center text-sm text-neutral-400">
                   Nenhum item no catálogo.
                 </td>
               </tr>

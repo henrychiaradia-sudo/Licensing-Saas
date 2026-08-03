@@ -72,6 +72,11 @@ export async function getProductDetail(tenantId: string, id: string) {
       suggestedPrice: product.suggestedPrice,
       barcode: product.barcode,
       imageUrl: product.imageUrl,
+      upi: product.upi,
+      logoCode: product.logoCode,
+      pantone: product.pantone,
+      technologies: product.technologies,
+      brandId: product.brandId,
       currentVersion: product.currentVersion,
     })
     .from(product)

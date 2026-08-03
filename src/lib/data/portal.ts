@@ -617,6 +617,11 @@ export async function submitProductForApproval(params: {
   supplierName?: string | null;
   suggestedPrice?: number | null;
   imageUrl?: string | null;
+  barcode?: string | null;
+  upi?: string | null;
+  logoCode?: string | null;
+  pantone?: string | null;
+  technologies?: string[] | null;
 }): Promise<{ productId: string }> {
   const { tenantId, licenseeId, userId, brandId } = params;
 
@@ -658,6 +663,11 @@ export async function submitProductForApproval(params: {
       color: params.color ?? null,
       suggestedPrice: params.suggestedPrice != null ? String(params.suggestedPrice) : null,
       imageUrl: params.imageUrl ?? null,
+      barcode: params.barcode ?? null,
+      upi: params.upi ?? null,
+      logoCode: params.logoCode ?? null,
+      pantone: params.pantone ?? null,
+      technologies: params.technologies && params.technologies.length > 0 ? params.technologies : null,
       status: "submetido",
       currentVersion: 1,
     })
