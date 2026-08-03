@@ -53,8 +53,8 @@ export default async function ContratosPage({
   const HL = "bg-amber-50 ring-2 ring-inset ring-amber-300 dark:bg-amber-950/30 dark:ring-amber-500/40";
 
   const csvColumns = [
-    { key: "contrato", label: "Contrato" },
     { key: "licenciado", label: "Licenciado" },
+    { key: "contrato", label: "Contrato" },
     { key: "inicio", label: "Vigência Inicial" },
     { key: "fim", label: "Vigência Expiração" },
     { key: "email_resp", label: "E-mail do Responsável" },
@@ -147,10 +147,9 @@ export default async function ContratosPage({
       {highlight && <HighlightScroll />}
 
       <Card className="overflow-x-auto">
-        <table className="w-full min-w-[1120px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Contrato</th>
               <th className="px-5 py-3 font-medium">Licenciado</th>
               <th className="px-5 py-3 font-medium">Vigência Inicial</th>
               <th className="px-5 py-3 font-medium">Vigência Expiração</th>
@@ -173,14 +172,15 @@ export default async function ContratosPage({
                     href={`/contratos/${c.id}`}
                     className="font-semibold text-blue-600 hover:underline"
                   >
-                    {c.contractNumber}
+                    {c.licenseeName ?? "—"}
                   </Link>
                   <div className="text-xs text-neutral-400">
+                    {c.contractNumber}
+                    {" · "}
                     {c.exclusivity === "exclusivo" ? "Exclusivo" : "Não exclusivo"}
                     {c.autoRenewal ? " · renova auto" : ""}
                   </div>
                 </td>
-                <td className="px-5 py-3">{c.licenseeName ?? "—"}</td>
                 <td className="px-5 py-3 tabular-nums">{fmtDate(c.startDate)}</td>
                 <td className="px-5 py-3 tabular-nums">{fmtDate(c.endDate)}</td>
                 <td className="px-5 py-3">
@@ -233,7 +233,7 @@ export default async function ContratosPage({
             ))}
             {contracts.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-5 py-10 text-center text-sm text-neutral-400">
+                <td colSpan={8} className="px-5 py-10 text-center text-sm text-neutral-400">
                   Nenhum contrato encontrado.
                 </td>
               </tr>
