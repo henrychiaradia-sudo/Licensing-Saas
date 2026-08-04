@@ -263,7 +263,7 @@ export type EqualizationWeights = {
   performance: number;
 };
 
-type EqInputQuote = {
+export type EqInputQuote = {
   id: string;
   supplierName: string | null;
   currencyIso: string | null;

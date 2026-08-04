@@ -56,3 +56,30 @@ describe("computeCost — formação de custo/preço", () => {
     expect(r.precoSugerido).toBeCloseTo(15, 4);
   });
 });
+
+describe("computeCost — casos-limite", () => {
+  it("custo industrial NÃO entra em 'outrosCustos', só no custo total", () => {
+    const r = computeCost({ comissao: 1, custoIndustrial: 40 });
+    expect(r.outrosCustos).toBeCloseTo(1, 4); // sem o custo industrial
+    expect(r.custoTotal).toBeCloseTo(41, 4); // com o custo industrial
+  });
+  it("custo total zero com markup → preço 0 e margem 0 (sem divisão por zero)", () => {
+    const r = computeCost({ markupPct: 150 });
+    expect(r.precoSugerido).toBe(0);
+    expect(r.margemPct).toBe(0);
+  });
+  it("markup 100% → preço = 2× custo e margem bruta 50%", () => {
+    const r = computeCost({ fob: 50, markupPct: 100 });
+    expect(r.precoSugerido).toBeCloseTo(100, 4);
+    expect(r.margemPct).toBeCloseTo(50, 4);
+  });
+  it("valores inválidos (NaN/Infinity) são tratados como 0", () => {
+    const r = computeCost({
+      fob: Number.NaN,
+      freightIntl: Number.POSITIVE_INFINITY,
+      markupPct: 50,
+    });
+    expect(r.custoTotal).toBe(0);
+    expect(r.precoSugerido).toBe(0);
+  });
+});

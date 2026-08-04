@@ -96,3 +96,60 @@ describe("computeRoyalty — piso e teto", () => {
     expect(r.royalty).toBeCloseTo(5000);
   });
 });
+
+describe("toFraction — casos-limite", () => {
+  it("descontinuidade no 1: exatamente 1 é fração (100%); 1.5 é percentual (1,5%)", () => {
+    expect(toFraction(1)).toBeCloseTo(1);
+    expect(toFraction(1.5)).toBeCloseTo(0.015);
+  });
+  it("string vazia e não-numérica viram 0", () => {
+    expect(toFraction("")).toBe(0);
+    expect(toFraction("abc")).toBe(0);
+  });
+});
+
+describe("computeRoyalty — escalonado: casos-limite", () => {
+  const tiers = [
+    { tierFrom: 0, tierTo: 100000, rate: 8 },
+    { tierFrom: 100000, tierTo: 200000, rate: 10 },
+    { tierFrom: 200000, tierTo: null, rate: 12 },
+  ];
+  it("exatamente no limite de uma faixa não gera excedente da próxima", () => {
+    const r = computeRoyalty(100000, { royaltyType: "escalonado" }, tiers);
+    expect(r.royalty).toBeCloseTo(8000);
+    expect(r.breakdown).toHaveLength(1);
+  });
+  it("tipo escalonado sem faixas cai no comportamento percentual", () => {
+    const r = computeRoyalty(100000, { royaltyType: "escalonado", percentage: 5 }, []);
+    expect(r.isTiered).toBe(false);
+    expect(r.royalty).toBeCloseTo(5000);
+  });
+  it("ordena faixas fora de ordem antes de somar", () => {
+    const embaralhado = [tiers[2], tiers[0], tiers[1]];
+    const r = computeRoyalty(250000, { royaltyType: "escalonado" }, embaralhado);
+    expect(r.royalty).toBeCloseTo(24000);
+  });
+});
+
+describe("computeRoyalty — híbrido, string e config inválida", () => {
+  it("híbrido aceita fração e string no fixo", () => {
+    const r = computeRoyalty("100000", { royaltyType: "hibrido", percentage: 0.05, fixedAmount: "1000" });
+    expect(r.royalty).toBeCloseTo(6000);
+  });
+  it("base como string numérica é aceita", () => {
+    const r = computeRoyalty("100000", { royaltyType: "percentual", percentage: 10 });
+    expect(r.royalty).toBeCloseTo(10000);
+  });
+  it("ACHADO: piso > teto (config inválida) resulta no TETO — o piso é silenciosamente violado", () => {
+    // gross = 10% de 1000 = 100 → piso 5000 sobe p/ 5000 → teto 200 derruba p/ 200
+    const r = computeRoyalty(1000, {
+      royaltyType: "percentual",
+      percentage: 10,
+      minRoyalty: 5000,
+      maxRoyalty: 200,
+    });
+    expect(r.royalty).toBeCloseTo(200); // fica ABAIXO do piso configurado
+    expect(r.minApplied).toBe(true);
+    expect(r.maxApplied).toBe(true);
+  });
+});

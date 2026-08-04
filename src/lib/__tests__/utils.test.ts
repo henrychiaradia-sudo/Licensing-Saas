@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtBRL, fmtMoney, fmtDate, fmtPct, initials } from "@/lib/utils";
+import { fmtBRL, fmtMoney, fmtCompactBRL, fmtDate, fmtPct, initials } from "@/lib/utils";
 
 describe("fmtPct", () => {
   it("formata percentuais inteiros", () => {
@@ -47,5 +47,40 @@ describe("initials", () => {
   it("pega as iniciais de até dois nomes", () => {
     expect(initials("Helena Marques")).toBe("HM");
     expect(initials("João")).toBe("J");
+  });
+  it("limita a 2 iniciais em nomes com 3+ partes", () => {
+    expect(initials("Ana Paula Souza")).toBe("AP");
+  });
+});
+
+describe("fmtCompactBRL", () => {
+  it("formata em notação compacta com R$", () => {
+    const s = fmtCompactBRL(851400);
+    expect(s).toContain("R$");
+    expect(s.toLowerCase()).toMatch(/mil|851/);
+  });
+  it("nulo/vazio/NaN → travessão", () => {
+    expect(fmtCompactBRL(null)).toBe("—");
+    expect(fmtCompactBRL("")).toBe("—");
+    expect(fmtCompactBRL("abc")).toBe("—");
+  });
+  it("aceita string numérica (numeric do Drizzle)", () => {
+    expect(fmtCompactBRL("2700000")).toContain("R$");
+  });
+});
+
+describe("fmtMoney — moeda estrangeira", () => {
+  it("formata em outra moeda (ex.: USD) com separador de milhar", () => {
+    const s = fmtMoney(1500, "USD");
+    expect(s).toContain("1.500");
+  });
+});
+
+describe("fmtDate — objeto Date e entradas inválidas", () => {
+  it("aceita objeto Date", () => {
+    expect(fmtDate(new Date("2026-07-15T00:00:00"))).toBe("15/07/2026");
+  });
+  it("string inválida → travessão", () => {
+    expect(fmtDate("not-a-date")).toBe("—");
   });
 });
