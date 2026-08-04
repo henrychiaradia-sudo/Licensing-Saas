@@ -1,15 +1,15 @@
 import type { NextConfig } from "next";
 
 /**
- * Headers de segurança aplicados a todas as respostas.
- * - frame-ancestors 'none' + X-Frame-Options: proteção contra clickjacking.
+ * Headers de segurança estáticos aplicados a todas as respostas.
+ * - X-Frame-Options: anti-clickjacking (a CSP `frame-ancestors 'none'` reforça em navegadores modernos).
  * - X-Content-Type-Options: impede MIME sniffing.
  * - Referrer-Policy / Permissions-Policy: reduz vazamento e superfície.
  * - HSTS: força HTTPS (seguro na Vercel).
- * (CSP mínima: só frame-ancestors, para não quebrar scripts/estilos inline do Next/Tailwind.)
+ * A Content-Security-Policy (baseada em nonce) é definida por requisição no middleware,
+ * portanto NÃO fica aqui — evitando um header CSP duplicado/conflitante.
  */
 const securityHeaders = [
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
