@@ -95,6 +95,80 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/* ------------------------------------------------------------------ *
+ * E-mail de notificação (HTML branded ALIANZA)
+ * ------------------------------------------------------------------ */
+
+// URL base para links absolutos no e-mail (definível por env; default = produção).
+const APP_URL = (process.env.APP_URL ?? "https://licensing-saas.vercel.app").replace(/\/$/, "");
+
+const SEV_COLOR: Record<string, string> = {
+  info: "#2563eb",
+  warn: "#d97706",
+  danger: "#dc2626",
+  success: "#16a34a",
+};
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+type EmailItem = { title: string; body: string | null; severity: string; link: string | null };
+
+/** Monta assunto + HTML (layout de e-mail, tabela + estilos inline) + texto puro. */
+function renderNotificationEmail(items: EmailItem[]): { subject: string; html: string; text: string } {
+  const n = items.length;
+  const subject = `ALIANZA — ${n} nova(s) notificação(ões)`;
+
+  const cards = items
+    .map((it) => {
+      const color = SEV_COLOR[it.severity] ?? SEV_COLOR.info;
+      const url = it.link ? `${APP_URL}${it.link}` : APP_URL;
+      return `
+      <tr><td style="padding:0 0 12px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-left:4px solid ${color};border-radius:10px;">
+          <tr><td style="padding:14px 16px;">
+            <div style="font-size:14px;font-weight:700;color:#0f172a;">${esc(it.title)}</div>
+            ${it.body ? `<div style="font-size:13px;color:#475569;margin-top:4px;line-height:1.45;">${esc(it.body)}</div>` : ""}
+            <a href="${url}" style="display:inline-block;margin-top:10px;font-size:12.5px;font-weight:600;color:#2563eb;text-decoration:none;">Abrir no ALIANZA →</a>
+          </td></tr>
+        </table>
+      </td></tr>`;
+    })
+    .join("");
+
+  const html = `<!doctype html><html><body style="margin:0;background:#f6f8fb;padding:24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <table role="presentation" align="center" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:92%;margin:0 auto;">
+      <tr><td style="background:#2563eb;border-radius:14px 14px 0 0;padding:20px 24px;">
+        <div style="color:#ffffff;font-size:16px;font-weight:800;letter-spacing:.12em;">ALIANZA</div>
+        <div style="color:#dbeafe;font-size:10px;letter-spacing:.18em;">BRAND LICENSING PLATFORM</div>
+      </td></tr>
+      <tr><td style="background:#ffffff;padding:22px 24px;border:1px solid #e5e7eb;border-top:none;">
+        <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:4px;">Você tem ${n} nova(s) notificação(ões)</div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:18px;">Resumo dos alertas gerados agora na sua operação.</div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${cards}</table>
+      </td></tr>
+      <tr><td style="background:#ffffff;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 14px 14px;padding:16px 24px;">
+        <a href="${APP_URL}/notificacoes" style="display:inline-block;background:#2563eb;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;padding:9px 16px;border-radius:8px;">Ver todas as notificações</a>
+        <div style="font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.4;">Você recebe este e-mail porque ativou notificações por e-mail no ALIANZA. Ajuste em Notificações → Preferências.</div>
+      </td></tr>
+    </table>
+  </body></html>`;
+
+  const text =
+    `ALIANZA — ${n} nova(s) notificação(ões)\n\n` +
+    items
+      .map((it) => `• ${it.title}${it.body ? " — " + it.body : ""}\n  ${it.link ? APP_URL + it.link : APP_URL}`)
+      .join("\n\n") +
+    `\n\nVer todas: ${APP_URL}/notificacoes`;
+
+  return { subject, html, text };
+}
+
 async function rawRows<T = Record<string, unknown>>(query: ReturnType<typeof sql>): Promise<T[]> {
   const res = await db.execute(query);
   return res as unknown as T[];
@@ -474,10 +548,13 @@ export async function generateNotifications(tenantId: string): Promise<number> {
         id: notification.id,
         type: notification.type,
         title: notification.title,
+        body: notification.body,
+        severity: notification.severity,
+        link: notification.link,
         channels: notification.channels,
       });
 
-    // Canal e-mail (adaptador stub) para os destinatários que optaram por e-mail.
+    // Canal e-mail para os destinatários que optaram por e-mail (HTML branded).
     const emailOnes = inserted.filter((i) => (i.channels ?? "").includes("email"));
     if (emailOnes.length > 0) {
       const emailTypes = [...new Set(emailOnes.map((i) => i.type as string))];
@@ -492,13 +569,11 @@ export async function generateNotifications(tenantId: string): Promise<number> {
             inArray(notificationPreference.type, emailTypes),
           ),
         );
-      const to = [...new Set(recipients.map((r) => r.email).filter(Boolean))];
+      const to = [...new Set(recipients.map((r) => r.email).filter((e): e is string => !!e))];
       if (to.length > 0) {
-        await sendEmail({
-          to: to.join(","),
-          subject: `ALIANZA — ${emailOnes.length} nova(s) notificação(ões)`,
-          body: `Você tem ${emailOnes.length} nova(s) notificação(ões) no ALIANZA. Acesse o sistema para os detalhes.`,
-        });
+        const { subject, html, text } = renderNotificationEmail(emailOnes);
+        // Envio individual por destinatário: ninguém vê o endereço dos outros (LGPD).
+        await Promise.allSettled(to.map((addr) => sendEmail({ to: addr, subject, body: text, html })));
         await db
           .update(notification)
           .set({ emailedAt: new Date() })

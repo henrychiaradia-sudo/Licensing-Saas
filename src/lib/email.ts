@@ -1,15 +1,21 @@
 import "server-only";
 
 /**
- * Adaptador de e-mail. Em produção real, plugaria um provedor (Resend, SES, SMTP)
- * via variável de ambiente. Sem chave configurada (ambiente de demonstração), o
- * envio é registrado e retornado como não enviado — sem quebrar o fluxo. Isso
- * representa a camada de disparo de notificações (seção 48) de forma honesta.
+ * Adaptador de e-mail (provedor: Resend, via API REST — sem dependência extra).
+ *
+ * - Com `RESEND_API_KEY` configurada, envia de verdade (texto + HTML opcional).
+ * - Sem chave (ambiente de demonstração), NÃO envia e retorna `sent:false` —
+ *   sem quebrar o fluxo de notificações. Assim o disparo real é ativado apenas
+ *   adicionando a variável de ambiente, sem mudança de código.
+ *
+ * Ativação: defina na Vercel `RESEND_API_KEY` e `EMAIL_FROM` (remetente de um
+ * domínio verificado no Resend, ex.: "ALIANZA <notificacoes@seudominio.com>").
  */
 export type EmailInput = {
   to: string;
   subject: string;
-  body: string;
+  body: string; // texto puro (fallback)
+  html?: string; // versão HTML (opcional, preferida pelos clientes de e-mail)
 };
 
 export type EmailResult = { sent: boolean; provider: string; reason?: string };
@@ -36,10 +42,17 @@ export async function sendEmail(input: EmailInput): Promise<EmailResult> {
         to: input.to,
         subject: input.subject,
         text: input.body,
+        ...(input.html ? { html: input.html } : {}),
       }),
     });
-    return { sent: res.ok, provider: "resend", reason: res.ok ? undefined : `http_${res.status}` };
+    if (!res.ok) {
+      // Falha do provedor: registra o status (sem PII) para diagnóstico de ops.
+      console.warn(`[email] falha de envio via Resend · http_${res.status}`);
+      return { sent: false, provider: "resend", reason: `http_${res.status}` };
+    }
+    return { sent: true, provider: "resend" };
   } catch (e) {
+    console.warn(`[email] erro de conexão com o Resend`);
     return { sent: false, provider: "resend", reason: e instanceof Error ? e.message : "error" };
   }
 }
