@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Search, Package, CheckCircle2, Archive } from "lucide-react";
+import { Plus, Search, Package, CheckCircle2, Archive, Upload } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listCatalogItems, catalogSummary, AUDIENCE_LABEL } from "@/lib/data/catalog";
 import { Button, Card, Badge, Input } from "@/components/ui";
@@ -76,6 +76,11 @@ export default async function CatalogPage({
         </div>
         <div className="flex items-center gap-2">
           <ExportCsvButton filename="catalogo.csv" columns={csvColumns} rows={csvRows} />
+          <Link href="/catalogo/importar">
+            <Button variant="outline">
+              <Upload size={16} /> Importar
+            </Button>
+          </Link>
           <Link href="/catalogo/new">
             <Button>
               <Plus size={16} /> Novo item

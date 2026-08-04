@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Upload } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listLicensees } from "@/lib/data/licensees";
 import { Button, Card, Badge } from "@/components/ui";
@@ -37,11 +37,18 @@ export default async function LicenciadosPage({
           <h1 className="text-xl font-bold">Licenciados</h1>
           <p className="text-sm text-neutral-500">Cadastro mestre · {rows.length} registro(s)</p>
         </div>
-        <Link href="/licenciados/new">
-          <Button>
-            <Plus size={16} /> Novo licenciado
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/licenciados/importar">
+            <Button variant="outline">
+              <Upload size={16} /> Importar
+            </Button>
+          </Link>
+          <Link href="/licenciados/new">
+            <Button>
+              <Plus size={16} /> Novo licenciado
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <Card className="overflow-hidden">

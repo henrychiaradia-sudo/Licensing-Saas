@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, Plus } from "lucide-react";
+import { Star, Plus, Upload } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { listSuppliers } from "@/lib/data/suppliers";
 import { Card, Badge, Button } from "@/components/ui";
@@ -54,6 +54,11 @@ export default async function FornecedoresPage() {
         <div className="flex items-center gap-2">
           <Badge tone="info">{suppliers.length} fornecedor(es)</Badge>
           <ExportCsvButton filename="fornecedores.csv" columns={csvColumns} rows={csvRows} />
+          <Link href="/fornecedores/importar">
+            <Button variant="outline">
+              <Upload size={16} /> Importar
+            </Button>
+          </Link>
           <Link href="/fornecedores/new">
             <Button>
               <Plus size={16} /> Novo fornecedor
