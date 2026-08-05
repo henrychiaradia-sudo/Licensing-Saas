@@ -6,6 +6,8 @@ import { PERMISSIONS } from "@/lib/rbac";
 import { getRoyaltyReportDetail, getContractRoyaltyRule, getReportInvoice } from "@/lib/data/royalties";
 import { approveReportAction, rejectReportAction } from "../actions";
 import { RoyaltyBreakdown } from "@/components/royalty-breakdown";
+import { listDocumentsForSource } from "@/lib/data/generated-documents";
+import { GeneratedDocsCard } from "@/components/generated-docs-card";
 import { Card, Badge, Button } from "@/components/ui";
 import { fmtMoney, fmtDate } from "@/lib/utils";
 import type { RoyaltyReportStatus, ValidationSeverity } from "@/lib/db/schema";
@@ -54,6 +56,7 @@ export default async function RoyaltyDetailPage({
   const { rule, tiers } = r.contractId
     ? await getContractRoyaltyRule(session.tenantId, r.contractId)
     : { rule: null, tiers: [] };
+  const genDocs = await listDocumentsForSource(session.tenantId, "royalty_report", id);
   const royaltyBase = lines.reduce((a, l) => a + Number(l.royaltyBaseAmt || 0), 0);
   const variance = Number(r.variance);
   const canAct =
@@ -206,6 +209,10 @@ export default async function RoyaltyDetailPage({
           <p className="text-sm text-neutral-400">Nenhuma validação registrada.</p>
         )}
       </Card>
+
+      <div className="mt-4">
+        <GeneratedDocsCard kind="royalty" sourceId={id} docs={genDocs} />
+      </div>
     </div>
   );
 }

@@ -62,6 +62,7 @@ const groups: NavGroup[] = [
       { href: "/marcas", label: "Marcas & IP", icon: Star },
       { href: "/produtos", label: "Aprovação de Produtos", icon: ClipboardCheck },
       { href: "/royalties", label: "Royalties", icon: Coins },
+      { href: "/documentos-gerados", label: "Docs & Assinatura", icon: FileSignature },
       { href: "/financeiro", label: "Financeiro", icon: Landmark },
       { href: "/biblioteca", label: "Biblioteca Digital", icon: Images },
       { href: "/ia", label: "Assistente IA", icon: Sparkles },

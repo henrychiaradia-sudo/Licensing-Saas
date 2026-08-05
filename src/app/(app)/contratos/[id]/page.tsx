@@ -10,6 +10,8 @@ import {
 } from "@/lib/data/contracts";
 import { getContractRoyaltyRule } from "@/lib/data/royalties";
 import { getContractRecoupment } from "@/lib/data/finance";
+import { listDocumentsForSource } from "@/lib/data/generated-documents";
+import { GeneratedDocsCard } from "@/components/generated-docs-card";
 import { Card, Badge, Button } from "@/components/ui";
 import { RoyaltyRuleForm, type RuleFormValues } from "./royalty-rule-form";
 import { AmendmentForm } from "./amendment-form";
@@ -99,6 +101,7 @@ export default async function ContratoDetailPage({
   const dateAlerts = await getContractDateAlerts(session.tenantId, id);
   const amendments = await listContractAmendments(session.tenantId, id);
   const { rule, tiers } = await getContractRoyaltyRule(session.tenantId, id);
+  const genDocs = await listDocumentsForSource(session.tenantId, "contract", id);
   const ruleInitial: RuleFormValues = {
     royaltyType: rule?.royaltyType === "escalonado" ? "escalonado" : "percentual",
     base: (rule?.base ?? "net_sales") as RuleFormValues["base"],
@@ -393,6 +396,10 @@ export default async function ContratoDetailPage({
           <p className="text-sm text-neutral-400">Nenhum documento anexado.</p>
         )}
       </Card>
+
+      <div className="mt-4">
+        <GeneratedDocsCard kind="contract" sourceId={id} docs={genDocs} />
+      </div>
     </div>
   );
 }

@@ -15,6 +15,7 @@ import {
   Bell,
   Lock,
   UserCheck,
+  FileSignature,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +33,7 @@ const groups: NavGroup[] = [
       { href: "/portal/marcas", label: "Minhas Marcas", icon: Star },
       { href: "/portal/produtos", label: "Produtos & Aprovações", icon: Package },
       { href: "/portal/royalties", label: "Reportes de Royalties", icon: Coins },
+      { href: "/portal/documentos", label: "Documentos", icon: FileSignature },
     ],
   },
   {

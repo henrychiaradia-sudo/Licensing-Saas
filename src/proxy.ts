@@ -7,7 +7,7 @@ import { jwtVerify } from "jose";
 //  2) Content-Security-Policy baseada em nonce (proteção contra XSS/clickjacking).
 
 const SECRET = new TextEncoder().encode(process.env.AUTH_SECRET || "dev-secret-change-me-in-prod");
-const PUBLIC_PATHS = ["/login"];
+const PUBLIC_PATHS = ["/login", "/verificar"];
 
 /**
  * CSP por requisição. O nonce autoriza os <script> do Next e o script inline de tema.

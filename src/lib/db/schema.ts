@@ -13,7 +13,15 @@ import {
   pgEnum,
   primaryKey,
   unique,
+  customType,
 } from "drizzle-orm/pg-core";
+
+/** Coluna binária (bytea) — usada para guardar os bytes dos PDFs gerados. */
+export const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+});
 
 /* ------------------------- Enums (já existem no Postgres) ------------------------- */
 export const licenseeStatus = pgEnum("licensee_status", [
@@ -2076,4 +2084,57 @@ export const costSheet = pgTable(
     createdBy: uuid("created_by"),
   },
   (t) => [unique("uq_cost_sheet_code").on(t.tenantId, t.code)],
+);
+
+/* =====================================================================
+ * Fase 8 — Documentos gerados + assinatura eletrônica
+ * PDF branded (contrato / extrato de royalties) com trilha de assinatura.
+ * ===================================================================== */
+export const documentType = pgEnum("document_type", [
+  "contrato_licenciamento",
+  "extrato_royalties",
+]);
+export type DocumentType = (typeof documentType.enumValues)[number];
+
+export const documentStatus = pgEnum("document_status", [
+  "rascunho",
+  "aguardando_assinatura",
+  "assinado",
+  "cancelado",
+]);
+export type DocumentStatus = (typeof documentStatus.enumValues)[number];
+
+export const generatedDocument = pgTable(
+  "generated_document",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id").notNull(),
+    docType: documentType("doc_type").notNull(),
+    sourceType: text("source_type").notNull(), // 'contract' | 'royalty_report'
+    sourceId: uuid("source_id").notNull(),
+    licenseeId: uuid("licensee_id").notNull(),
+    title: text("title").notNull(),
+    number: text("number").notNull(),
+    status: documentStatus("status").notNull().default("rascunho"),
+    content: bytea("content").notNull(),
+    sourceSha256: text("source_sha256").notNull(),
+    signedSha256: text("signed_sha256"),
+    verificationCode: text("verification_code").notNull(),
+    signerName: text("signer_name"),
+    signerCpf: text("signer_cpf"),
+    signerEmail: text("signer_email"),
+    signedAt: timestamp("signed_at", { withTimezone: true }),
+    signerIp: text("signer_ip"),
+    signerUserAgent: text("signer_user_agent"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdBy: uuid("created_by"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("uq_generated_document_code").on(t.verificationCode),
+    unique("uq_generated_document_number").on(t.tenantId, t.number),
+  ],
 );

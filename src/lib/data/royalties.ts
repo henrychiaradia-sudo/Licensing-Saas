@@ -73,6 +73,7 @@ export async function getRoyaltyReportDetail(tenantId: string, id: string) {
       approvedAt: royaltyReport.approvedAt,
       submittedAt: royaltyReport.submittedAt,
       contractId: royaltyReport.contractId,
+      licenseeId: royaltyReport.licenseeId,
       currencyIso: currency.isoCode,
       licenseeName: licensee.legalName,
       contractNumber: contract.contractNumber,
