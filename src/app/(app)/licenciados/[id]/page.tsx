@@ -3,6 +3,10 @@ import { requireSession } from "@/lib/auth";
 import { getLicensee, listSegments, listCountries } from "@/lib/data/licensees";
 import { saveLicensee } from "../actions";
 import { LicenseeForm } from "../licensee-form";
+import { AnonymizeLicensee } from "../anonymize-licensee";
+import { can } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/rbac";
+import { Badge } from "@/components/ui";
 
 export default async function EditLicenseePage({
   params,
@@ -33,11 +37,20 @@ export default async function EditLicenseePage({
     financialScore: licensee.financialScore ?? "",
   };
 
+  const isAnonymized = !!licensee.anonymizedAt;
+
   return (
     <div>
-      <h1 className="mb-1 text-xl font-bold">{licensee.legalName}</h1>
+      <h1 className="mb-1 flex flex-wrap items-center gap-2 text-xl font-bold">
+        {licensee.legalName}
+        {isAnonymized && <Badge tone="neutral">Anonimizado</Badge>}
+      </h1>
       <p className="mb-6 text-sm text-neutral-500">Editar licenciado</p>
       <LicenseeForm action={action} initial={initial} segments={segments} countries={countries} />
+
+      {can(session, PERMISSIONS.licenseeWrite) && (
+        <AnonymizeLicensee id={id} alreadyAnonymized={isAnonymized} />
+      )}
     </div>
   );
 }

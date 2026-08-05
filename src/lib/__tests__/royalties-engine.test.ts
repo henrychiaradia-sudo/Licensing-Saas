@@ -140,16 +140,42 @@ describe("computeRoyalty — híbrido, string e config inválida", () => {
     const r = computeRoyalty("100000", { royaltyType: "percentual", percentage: 10 });
     expect(r.royalty).toBeCloseTo(10000);
   });
-  it("ACHADO: piso > teto (config inválida) resulta no TETO — o piso é silenciosamente violado", () => {
-    // gross = 10% de 1000 = 100 → piso 5000 sobe p/ 5000 → teto 200 derruba p/ 200
+  it("CORRIGIDO (#5): piso > teto (config inválida) ignora o piso e respeita o teto", () => {
+    // gross = 10% de 1000 = 100; piso 5000 > teto 200 (inválido) → piso ignorado.
     const r = computeRoyalty(1000, {
       royaltyType: "percentual",
       percentage: 10,
       minRoyalty: 5000,
       maxRoyalty: 200,
     });
-    expect(r.royalty).toBeCloseTo(200); // fica ABAIXO do piso configurado
+    expect(r.royalty).toBeCloseTo(100); // valor calculado, dentro do teto
+    expect(r.royalty).toBeLessThanOrEqual(200); // nunca acima do teto
+    expect(r.minApplied).toBe(false); // piso inválido não é aplicado
+  });
+});
+
+describe("computeRoyalty — guarda de configuração inválida (piso > teto)", () => {
+  it("piso > teto: respeita o teto e NÃO aplica o piso inválido (achado do #5)", () => {
+    // gross = 1.000.000 * 5% = 50.000; piso 100.000 > teto 80.000 (inválido)
+    const r = computeRoyalty(1_000_000, {
+      royaltyType: "percentual",
+      percentage: 5,
+      minRoyalty: 100_000,
+      maxRoyalty: 80_000,
+    });
+    expect(r.royalty).toBeLessThanOrEqual(80_000); // nunca acima do teto
+    expect(r.royalty).toBeCloseTo(50_000); // fica no valor calculado (dentro do teto)
+    expect(r.minApplied).toBe(false); // piso inválido é ignorado
+  });
+
+  it("piso <= teto continua funcionando normalmente", () => {
+    const r = computeRoyalty(100, {
+      royaltyType: "percentual",
+      percentage: 10,
+      minRoyalty: 50,
+      maxRoyalty: 200,
+    });
+    expect(r.royalty).toBeCloseTo(50); // 10 < piso 50 → aplica piso
     expect(r.minApplied).toBe(true);
-    expect(r.maxApplied).toBe(true);
   });
 });

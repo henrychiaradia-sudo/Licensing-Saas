@@ -49,6 +49,11 @@ export async function saveRoyaltyRuleAction(
   if (d.royaltyType === "escalonado" && d.tiers.length === 0) {
     return { ok: false, error: "Adicione ao menos uma faixa para o tipo escalonado." };
   }
+  const minR = numOrNull(d.minRoyalty);
+  const maxR = numOrNull(d.maxRoyalty);
+  if (minR != null && maxR != null && minR > maxR) {
+    return { ok: false, error: "O piso mínimo não pode ser maior que o teto máximo." };
+  }
 
   try {
     await saveRoyaltyRule(session.tenantId, contractId, null, {

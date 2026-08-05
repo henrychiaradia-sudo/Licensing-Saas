@@ -145,6 +145,7 @@ export const licensee = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    anonymizedAt: timestamp("anonymized_at", { withTimezone: true }),
   },
   (t) => [unique("uq_licensee_tax").on(t.tenantId, t.taxId)],
 );

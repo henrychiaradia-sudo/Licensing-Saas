@@ -10,6 +10,8 @@ import { AiAssistantButton } from "@/components/ai-fab";
 import { ViewSelector } from "@/components/shell/view-selector";
 import { initials } from "@/lib/utils";
 import { LogOut, Search, Bell } from "lucide-react";
+import { getI18n } from "@/lib/i18n-server";
+import { LanguageSwitcher } from "@/components/shell/language-switcher";
 
 async function logoutAction() {
   "use server";
@@ -27,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     listLicenseeOptions(session.tenantId),
     listSupplierOptions(session.tenantId),
   ]);
+  const { locale, t } = await getI18n();
   return (
     <div className="flex min-h-screen">
       <a
@@ -46,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Search size={15} />
             <input
               name="q"
-              placeholder="Buscar contratos, produtos, fornecedores…"
+              placeholder={t("header.search")}
               className="w-64 bg-transparent text-sm text-neutral-800 outline-none dark:text-neutral-100"
             />
           </form>
@@ -56,10 +59,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               licensees={licensees.map((l) => ({ id: l.id, label: l.legalName }))}
               suppliers={suppliers.map((s) => ({ id: s.id, label: s.tradeName || s.legalName }))}
             />
+            <LanguageSwitcher locale={locale} className="hidden sm:inline-flex" />
             <Link
               href="/notificacoes"
-              aria-label="Notificações"
-              title="Notificações"
+              aria-label={t("header.notifications")}
+              title={t("header.notifications")}
               className="relative grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-blue-400 hover:text-blue-600 dark:border-neutral-700"
             >
               <Bell size={16} />
@@ -72,7 +76,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <ThemeToggle />
             <Link
               href="/seguranca"
-              title="Segurança da conta"
+              title={t("header.account")}
               className="flex items-center gap-2 rounded-lg px-1 py-0.5 hover:bg-neutral-100 dark:hover:bg-neutral-800"
             >
               <div className="grid h-8 w-8 place-items-center rounded-full alz-gradient text-xs font-bold text-white">
@@ -86,8 +90,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <form action={logoutAction}>
               <button
                 type="submit"
-                aria-label="Sair"
-                title="Sair"
+                aria-label={t("header.logout")}
+                title={t("header.logout")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-red-400 hover:text-red-600 dark:border-neutral-700"
               >
                 <LogOut size={16} />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FileSignature, FilePlus2, Send, Ban, Download, ShieldCheck } from "lucide-react";
-import { Card, Badge, Button } from "@/components/ui";
+import { Card, Badge } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
 import { fmtDate } from "@/lib/utils";
 import { DOCUMENT_STATUS_LABEL, type DocumentMeta } from "@/lib/data/generated-documents";
 import {
@@ -41,9 +42,9 @@ export function GeneratedDocsCard({
           <h2 className="text-sm font-semibold">Documentos & Assinatura</h2>
         </div>
         <form action={generate}>
-          <Button size="sm" type="submit">
+          <SubmitButton size="sm" pendingLabel="Gerando…">
             <FilePlus2 size={14} /> {genLabel}
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -80,16 +81,16 @@ export function GeneratedDocsCard({
                 </a>
                 {d.status === "rascunho" && (
                   <form action={sendForSignatureAction.bind(null, d.id)}>
-                    <Button size="sm" variant="outline" type="submit">
+                    <SubmitButton size="sm" variant="outline" pendingLabel="Enviando…">
                       <Send size={13} /> Enviar p/ assinatura
-                    </Button>
+                    </SubmitButton>
                   </form>
                 )}
                 {(d.status === "rascunho" || d.status === "aguardando_assinatura") && (
                   <form action={cancelDocumentAction.bind(null, d.id)}>
-                    <Button size="sm" variant="ghost" type="submit">
+                    <SubmitButton size="sm" variant="ghost" pendingLabel="Cancelando…">
                       <Ban size={13} /> Cancelar
-                    </Button>
+                    </SubmitButton>
                   </form>
                 )}
                 {d.status === "assinado" && (

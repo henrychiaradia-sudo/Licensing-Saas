@@ -61,6 +61,12 @@ export function RoyaltyRuleForm({
 
   async function onSubmit(data: RuleFormValues) {
     setMsg(null);
+    const minR = data.minRoyalty === "" ? null : Number(data.minRoyalty);
+    const maxR = data.maxRoyalty === "" ? null : Number(data.maxRoyalty);
+    if (minR != null && maxR != null && minR > maxR) {
+      setMsg({ ok: false, text: "O piso mínimo não pode ser maior que o teto máximo." });
+      return;
+    }
     setSaving(true);
     const res = await saveRoyaltyRuleAction(contractId, data);
     setSaving(false);

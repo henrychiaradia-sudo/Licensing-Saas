@@ -7,6 +7,8 @@ import { PortalNav, PortalNavMobile } from "./nav";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { initials } from "@/lib/utils";
 import { LogOut, Bell } from "lucide-react";
+import { getI18n } from "@/lib/i18n-server";
+import { LanguageSwitcher } from "@/components/shell/language-switcher";
 
 async function logoutAction() {
   "use server";
@@ -19,6 +21,7 @@ export default async function PortalLayout({ children }: { children: React.React
   const lic = await getLicenseeName(session.tenantId, session.licenseeId);
   const licName = lic?.tradeName ?? lic?.legalName ?? "Licenciado";
   const alerts = await portalAlertCount(session.tenantId, session.licenseeId);
+  const { locale, t } = await getI18n();
 
   return (
     <div className="flex min-h-screen">
@@ -48,10 +51,11 @@ export default async function PortalLayout({ children }: { children: React.React
           <PortalNavMobile />
           <div className="text-sm font-semibold">{licName}</div>
           <div className="ml-auto flex items-center gap-3">
+            <LanguageSwitcher locale={locale} className="hidden sm:inline-flex" />
             <Link
               href="/portal/notificacoes"
-              aria-label="Notificações"
-              title="Notificações"
+              aria-label={t("header.notifications")}
+              title={t("header.notifications")}
               className="relative grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-emerald-400 hover:text-emerald-600 dark:border-neutral-700"
             >
               <Bell size={16} />
@@ -74,8 +78,8 @@ export default async function PortalLayout({ children }: { children: React.React
             <form action={logoutAction}>
               <button
                 type="submit"
-                aria-label="Sair"
-                title="Sair"
+                aria-label={t("header.logout")}
+                title={t("header.logout")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-red-400 hover:text-red-600 dark:border-neutral-700"
               >
                 <LogOut size={16} />

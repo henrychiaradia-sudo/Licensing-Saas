@@ -5,6 +5,8 @@ import { SupplierNav, SupplierNavMobile } from "./nav";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { initials } from "@/lib/utils";
 import { LogOut } from "lucide-react";
+import { getI18n } from "@/lib/i18n-server";
+import { LanguageSwitcher } from "@/components/shell/language-switcher";
 
 async function logoutAction() {
   "use server";
@@ -16,6 +18,7 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
   const session = await requireSupplierSession();
   const sup = await getSupplierName(session.tenantId, session.supplierId);
   const supName = sup?.tradeName ?? sup?.legalName ?? "Fornecedor";
+  const { locale, t } = await getI18n();
 
   return (
     <div className="flex min-h-screen">
@@ -45,6 +48,7 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
           <SupplierNavMobile />
           <div className="text-sm font-semibold">{supName}</div>
           <div className="ml-auto flex items-center gap-3">
+            <LanguageSwitcher locale={locale} className="hidden sm:inline-flex" />
             <ThemeToggle />
             <div className="flex items-center gap-2">
               <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 text-xs font-bold text-white">
@@ -58,8 +62,8 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
             <form action={logoutAction}>
               <button
                 type="submit"
-                aria-label="Sair"
-                title="Sair"
+                aria-label={t("header.logout")}
+                title={t("header.logout")}
                 className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-500 hover:border-red-400 hover:text-red-600 dark:border-neutral-700"
               >
                 <LogOut size={16} />

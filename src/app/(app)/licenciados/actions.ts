@@ -4,11 +4,18 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireSession, can } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/rbac";
-import { createLicensee, updateLicensee, type LicenseeInput } from "@/lib/data/licensees";
+import {
+  createLicensee,
+  updateLicensee,
+  anonymizeLicensee,
+  type LicenseeInput,
+} from "@/lib/data/licensees";
+import { logAudit } from "@/lib/data/audit";
 import { licenseeSchema } from "./schema";
 import type { RiskRating } from "@/lib/db/schema";
 
 export type FormState = { error: string | null };
+export type AnonState = { ok?: boolean; error?: string };
 
 const RISKS = ["baixo", "medio", "alto", "critico"];
 
@@ -48,4 +55,28 @@ export async function saveLicensee(
 
   revalidatePath("/licenciados");
   redirect("/licenciados");
+}
+
+/** LGPD — anonimização (direito ao esquecimento) de um licenciado. Irreversível. */
+export async function anonymizeLicenseeAction(
+  id: string,
+  _prev: AnonState,
+  _formData: FormData,
+): Promise<AnonState> {
+  const session = await requireSession();
+  if (!can(session, PERMISSIONS.licenseeWrite)) {
+    return { error: "Você não tem permissão para anonimizar licenciados." };
+  }
+  await anonymizeLicensee(session.tenantId, id);
+  await logAudit(
+    session.tenantId,
+    session.userId,
+    "licensee.anonymize",
+    "licensee",
+    id,
+    "Dados do licenciado anonimizados (LGPD — direito ao esquecimento)",
+  );
+  revalidatePath(`/licenciados/${id}`);
+  revalidatePath("/licenciados");
+  return { ok: true };
 }

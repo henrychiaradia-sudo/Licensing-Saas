@@ -93,8 +93,11 @@ export function computeRoyalty(
     gross = b * toFraction(rule.percentage) + num(rule.fixedAmount);
   }
 
-  const min = rule?.minRoyalty != null && rule.minRoyalty !== "" ? num(rule.minRoyalty) : null;
+  let min = rule?.minRoyalty != null && rule.minRoyalty !== "" ? num(rule.minRoyalty) : null;
   const max = rule?.maxRoyalty != null && rule.maxRoyalty !== "" ? num(rule.maxRoyalty) : null;
+  // Guarda defensiva: configuração inválida (piso > teto) ignora o piso para
+  // respeitar o teto — o cadastro já bloqueia esse caso (constraint + validação).
+  if (min != null && max != null && min > max) min = null;
   let royalty = gross;
   let minApplied = false;
   let maxApplied = false;

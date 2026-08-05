@@ -85,6 +85,30 @@ export async function softDeleteLicensee(tenantId: string, id: string) {
     .where(and(eq(licensee.id, id), eq(licensee.tenantId, tenantId)));
 }
 
+/**
+ * LGPD — anonimização (direito ao esquecimento): remove os dados pessoais/
+ * identificáveis do licenciado mantendo o registro (integridade com contratos,
+ * royalties e financeiro). Irreversível.
+ */
+export async function anonymizeLicensee(tenantId: string, id: string) {
+  const now = new Date();
+  await db
+    .update(licensee)
+    .set({
+      legalName: "[Titular anonimizado]",
+      tradeName: null,
+      taxId: null,
+      website: null,
+      city: null,
+      state: null,
+      riskRating: null,
+      financialScore: null,
+      anonymizedAt: now,
+      updatedAt: now,
+    })
+    .where(and(eq(licensee.id, id), eq(licensee.tenantId, tenantId)));
+}
+
 export async function listSegments(tenantId: string) {
   return db
     .select({ id: segment.id, name: segment.name })
