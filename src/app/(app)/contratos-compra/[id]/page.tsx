@@ -160,10 +160,10 @@ export default async function ContratoCompraDetailPage({
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="px-5 py-2 font-medium">Pedido</th>
-                <th className="px-5 py-2 font-medium">Emissão</th>
-                <th className="px-5 py-2 text-right font-medium">Valor</th>
-                <th className="px-5 py-2 text-right font-medium">Status</th>
+                <th scope="col" className="px-5 py-2 font-medium">Pedido</th>
+                <th scope="col" className="px-5 py-2 font-medium">Emissão</th>
+                <th scope="col" className="px-5 py-2 text-right font-medium">Valor</th>
+                <th scope="col" className="px-5 py-2 text-right font-medium">Status</th>
               </tr>
             </thead>
             <tbody>

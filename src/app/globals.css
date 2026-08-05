@@ -44,3 +44,22 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* Acessibilidade — contorno de foco visível para navegação por teclado.
+   Usa :where() (especificidade 0) para servir de base sem sobrepor rings próprios. */
+:where(a, button, [role="button"], input, select, textarea, summary):focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+/* Respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

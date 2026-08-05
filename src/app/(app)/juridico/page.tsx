@@ -155,13 +155,13 @@ export default async function JuridicoPage({
         <table className="w-full min-w-[880px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Caso</th>
-              <th className="px-5 py-3 font-medium">Tipo</th>
-              <th className="px-5 py-3 font-medium">Prioridade</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium">Contraparte</th>
-              <th className="px-5 py-3 text-right font-medium">Valor em risco</th>
-              <th className="px-5 py-3 font-medium">Prazo</th>
+              <th scope="col" className="px-5 py-3 font-medium">Caso</th>
+              <th scope="col" className="px-5 py-3 font-medium">Tipo</th>
+              <th scope="col" className="px-5 py-3 font-medium">Prioridade</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">Contraparte</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Valor em risco</th>
+              <th scope="col" className="px-5 py-3 font-medium">Prazo</th>
             </tr>
           </thead>
           <tbody>

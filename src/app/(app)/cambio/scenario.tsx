@@ -82,10 +82,10 @@ export function Scenario({ rows }: { rows: Row[] }) {
           <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="py-2 pr-4 font-medium">Moeda</th>
-                <th className="py-2 pr-4 text-right font-medium">Exposição líquida</th>
-                <th className="py-2 pr-4 text-right font-medium">No cenário</th>
-                <th className="py-2 text-right font-medium">Impacto</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Moeda</th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">Exposição líquida</th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">No cenário</th>
+                <th scope="col" className="py-2 text-right font-medium">Impacto</th>
               </tr>
             </thead>
             <tbody>

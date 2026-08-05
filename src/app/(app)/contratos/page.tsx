@@ -150,14 +150,14 @@ export default async function ContratosPage({
         <table className="w-full min-w-[1080px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Licenciado</th>
-              <th className="px-5 py-3 font-medium">Vigência Inicial</th>
-              <th className="px-5 py-3 font-medium">Vigência Expiração</th>
-              <th className="px-5 py-3 font-medium">E-mail do Responsável</th>
-              <th className="px-5 py-3 font-medium">Telefone do Responsável</th>
-              <th className="px-5 py-3 text-right font-medium">Garantia mínima</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium">Arquivo PDF</th>
+              <th scope="col" className="px-5 py-3 font-medium">Licenciado</th>
+              <th scope="col" className="px-5 py-3 font-medium">Vigência Inicial</th>
+              <th scope="col" className="px-5 py-3 font-medium">Vigência Expiração</th>
+              <th scope="col" className="px-5 py-3 font-medium">E-mail do Responsável</th>
+              <th scope="col" className="px-5 py-3 font-medium">Telefone do Responsável</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Garantia mínima</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">Arquivo PDF</th>
             </tr>
           </thead>
           <tbody>

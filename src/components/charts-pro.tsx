@@ -520,7 +520,7 @@ export function DataTable({
         <thead>
           <tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
             {columns.map((c) => (
-              <th key={c.key} className={cn("px-2 py-2 font-medium", c.align === "right" && "text-right")}>
+              <th scope="col" key={c.key} className={cn("px-2 py-2 font-medium", c.align === "right" && "text-right")}>
                 {c.label}
               </th>
             ))}

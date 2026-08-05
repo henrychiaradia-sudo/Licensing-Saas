@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlianzaLogo } from "@/components/logo";
+import { MobileNav } from "@/components/shell/mobile-nav";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 type NavGroup = { title: string; items: NavItem[] };
@@ -117,7 +118,7 @@ export function Sidebar() {
         <AlianzaLogo tileSize={32} wordClassName="text-[15px]" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+      <nav aria-label="Navegação principal" className="flex-1 overflow-y-auto px-3 pb-4">
         {groups.map((group) => (
           <div key={group.title}>
             <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
@@ -129,6 +130,7 @@ export function Sidebar() {
                 <Link
                   key={href}
                   href={href}
+                  aria-current={active ? "page" : undefined}
                   className={cn(
                     "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium",
                     active
@@ -152,4 +154,9 @@ export function Sidebar() {
       </div>
     </aside>
   );
+}
+
+/** Botão + drawer de navegação para telas pequenas (usado no header do app). */
+export function SidebarMobile() {
+  return <MobileNav groups={groups} accent="blue" title="ALIANZA" />;
 }

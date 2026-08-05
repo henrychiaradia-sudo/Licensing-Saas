@@ -147,14 +147,14 @@ export default async function CatalogPage({
         <table className="w-full min-w-[980px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">SKU</th>
-              <th className="px-5 py-3 font-medium">Item</th>
-              <th className="px-5 py-3 font-medium">Categoria</th>
-              <th className="px-5 py-3 font-medium">Grade</th>
-              <th className="px-5 py-3 font-medium">Público</th>
-              <th className="px-5 py-3 text-right font-medium">Preço tabela</th>
-              <th className="px-5 py-3 text-right font-medium">Preço custo</th>
-              <th className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">SKU</th>
+              <th scope="col" className="px-5 py-3 font-medium">Item</th>
+              <th scope="col" className="px-5 py-3 font-medium">Categoria</th>
+              <th scope="col" className="px-5 py-3 font-medium">Grade</th>
+              <th scope="col" className="px-5 py-3 font-medium">Público</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Preço tabela</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Preço custo</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>

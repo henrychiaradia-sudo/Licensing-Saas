@@ -216,7 +216,7 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-2 py-2 font-medium">Certificação</th><th className="px-2 py-2 font-medium">Nº</th><th className="px-2 py-2 font-medium">Emissor</th><th className="px-2 py-2 font-medium">Validade</th><th className="px-2 py-2 font-medium">Situação</th><th className="px-2 py-2"></th>
+              <th scope="col" className="px-2 py-2 font-medium">Certificação</th><th scope="col" className="px-2 py-2 font-medium">Nº</th><th scope="col" className="px-2 py-2 font-medium">Emissor</th><th scope="col" className="px-2 py-2 font-medium">Validade</th><th scope="col" className="px-2 py-2 font-medium">Situação</th><th scope="col" className="px-2 py-2"></th>
             </tr></thead>
             <tbody>
               {certs.map((c) => {
@@ -244,7 +244,7 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
             <thead><tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-2 py-2 font-medium">Data</th><th className="px-2 py-2 font-medium">Tipo</th><th className="px-2 py-2 font-medium">Resultado</th><th className="px-2 py-2 text-right font-medium">Score</th><th className="px-2 py-2 font-medium">Auditor</th><th className="px-2 py-2"></th>
+              <th scope="col" className="px-2 py-2 font-medium">Data</th><th scope="col" className="px-2 py-2 font-medium">Tipo</th><th scope="col" className="px-2 py-2 font-medium">Resultado</th><th scope="col" className="px-2 py-2 text-right font-medium">Score</th><th scope="col" className="px-2 py-2 font-medium">Auditor</th><th scope="col" className="px-2 py-2"></th>
             </tr></thead>
             <tbody>
               {audits.map((a) => (
@@ -270,13 +270,13 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
           <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="px-2 py-2 font-medium">Tipo</th>
-                <th className="px-2 py-2 font-medium">Documento</th>
-                <th className="px-2 py-2 font-medium">Emissor</th>
-                <th className="px-2 py-2 font-medium">Validade</th>
-                <th className="px-2 py-2 font-medium">Status</th>
-                <th className="px-2 py-2 font-medium">Responsável</th>
-                <th className="px-2 py-2"></th>
+                <th scope="col" className="px-2 py-2 font-medium">Tipo</th>
+                <th scope="col" className="px-2 py-2 font-medium">Documento</th>
+                <th scope="col" className="px-2 py-2 font-medium">Emissor</th>
+                <th scope="col" className="px-2 py-2 font-medium">Validade</th>
+                <th scope="col" className="px-2 py-2 font-medium">Status</th>
+                <th scope="col" className="px-2 py-2 font-medium">Responsável</th>
+                <th scope="col" className="px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -381,11 +381,11 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
               <table className="w-full min-w-[680px] text-sm">
                 <thead>
                   <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                    <th className="px-2 py-2 font-medium">Item</th>
-                    <th className="px-2 py-2 font-medium">Categoria</th>
-                    <th className="px-2 py-2 text-right font-medium">Peso</th>
-                    <th className="px-2 py-2 font-medium">Resultado</th>
-                    <th className="px-2 py-2 font-medium">Atual</th>
+                    <th scope="col" className="px-2 py-2 font-medium">Item</th>
+                    <th scope="col" className="px-2 py-2 font-medium">Categoria</th>
+                    <th scope="col" className="px-2 py-2 text-right font-medium">Peso</th>
+                    <th scope="col" className="px-2 py-2 font-medium">Resultado</th>
+                    <th scope="col" className="px-2 py-2 font-medium">Atual</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -470,7 +470,7 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
           <div className="mb-5 overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead><tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="px-3 py-2 font-medium">Período</th><th className="px-3 py-2 text-right font-medium">Qual.</th><th className="px-3 py-2 text-right font-medium">Entr.</th><th className="px-3 py-2 text-right font-medium">Custo</th><th className="px-3 py-2 text-right font-medium">Conf.</th><th className="px-3 py-2 text-right font-medium">Geral</th><th className="px-3 py-2 font-medium">Risco</th>
+                <th scope="col" className="px-3 py-2 font-medium">Período</th><th scope="col" className="px-3 py-2 text-right font-medium">Qual.</th><th scope="col" className="px-3 py-2 text-right font-medium">Entr.</th><th scope="col" className="px-3 py-2 text-right font-medium">Custo</th><th scope="col" className="px-3 py-2 text-right font-medium">Conf.</th><th scope="col" className="px-3 py-2 text-right font-medium">Geral</th><th scope="col" className="px-3 py-2 font-medium">Risco</th>
               </tr></thead>
               <tbody>
                 {evaluations.map((e) => (
@@ -501,7 +501,7 @@ export default async function FornecedorDetailPage({ params }: { params: Promise
         <div className="p-5 pb-2"><h2 className="flex items-center gap-2 text-sm font-semibold"><Star size={15} className="text-blue-500" /> Pedidos de compra</h2></div>
         <table className="w-full text-sm">
           <thead><tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-            <th className="px-5 py-2 font-medium">Pedido</th><th className="px-5 py-2 font-medium">Data</th><th className="px-5 py-2 font-medium">Previsão</th><th className="px-5 py-2 text-right font-medium">Valor</th><th className="px-5 py-2 font-medium">Status</th>
+            <th scope="col" className="px-5 py-2 font-medium">Pedido</th><th scope="col" className="px-5 py-2 font-medium">Data</th><th scope="col" className="px-5 py-2 font-medium">Previsão</th><th scope="col" className="px-5 py-2 text-right font-medium">Valor</th><th scope="col" className="px-5 py-2 font-medium">Status</th>
           </tr></thead>
           <tbody>
             {orders.map((o) => (
@@ -585,8 +585,8 @@ function SubTable({
       <table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-            {headers.map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}
-            <th className="px-2 py-2"></th>
+            {headers.map((h) => <th scope="col" key={h} className="px-2 py-2 font-medium">{h}</th>)}
+            <th scope="col" className="px-2 py-2"></th>
           </tr>
         </thead>
         <tbody>

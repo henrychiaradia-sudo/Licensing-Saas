@@ -155,11 +155,11 @@ export default async function SourcingPage({
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-neutral-100 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                      <th className="px-5 py-2 font-medium">Fornecedor</th>
-                      <th className="px-5 py-2 text-right font-medium">Proposta</th>
-                      <th className="px-5 py-2 text-right font-medium">Lead time</th>
-                      <th className="px-5 py-2 text-right font-medium">Qualidade</th>
-                      <th className="px-5 py-2 font-medium"></th>
+                      <th scope="col" className="px-5 py-2 font-medium">Fornecedor</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Proposta</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Lead time</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Qualidade</th>
+                      <th scope="col" className="px-5 py-2 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>

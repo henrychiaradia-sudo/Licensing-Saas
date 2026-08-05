@@ -228,11 +228,11 @@ export default async function AuditoriaPage({
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Data / hora</th>
-              <th className="px-5 py-3 font-medium">Usuário</th>
-              <th className="px-5 py-3 font-medium">Ação</th>
-              <th className="px-5 py-3 font-medium">Entidade</th>
-              <th className="px-5 py-3 font-medium">Detalhe</th>
+              <th scope="col" className="px-5 py-3 font-medium">Data / hora</th>
+              <th scope="col" className="px-5 py-3 font-medium">Usuário</th>
+              <th scope="col" className="px-5 py-3 font-medium">Ação</th>
+              <th scope="col" className="px-5 py-3 font-medium">Entidade</th>
+              <th scope="col" className="px-5 py-3 font-medium">Detalhe</th>
             </tr>
           </thead>
           <tbody>

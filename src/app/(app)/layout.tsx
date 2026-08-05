@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSession, logout } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { Sidebar } from "@/components/shell/sidebar";
+import { Sidebar, SidebarMobile } from "@/components/shell/sidebar";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { unreadCount } from "@/lib/data/notifications";
 import { listBrandOptions, listLicenseeOptions } from "@/lib/data/contracts";
@@ -29,9 +29,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ]);
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Pular para o conteúdo
+      </a>
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-neutral-200 bg-white/90 px-5 py-2.5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
+          <SidebarMobile />
           <form
             action="/busca"
             className="hidden items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5 text-neutral-400 sm:flex dark:border-neutral-700"
@@ -88,7 +95,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1400px] flex-1 p-6">{children}</main>
+        <main id="conteudo" className="mx-auto w-full max-w-[1400px] flex-1 p-6">
+          {children}
+        </main>
       </div>
       <AiAssistantButton />
     </div>

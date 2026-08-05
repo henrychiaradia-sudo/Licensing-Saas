@@ -61,11 +61,11 @@ export default async function ChecklistDetailPage({ params }: { params: Promise<
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="px-3 py-2 font-medium">Item</th>
-                <th className="px-3 py-2 font-medium">Categoria</th>
-                <th className="px-3 py-2 text-right font-medium">Peso</th>
-                <th className="px-3 py-2 font-medium">Obrigatório</th>
-                <th className="px-3 py-2"></th>
+                <th scope="col" className="px-3 py-2 font-medium">Item</th>
+                <th scope="col" className="px-3 py-2 font-medium">Categoria</th>
+                <th scope="col" className="px-3 py-2 text-right font-medium">Peso</th>
+                <th scope="col" className="px-3 py-2 font-medium">Obrigatório</th>
+                <th scope="col" className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>

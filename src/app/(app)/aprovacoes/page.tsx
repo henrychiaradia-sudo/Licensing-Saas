@@ -87,12 +87,12 @@ export default async function AprovacoesPage() {
           <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="px-5 py-2 font-medium">Requisição</th>
-                <th className="px-5 py-2 font-medium">Solicitante</th>
-                <th className="px-5 py-2 text-right font-medium">Estimativa</th>
-                <th className="px-5 py-2 font-medium">Nível atual</th>
-                <th className="px-5 py-2 text-right font-medium">Necessário</th>
-                <th className="px-5 py-2 text-right font-medium">Ação</th>
+                <th scope="col" className="px-5 py-2 font-medium">Requisição</th>
+                <th scope="col" className="px-5 py-2 font-medium">Solicitante</th>
+                <th scope="col" className="px-5 py-2 text-right font-medium">Estimativa</th>
+                <th scope="col" className="px-5 py-2 font-medium">Nível atual</th>
+                <th scope="col" className="px-5 py-2 text-right font-medium">Necessário</th>
+                <th scope="col" className="px-5 py-2 text-right font-medium">Ação</th>
               </tr>
             </thead>
             <tbody>

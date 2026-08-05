@@ -46,11 +46,11 @@ export default async function PortalRoyalties() {
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Competência</th>
-              <th className="px-5 py-3 font-medium">Contrato</th>
-              <th className="px-5 py-3 text-right font-medium">Vendas líq.</th>
-              <th className="px-5 py-3 text-right font-medium">Royalty</th>
-              <th className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">Competência</th>
+              <th scope="col" className="px-5 py-3 font-medium">Contrato</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Vendas líq.</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Royalty</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>

@@ -69,13 +69,13 @@ export default async function DocumentosGeradosPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                <th className="px-4 py-3 font-semibold">Número</th>
-                <th className="px-4 py-3 font-semibold">Tipo</th>
-                <th className="px-4 py-3 font-semibold">Licenciado</th>
-                <th className="px-4 py-3 font-semibold">Situação</th>
-                <th className="px-4 py-3 font-semibold">Signatário</th>
-                <th className="px-4 py-3 font-semibold">Emitido</th>
-                <th className="px-4 py-3 text-right font-semibold">Ações</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Número</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Tipo</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Licenciado</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Situação</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Signatário</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Emitido</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody>

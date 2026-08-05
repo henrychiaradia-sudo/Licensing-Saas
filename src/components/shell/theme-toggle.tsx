@@ -22,8 +22,10 @@ export function ThemeToggle() {
 
   return (
     <button
+      type="button"
       onClick={toggle}
       aria-label="Alternar tema claro/escuro"
+      aria-pressed={dark}
       className="grid h-9 w-9 place-items-center rounded-lg border border-neutral-200 text-neutral-600 hover:border-blue-500 hover:text-blue-600 dark:border-neutral-700 dark:text-neutral-300"
     >
       {dark ? <Sun size={17} /> : <Moon size={17} />}

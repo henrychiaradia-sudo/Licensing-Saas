@@ -51,13 +51,13 @@ export default async function SupplierPerformancePage() {
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-3 py-2 font-medium">Período</th>
-                  <th className="px-3 py-2 text-right font-medium">Qual.</th>
-                  <th className="px-3 py-2 text-right font-medium">Entr.</th>
-                  <th className="px-3 py-2 text-right font-medium">Custo</th>
-                  <th className="px-3 py-2 text-right font-medium">Conf.</th>
-                  <th className="px-3 py-2 text-right font-medium">Geral</th>
-                  <th className="px-3 py-2 font-medium">Risco</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Período</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Qual.</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Entr.</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Custo</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Conf.</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Geral</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Risco</th>
                 </tr>
               </thead>
               <tbody>

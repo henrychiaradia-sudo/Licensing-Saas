@@ -64,12 +64,12 @@ export default async function LicenciadosPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                <th className="px-4 py-3 font-semibold">Razão social</th>
-                <th className="px-4 py-3 font-semibold">Segmento</th>
-                <th className="px-4 py-3 font-semibold">País</th>
-                <th className="px-4 py-3 font-semibold">Score</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 text-right font-semibold">Ações</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Razão social</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Segmento</th>
+                <th scope="col" className="px-4 py-3 font-semibold">País</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Score</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Status</th>
+                <th scope="col" className="px-4 py-3 text-right font-semibold">Ações</th>
               </tr>
             </thead>
             <tbody>

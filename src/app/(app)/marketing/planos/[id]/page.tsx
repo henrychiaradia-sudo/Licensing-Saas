@@ -148,11 +148,11 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
             <table className="w-full min-w-[620px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-3 py-2 font-medium">Campanha</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 text-right font-medium">Orçado</th>
-                  <th className="px-3 py-2 text-right font-medium">Realizado</th>
-                  <th className="px-3 py-2 text-right font-medium">Receita</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Campanha</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Status</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Orçado</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Realizado</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Receita</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,10 +184,10 @@ export default async function PlanDetailPage({ params }: { params: Promise<{ id:
             <table className="w-full min-w-[560px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-3 py-2 font-medium">Ação</th>
-                  <th className="px-3 py-2 font-medium">Tática</th>
-                  <th className="px-3 py-2 text-right font-medium">Gasto</th>
-                  <th className="px-3 py-2 text-right font-medium">Receita</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Ação</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Tática</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Gasto</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Receita</th>
                 </tr>
               </thead>
               <tbody>

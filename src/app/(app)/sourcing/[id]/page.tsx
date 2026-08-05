@@ -241,19 +241,19 @@ export default async function SourcingDetailPage({
         <table className="w-full min-w-[1120px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-4 py-2 font-medium">#</th>
-              <th className="px-4 py-2 font-medium">Fornecedor</th>
-              <th className="px-4 py-2 text-right font-medium">Custo total</th>
-              <th className="px-4 py-2 text-right font-medium">MOQ</th>
-              <th className="px-4 py-2 text-right font-medium">Prazo</th>
-              <th className="px-4 py-2 text-right font-medium">Qual.</th>
-              <th className="px-4 py-2 text-right font-medium">Capac.</th>
-              <th className="px-4 py-2 text-right font-medium">Compl.</th>
-              <th className="px-4 py-2 text-right font-medium">Perf.</th>
-              <th className="px-4 py-2 text-right font-medium">Técnica</th>
-              <th className="px-4 py-2 text-right font-medium">Pagto</th>
-              <th className="px-4 py-2 text-right font-medium">Nota</th>
-              <th className="px-4 py-2 text-right font-medium">Ação</th>
+              <th scope="col" className="px-4 py-2 font-medium">#</th>
+              <th scope="col" className="px-4 py-2 font-medium">Fornecedor</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Custo total</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">MOQ</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Prazo</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Qual.</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Capac.</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Compl.</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Perf.</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Técnica</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Pagto</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Nota</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Ação</th>
             </tr>
           </thead>
           <tbody>

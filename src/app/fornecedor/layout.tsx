@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireSupplierSession, logout } from "@/lib/auth";
 import { getSupplierName } from "@/lib/data/supplier-portal";
-import { SupplierNav } from "./nav";
+import { SupplierNav, SupplierNavMobile } from "./nav";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import { initials } from "@/lib/utils";
 import { LogOut } from "lucide-react";
@@ -19,6 +19,12 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
 
   return (
     <div className="flex min-h-screen">
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-indigo-600 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"
+      >
+        Pular para o conteúdo
+      </a>
       <aside className="hidden w-60 shrink-0 flex-col border-r border-neutral-200 bg-white md:flex dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center gap-2.5 px-5 py-4 text-[15px] font-bold">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-blue-500 text-white">
@@ -36,6 +42,7 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-neutral-200 bg-white/90 px-5 py-2.5 backdrop-blur dark:border-neutral-800 dark:bg-neutral-900/90">
+          <SupplierNavMobile />
           <div className="text-sm font-semibold">{supName}</div>
           <div className="ml-auto flex items-center gap-3">
             <ThemeToggle />
@@ -60,7 +67,9 @@ export default async function SupplierPortalLayout({ children }: { children: Rea
             </form>
           </div>
         </header>
-        <main className="mx-auto w-full max-w-[1100px] flex-1 p-6">{children}</main>
+        <main id="conteudo" className="mx-auto w-full max-w-[1100px] flex-1 p-6">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -71,13 +71,13 @@ export default async function FornecedoresPage() {
         <table className="w-full min-w-[880px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Fornecedor</th>
-              <th className="px-5 py-3 font-medium">Tipo</th>
-              <th className="px-5 py-3 font-medium">Categoria</th>
-              <th className="px-5 py-3 font-medium">Local</th>
-              <th className="px-5 py-3 text-right font-medium">Lead time</th>
-              <th className="px-5 py-3 text-right font-medium">Rating</th>
-              <th className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium">Fornecedor</th>
+              <th scope="col" className="px-5 py-3 font-medium">Tipo</th>
+              <th scope="col" className="px-5 py-3 font-medium">Categoria</th>
+              <th scope="col" className="px-5 py-3 font-medium">Local</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Lead time</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Rating</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>

@@ -118,11 +118,11 @@ export default async function VerbasPage() {
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-5 py-2.5 font-medium">Campanha</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Orçado</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Realizado</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Saldo</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Execução</th>
+                  <th scope="col" className="px-5 py-2.5 font-medium">Campanha</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Orçado</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Realizado</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Saldo</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Execução</th>
                 </tr>
               </thead>
               <tbody>

@@ -114,11 +114,11 @@ export default async function CambioPage() {
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="py-2 pr-4 font-medium">Moeda</th>
-                <th className="py-2 pr-4 text-right font-medium">Cotação (BRL)</th>
-                <th className="py-2 pr-4 text-right font-medium">Variação</th>
-                <th className="py-2 pr-4 font-medium">Evolução</th>
-                <th className="py-2 text-right font-medium">Atualizado</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Moeda</th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">Cotação (BRL)</th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">Variação</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Evolução</th>
+                <th scope="col" className="py-2 text-right font-medium">Atualizado</th>
               </tr>
             </thead>
             <tbody>
@@ -188,12 +188,12 @@ export default async function CambioPage() {
               <table className="w-full min-w-[620px] text-sm">
                 <thead>
                   <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                    <th className="py-2 pr-3 font-medium">Moeda</th>
-                    <th className="py-2 pr-3 text-right font-medium">Exposição (moeda)</th>
-                    <th className="py-2 pr-3 text-right font-medium">Exposição (BRL)</th>
-                    <th className="py-2 pr-3 text-right font-medium">Coberto</th>
-                    <th className="py-2 pr-3 text-right font-medium">Líquido (BRL)</th>
-                    <th className="py-2 text-right font-medium">Cobertura</th>
+                    <th scope="col" className="py-2 pr-3 font-medium">Moeda</th>
+                    <th scope="col" className="py-2 pr-3 text-right font-medium">Exposição (moeda)</th>
+                    <th scope="col" className="py-2 pr-3 text-right font-medium">Exposição (BRL)</th>
+                    <th scope="col" className="py-2 pr-3 text-right font-medium">Coberto</th>
+                    <th scope="col" className="py-2 pr-3 text-right font-medium">Líquido (BRL)</th>
+                    <th scope="col" className="py-2 text-right font-medium">Cobertura</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -280,14 +280,14 @@ export default async function CambioPage() {
             <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="py-2 pr-3 font-medium">Contrato</th>
-                  <th className="py-2 pr-3 font-medium">Moeda</th>
-                  <th className="py-2 pr-3 font-medium">Instrumento</th>
-                  <th className="py-2 pr-3 text-right font-medium">Notional</th>
-                  <th className="py-2 pr-3 text-right font-medium">Taxa</th>
-                  <th className="py-2 pr-3 text-right font-medium">Valor (BRL)</th>
-                  <th className="py-2 pr-3 text-right font-medium">Vencimento</th>
-                  <th className="py-2 text-right font-medium">Status</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Contrato</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Moeda</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Instrumento</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">Notional</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">Taxa</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">Valor (BRL)</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">Vencimento</th>
+                  <th scope="col" className="py-2 text-right font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -334,11 +334,11 @@ export default async function CambioPage() {
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="py-2 pr-3 font-medium">Pedido</th>
-                  <th className="py-2 pr-3 font-medium">Fornecedor</th>
-                  <th className="py-2 pr-3 font-medium">Status</th>
-                  <th className="py-2 pr-3 text-right font-medium">Valor (moeda)</th>
-                  <th className="py-2 text-right font-medium">Equivalente (BRL)</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Pedido</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Fornecedor</th>
+                  <th scope="col" className="py-2 pr-3 font-medium">Status</th>
+                  <th scope="col" className="py-2 pr-3 text-right font-medium">Valor (moeda)</th>
+                  <th scope="col" className="py-2 text-right font-medium">Equivalente (BRL)</th>
                 </tr>
               </thead>
               <tbody>

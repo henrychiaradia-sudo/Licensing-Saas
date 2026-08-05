@@ -126,12 +126,12 @@ export default async function ProdutosPage({
           <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                <th className="px-4 py-3 font-semibold">Marca</th>
-                <th className="px-4 py-3 font-semibold">Foto</th>
-                <th className="px-4 py-3 font-semibold">SKU / Produto</th>
-                <th className="px-4 py-3 font-semibold">Licenciado</th>
-                <th className="px-4 py-3 font-semibold">Progresso</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Marca</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Foto</th>
+                <th scope="col" className="px-4 py-3 font-semibold">SKU / Produto</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Licenciado</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Progresso</th>
+                <th scope="col" className="px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>

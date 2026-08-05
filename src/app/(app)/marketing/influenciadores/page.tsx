@@ -45,12 +45,12 @@ export default async function InfluencersPage() {
                 <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                      <th className="px-4 py-2.5 font-medium">Nome</th>
-                      <th className="px-4 py-2.5 font-medium">Plataforma</th>
-                      <th className="px-4 py-2.5 font-medium">Segmento</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Seguidores</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Cachê</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Alcance entreg.</th>
+                      <th scope="col" className="px-4 py-2.5 font-medium">Nome</th>
+                      <th scope="col" className="px-4 py-2.5 font-medium">Plataforma</th>
+                      <th scope="col" className="px-4 py-2.5 font-medium">Segmento</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Seguidores</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Cachê</th>
+                      <th scope="col" className="px-4 py-2.5 text-right font-medium">Alcance entreg.</th>
                     </tr>
                   </thead>
                   <tbody>

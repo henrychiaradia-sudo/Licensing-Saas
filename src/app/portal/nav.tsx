@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MobileNav } from "@/components/shell/mobile-nav";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 type NavGroup = { title: string; items: NavItem[] };
@@ -60,7 +61,7 @@ const groups: NavGroup[] = [
 export function PortalNav() {
   const path = usePathname();
   return (
-    <nav className="flex-1 overflow-y-auto px-3 pb-4">
+    <nav aria-label="Navegação do portal" className="flex-1 overflow-y-auto px-3 pb-4">
       {groups.map((group) => (
         <div key={group.title}>
           <p className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
@@ -72,6 +73,7 @@ export function PortalNav() {
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] font-medium",
                   active
@@ -88,4 +90,9 @@ export function PortalNav() {
       ))}
     </nav>
   );
+}
+
+/** Botão + drawer de navegação do portal para telas pequenas. */
+export function PortalNavMobile() {
+  return <MobileNav groups={groups} accent="emerald" title="Portal Licenciado" home="/portal" />;
 }

@@ -226,10 +226,10 @@ export default async function ContratoDetailPage({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                <th className="py-2 pr-4 font-medium">Tipo</th>
-                <th className="py-2 pr-4 font-medium">Vencimento</th>
-                <th className="py-2 pr-4 font-medium">Recorrência</th>
-                <th className="py-2 pr-4 text-right font-medium">Valor</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Tipo</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Vencimento</th>
+                <th scope="col" className="py-2 pr-4 font-medium">Recorrência</th>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">Valor</th>
               </tr>
             </thead>
             <tbody>

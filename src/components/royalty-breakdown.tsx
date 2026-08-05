@@ -45,10 +45,10 @@ export function RoyaltyBreakdown({
         <table className="w-full min-w-[520px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="py-2 pr-4 font-medium">Faixa</th>
-              <th className="py-2 pr-4 text-right font-medium">Base</th>
-              <th className="py-2 pr-4 text-right font-medium">Alíquota</th>
-              <th className="py-2 text-right font-medium">Royalty</th>
+              <th scope="col" className="py-2 pr-4 font-medium">Faixa</th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">Base</th>
+              <th scope="col" className="py-2 pr-4 text-right font-medium">Alíquota</th>
+              <th scope="col" className="py-2 text-right font-medium">Royalty</th>
             </tr>
           </thead>
           <tbody>

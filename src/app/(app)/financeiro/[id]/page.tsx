@@ -93,10 +93,10 @@ export default async function ReceivableDetail({ params }: { params: Promise<{ i
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-2 font-medium">Data</th>
-              <th className="px-5 py-2 font-medium">Método</th>
-              <th className="px-5 py-2 font-medium">Referência</th>
-              <th className="px-5 py-2 text-right font-medium">Valor</th>
+              <th scope="col" className="px-5 py-2 font-medium">Data</th>
+              <th scope="col" className="px-5 py-2 font-medium">Método</th>
+              <th scope="col" className="px-5 py-2 font-medium">Referência</th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">Valor</th>
             </tr>
           </thead>
           <tbody>

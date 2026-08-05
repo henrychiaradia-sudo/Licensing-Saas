@@ -35,11 +35,11 @@ export default async function HomologacaoPage() {
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-3 font-medium">Checklist</th>
-              <th className="px-5 py-3 font-medium">Tipo de fornecedor</th>
-              <th className="px-5 py-3 text-right font-medium">Itens</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium"></th>
+              <th scope="col" className="px-5 py-3 font-medium">Checklist</th>
+              <th scope="col" className="px-5 py-3 font-medium">Tipo de fornecedor</th>
+              <th scope="col" className="px-5 py-3 text-right font-medium">Itens</th>
+              <th scope="col" className="px-5 py-3 font-medium">Status</th>
+              <th scope="col" className="px-5 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>

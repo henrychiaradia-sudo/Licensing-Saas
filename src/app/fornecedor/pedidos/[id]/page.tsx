@@ -74,11 +74,11 @@ export default async function SupplierPoDetailPage({
         <table className="w-full min-w-[640px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-5 py-2 font-medium">Descrição</th>
-              <th className="px-5 py-2 text-right font-medium">Qtd.</th>
-              <th className="px-5 py-2 text-right font-medium">Recebido</th>
-              <th className="px-5 py-2 text-right font-medium">Preço</th>
-              <th className="px-5 py-2 text-right font-medium">Total</th>
+              <th scope="col" className="px-5 py-2 font-medium">Descrição</th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">Qtd.</th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">Recebido</th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">Preço</th>
+              <th scope="col" className="px-5 py-2 text-right font-medium">Total</th>
             </tr>
           </thead>
           <tbody>

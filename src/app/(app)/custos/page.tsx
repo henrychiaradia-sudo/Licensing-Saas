@@ -60,12 +60,12 @@ export default async function CostSheetsPage({
             <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-4 py-2.5 font-medium">Ficha</th>
-                  <th className="px-4 py-2.5 font-medium">Produto</th>
-                  <th className="px-4 py-2.5 text-right font-medium">CIF</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Custo total</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Preço sugerido</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Margem</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Ficha</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Produto</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">CIF</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Custo total</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Preço sugerido</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Margem</th>
                 </tr>
               </thead>
               <tbody>

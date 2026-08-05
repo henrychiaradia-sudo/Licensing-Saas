@@ -241,14 +241,14 @@ export function ReportForm({ contracts, defaultRef }: { contracts: Contract[]; d
         <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-              <th className="px-4 py-2 font-medium">SKU</th>
-              <th className="px-4 py-2 font-medium">Produto</th>
-              <th className="px-4 py-2 text-right font-medium">Unid.</th>
-              <th className="px-4 py-2 text-right font-medium">Venda bruta</th>
-              <th className="px-4 py-2 text-right font-medium">Deduções</th>
-              <th className="px-4 py-2 text-right font-medium">Líquido</th>
-              <th className="px-4 py-2 text-right font-medium">Royalty</th>
-              <th className="px-4 py-2"></th>
+              <th scope="col" className="px-4 py-2 font-medium">SKU</th>
+              <th scope="col" className="px-4 py-2 font-medium">Produto</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Unid.</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Venda bruta</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Deduções</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Líquido</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">Royalty</th>
+              <th scope="col" className="px-4 py-2"></th>
             </tr>
           </thead>
           <tbody>

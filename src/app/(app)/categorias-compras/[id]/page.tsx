@@ -117,11 +117,11 @@ export default async function PurchaseCategoryDetailPage({
             <table className="w-full min-w-[640px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800">
-                  <th className="px-3 py-2 font-medium">Pedido</th>
-                  <th className="px-3 py-2 font-medium">Fornecedor</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Data</th>
-                  <th className="px-3 py-2 text-right font-medium">Valor</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Pedido</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Fornecedor</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Status</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Data</th>
+                  <th scope="col" className="px-3 py-2 text-right font-medium">Valor</th>
                 </tr>
               </thead>
               <tbody>

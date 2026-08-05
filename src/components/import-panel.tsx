@@ -134,14 +134,14 @@ export function ImportPanel({
             <table className="w-full min-w-[720px] text-sm">
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] uppercase tracking-wide text-neutral-400 dark:border-neutral-800 dark:bg-neutral-900">
-                  <th className="px-3 py-2 font-medium">Linha</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Linha</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Status</th>
                   {displayColumns.map((c) => (
-                    <th key={c} className="px-3 py-2 font-medium">
+                    <th scope="col" key={c} className="px-3 py-2 font-medium">
                       {c}
                     </th>
                   ))}
-                  <th className="px-3 py-2 font-medium">Observações</th>
+                  <th scope="col" className="px-3 py-2 font-medium">Observações</th>
                 </tr>
               </thead>
               <tbody>
