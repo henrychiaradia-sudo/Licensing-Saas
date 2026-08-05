@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, type LucideIcon } from "lucide-react";
@@ -32,11 +33,15 @@ export function MobileNav({
   home?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const path = usePathname();
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
+
+  // Necessário para o portal: só há document.body após montar no cliente.
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -93,9 +98,11 @@ export function MobileNav({
         <Menu size={18} />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={close} aria-hidden="true" />
+      {open &&
+        mounted &&
+        createPortal(
+          <div className="fixed inset-0 z-50 md:hidden">
+            <div className="absolute inset-0 bg-black/40" onClick={close} aria-hidden="true" />
           <div
             ref={panelRef}
             id="mobile-nav-panel"
@@ -147,8 +154,9 @@ export function MobileNav({
               ))}
             </nav>
           </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
