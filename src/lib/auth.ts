@@ -1,8 +1,8 @@
 import "server-only";
 import bcrypt from "bcryptjs";
-import { and, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
+import { db, setTenantContext } from "@/lib/db";
 import { appUser, userRole, role, rolePermission, permission } from "@/lib/db/schema";
 import { createSession, destroySession, getSession, type SessionData } from "./session";
 import { logAudit } from "@/lib/data/audit";
@@ -17,13 +17,31 @@ export async function authenticate(
   password: string,
   code?: string,
 ): Promise<AuthResult> {
-  const rows = await db
-    .select()
-    .from(appUser)
-    .where(and(eq(appUser.email, email), eq(appUser.status, "ativo")))
-    .limit(1);
-  const user = rows[0];
-  if (!user || !user.passwordHash) return { ok: false, error: "Credenciais inválidas." };
+  // Busca o usuário por e-mail ANTES de saber a empresa. Sob RLS, isso usa uma
+  // função SECURITY DEFINER dedicada (a forma segura de "furar" o isolamento só
+  // para o login). Sem RLS, funciona igual.
+  const found = (await db.execute(
+    sql`select * from auth_user_by_email(${email})`,
+  )) as unknown as Array<Record<string, unknown>>;
+  const raw = found[0];
+  if (!raw || !raw.password_hash) return { ok: false, error: "Credenciais inválidas." };
+  const user = {
+    id: raw.id as string,
+    tenantId: raw.tenant_id as string,
+    name: raw.name as string,
+    email: raw.email as string,
+    passwordHash: raw.password_hash as string,
+    isInternal: Boolean(raw.is_internal),
+    licenseeId: (raw.licensee_id as string | null) ?? null,
+    supplierId: (raw.supplier_id as string | null) ?? null,
+    mfaEnabled: Boolean(raw.mfa_enabled),
+    mfaSecret: (raw.mfa_secret as string | null) ?? null,
+    failedLoginAttempts: (raw.failed_login_attempts as number | null) ?? 0,
+    lockedUntil: (raw.locked_until as Date | null) ?? null,
+  };
+  // Já sabemos a empresa: vestimos o crachá para as próximas queries (tentativas,
+  // permissões, auditoria) rodarem sob a RLS.
+  setTenantContext(user.tenantId);
 
   // Conta bloqueada?
   if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
@@ -113,6 +131,7 @@ export async function logout() {
 export async function requireSession(): Promise<SessionData> {
   const session = await getSession();
   if (!session) redirect("/login");
+  setTenantContext(session.tenantId);
   return session;
 }
 
@@ -121,6 +140,7 @@ export async function requireLicenseeSession(): Promise<SessionData & { licensee
   const session = await getSession();
   if (!session) redirect("/login");
   if (!session.licenseeId) redirect("/dashboard");
+  setTenantContext(session.tenantId);
   return session as SessionData & { licenseeId: string };
 }
 
@@ -129,6 +149,7 @@ export async function requireSupplierSession(): Promise<SessionData & { supplier
   const session = await getSession();
   if (!session) redirect("/login");
   if (!session.supplierId) redirect("/dashboard");
+  setTenantContext(session.tenantId);
   return session as SessionData & { supplierId: string };
 }
 

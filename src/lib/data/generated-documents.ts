@@ -557,38 +557,28 @@ export type VerifyResult = {
 export async function verifyDocument(code: string): Promise<VerifyResult | null> {
   const clean = code.trim().toUpperCase();
   if (!clean) return null;
-  const [row] = await db
-    .select({
-      title: generatedDocument.title,
-      number: generatedDocument.number,
-      docType: generatedDocument.docType,
-      status: generatedDocument.status,
-      issuedAt: generatedDocument.createdAt,
-      signerName: generatedDocument.signerName,
-      signerCpf: generatedDocument.signerCpf,
-      signedAt: generatedDocument.signedAt,
-      sourceSha256: generatedDocument.sourceSha256,
-      verificationCode: generatedDocument.verificationCode,
-      licenseeName: licensee.legalName,
-    })
-    .from(generatedDocument)
-    .leftJoin(licensee, eq(licensee.id, generatedDocument.licenseeId))
-    .where(and(eq(generatedDocument.verificationCode, clean), isNull(generatedDocument.deletedAt)))
-    .limit(1);
+  // Busca pública por código de verificação (entre empresas). Sob RLS, usa uma
+  // função SECURITY DEFINER dedicada. Sem RLS, funciona igual.
+  const found = (await db.execute(
+    sql`select * from verify_document_by_code(${clean})`,
+  )) as unknown as Array<Record<string, unknown>>;
+  const row = found[0];
   if (!row) return null;
+  const docType = row.doc_type as DocumentType;
+  const status = row.status as DocumentStatus;
   return {
     found: true,
-    title: row.title,
-    number: row.number,
-    docTypeLabel: DOCUMENT_TYPE_LABEL[row.docType] ?? row.docType,
-    status: row.status,
-    statusLabel: DOCUMENT_STATUS_LABEL[row.status] ?? row.status,
-    licenseeName: row.licenseeName,
-    issuedAt: row.issuedAt,
-    signerName: row.signerName,
-    signerCpfMasked: maskCpf(row.signerCpf),
-    signedAt: row.signedAt,
-    sourceSha256: row.sourceSha256,
-    verificationCode: row.verificationCode,
+    title: row.title as string,
+    number: row.number as string,
+    docTypeLabel: DOCUMENT_TYPE_LABEL[docType] ?? String(row.doc_type),
+    status,
+    statusLabel: DOCUMENT_STATUS_LABEL[status] ?? String(row.status),
+    licenseeName: (row.licensee_name as string | null) ?? null,
+    issuedAt: row.issued_at as Date,
+    signerName: (row.signer_name as string | null) ?? null,
+    signerCpfMasked: maskCpf(row.signer_cpf as string | null),
+    signedAt: (row.signed_at as Date | null) ?? null,
+    sourceSha256: row.source_sha256 as string,
+    verificationCode: row.verification_code as string,
   };
 }
