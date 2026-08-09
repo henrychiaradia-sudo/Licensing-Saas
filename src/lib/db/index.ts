@@ -3,13 +3,16 @@ import postgres from "postgres";
 import { AsyncLocalStorage } from "node:async_hooks";
 import * as schema from "./schema";
 
-const connectionString = process.env.DATABASE_URL ?? "";
-
 // Interruptor da RLS na aplicação. Enquanto `false` (padrão), o comportamento é
 // IDÊNTICO ao histórico: o cliente é usado direto, sem crachá e sem transação extra.
-// Só ligamos (`RLS_ENFORCED=true` + DATABASE_URL apontando para o papel sem bypass)
-// na virada — e é reversível.
+// Só ligamos na virada (RLS_ENFORCED=true + DATABASE_URL_RLS) — e é reversível:
+// basta desligar RLS_ENFORCED que o app volta a usar o DATABASE_URL original.
 const RLS_ENFORCED = process.env.RLS_ENFORCED === "true";
+
+// Quando a RLS está ligada, conecta pelo papel SEM bypass via DATABASE_URL_RLS,
+// mantendo o DATABASE_URL original intocado (reversão instantânea = desligar o flag).
+const connectionString =
+  (RLS_ENFORCED && process.env.DATABASE_URL_RLS) || process.env.DATABASE_URL || "";
 
 const globalForDb = globalThis as unknown as { pg?: ReturnType<typeof postgres> };
 
