@@ -73,6 +73,13 @@ export default async function LoginPage({
             </Button>
           </form>
 
+          <p className="mt-5 text-center text-sm text-neutral-500">
+            {t("login.noAccount")}{" "}
+            <Link href="/cadastro" className="font-semibold text-blue-600 hover:underline">
+              {t("login.createAccount")}
+            </Link>
+          </p>
+
           <a
             href={whatsappLink("Olá! Preciso de ajuda para acessar a ALIANZA.")}
             target="_blank"
