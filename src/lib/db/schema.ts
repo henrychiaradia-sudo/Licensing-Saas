@@ -119,6 +119,23 @@ export const segment = pgTable(
   (t) => [unique("uq_segment_name").on(t.tenantId, t.name)],
 );
 
+/**
+ * Pendências de auto-cadastro (dupla confirmação por e-mail). Guarda os dados da
+ * empresa e o hash da senha ATÉ o e-mail ser confirmado; só então a empresa é
+ * criada de verdade (provisionTenant). Fluxo pré-tenant — sem tenant_id.
+ */
+export const signupVerification = pgTable("signup_verification", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  companyName: text("company_name").notNull(),
+  adminName: text("admin_name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  consumedAt: timestamp("consumed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const country = pgTable("country", {
   id: uuid("id").primaryKey().defaultRandom(),
   iso2: char("iso2", { length: 2 }).notNull().unique(),
